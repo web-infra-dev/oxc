@@ -78,6 +78,7 @@ doc_lazy_continuation   = "allow" # FIXME
 oxc                       = { version = "0.24.2", path = "crates/oxc" }
 oxc_allocator             = { version = "0.24.2", path = "crates/oxc_allocator" }
 oxc_ast                   = { version = "0.24.2", path = "crates/oxc_ast" }
+oxc_type_ast              = { version = "0.24.1", path = "crates/oxc_type_ast" }
 oxc_codegen               = { version = "0.24.2", path = "crates/oxc_codegen" }
 oxc_diagnostics           = { version = "0.24.2", path = "crates/oxc_diagnostics" }
 oxc_index                 = { version = "0.24.2", path = "crates/oxc_index" }
@@ -202,6 +203,7 @@ oxc_ast_macros.opt-level = 1
 # See: https://insta.rs/docs/quickstart/#optional-faster-runs
 insta.opt-level   = 3
 similar.opt-level = 3
+oxc_linter.debug  = true
 
 [profile.release.package.oxc_wasm]
 opt-level = 'z'

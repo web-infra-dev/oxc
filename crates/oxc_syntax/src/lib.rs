@@ -12,4 +12,5 @@ pub mod precedence;
 pub mod reference;
 pub mod scope;
 pub mod symbol;
+pub mod types;
 pub mod xml_entities;

@@ -2005,6 +2005,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxc_type_ast"
+version = "0.24.1"
+dependencies = [
+ "bitflags 2.6.0",
+ "num-bigint",
+ "oxc_allocator",
+ "oxc_ast_macros",
+ "oxc_span",
+ "oxc_syntax",
+ "serde",
+ "serde_json",
+ "static_assertions",
+ "tsify",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "oxc_type_checker"
+version = "0.24.1"
+dependencies = [
+ "assert-unchecked",
+ "indexmap",
+ "itertools 0.13.0",
+ "oxc_allocator",
+ "oxc_diagnostics",
+ "oxc_index",
+ "oxc_span",
+ "oxc_syntax",
+ "oxc_type_ast",
+ "phf 0.11.2",
+ "rustc-hash",
+ "static_assertions",
+]
+
+[[package]]
 name = "oxc_wasm"
 version = "0.0.0"
 dependencies = [
