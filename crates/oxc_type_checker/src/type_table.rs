@@ -6,6 +6,7 @@ use oxc_syntax::{
 };
 // use oxc_type_ast::Type;
 
+#[must_use]
 #[derive(Debug, Default)]
 pub struct TypeTable<'a> {
     types: IndexVec<TypeId, Type<'a>>,
@@ -29,6 +30,16 @@ pub struct TypeTable<'a> {
 }
 
 impl<'a> TypeTable<'a> {
+    #[inline]
+    pub fn get_type(&self, id: TypeId) -> &Type<'a> {
+        &self.types[id]
+    }
+
+    #[inline]
+    pub fn get_flags(&self, id: TypeId) -> TypeFlags {
+        self.flags[id]
+    }
+
     pub(crate) fn create_type(
         &mut self,
         r#type: Type<'a>,

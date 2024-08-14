@@ -1,8 +1,10 @@
+mod composite;
 mod get_type;
 mod intrinsics;
 mod settings;
+mod type_ref;
 
-use std::rc::Rc;
+use std::{cell::Ref, rc::Rc};
 
 use oxc_allocator::Allocator;
 #[allow(clippy::wildcard_imports)]
@@ -11,7 +13,7 @@ use oxc_ast::Visit;
 use oxc_semantic::Semantic;
 use oxc_syntax::types::{TypeFlags, TypeId};
 
-use crate::TypeBuilder;
+use crate::{ast::Type, TypeBuilder};
 use intrinsics::Intrinsics;
 use settings::CheckerSettings;
 
@@ -24,6 +26,7 @@ pub struct Checker<'a> {
     semantic: Rc<Semantic<'a>>,
 }
 
+// public interface
 impl<'a> Checker<'a> {
     pub fn new(alloc: &'a Allocator, semantic: Rc<Semantic<'a>>) -> Self {
         let settings = CheckerSettings::default();
@@ -31,6 +34,17 @@ impl<'a> Checker<'a> {
         let intrinsics = Intrinsics::new(&builder, &settings);
 
         Self { settings, builder, intrinsics, semantic }
+    }
+}
+
+// crate-public getters
+impl<'a> Checker<'a> {
+    pub(crate) fn get_flags(&self, type_id: TypeId) -> TypeFlags {
+        self.builder.table().get_flags(type_id)
+    }
+
+    pub(crate) fn get_type(&self, type_id: TypeId) -> Ref<'_, Type<'a>> {
+        Ref::map(self.builder.table(), |table| table.get_type(type_id))
     }
 }
 

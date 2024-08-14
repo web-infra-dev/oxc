@@ -5,3 +5,4 @@ mod type_table;
 
 pub(crate) use type_builder::TypeBuilder;
 pub use type_table::TypeTable;
+pub use checker::Checker;

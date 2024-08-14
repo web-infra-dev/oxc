@@ -1,5 +1,7 @@
+mod ast_impl;
 mod literal;
 
+use std::{ops, cell::{Ref, RefMut}};
 pub use literal::*;
 use oxc_allocator::{Box, Vec};
 use oxc_syntax::types::{ObjectFlags, TypeId};
@@ -14,9 +16,11 @@ pub enum Type<'a> {
 #[derive(Debug)]
 pub struct IntrinsicType<'a> {
     pub name: &'a str,
+    // TODO: optimize size by removing debug_name in release builds?
     // #[cfg(debug_assertions)]
-    pub(crate) debug_name: Option<&'a str>, // TODO: freshability
+    pub(crate) debug_name: Option<&'a str>,
     pub object_flags: ObjectFlags,
+    // TODO: freshability
 }
 
 #[derive(Debug)]

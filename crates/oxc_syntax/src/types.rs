@@ -244,3 +244,10 @@ bitflags! {
         const IsConstrainedTypeVariable = 1 << 26;
     }
 }
+
+impl TypeFlags {
+    #[inline]
+    pub const fn is_union(self) -> bool {
+        self.contains(Self::Union)
+    }
+}
