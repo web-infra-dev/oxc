@@ -133,94 +133,6 @@ bitflags! {
     }
 }
 
-/*
-// Types included in TypeFlags.ObjectFlagsType have an objectFlags property. Some ObjectFlags
-// are specific to certain types and reuse the same bit position. Those ObjectFlags require a check
-// for a certain TypeFlags value to determine their meaning.
-// dprint-ignore
-export const enum ObjectFlags {
-    None             = 0,
-    Class            = 1 << 0,  // Class
-    Interface        = 1 << 1,  // Interface
-    Reference        = 1 << 2,  // Generic type reference
-    Tuple            = 1 << 3,  // Synthesized generic tuple type
-    Anonymous        = 1 << 4,  // Anonymous
-    Mapped           = 1 << 5,  // Mapped
-    Instantiated     = 1 << 6,  // Instantiated anonymous or mapped type
-    ObjectLiteral    = 1 << 7,  // Originates in an object literal
-    EvolvingArray    = 1 << 8,  // Evolving array type
-    ObjectLiteralPatternWithComputedProperties = 1 << 9,  // Object literal pattern with computed properties
-    ReverseMapped    = 1 << 10, // Object contains a property from a reverse-mapped type
-    JsxAttributes    = 1 << 11, // Jsx attributes type
-    JSLiteral        = 1 << 12, // Object type declared in JS - disables errors on read/write of nonexisting members
-    FreshLiteral     = 1 << 13, // Fresh object literal
-    ArrayLiteral     = 1 << 14, // Originates in an array literal
-    /** @internal */
-    PrimitiveUnion   = 1 << 15, // Union of only primitive types
-    /** @internal */
-    ContainsWideningType = 1 << 16, // Type is or contains undefined or null widening type
-    /** @internal */
-    ContainsObjectOrArrayLiteral = 1 << 17, // Type is or contains object literal type
-    /** @internal */
-    NonInferrableType = 1 << 18, // Type is or contains anyFunctionType or silentNeverType
-    /** @internal */
-    CouldContainTypeVariablesComputed = 1 << 19, // CouldContainTypeVariables flag has been computed
-    /** @internal */
-    CouldContainTypeVariables = 1 << 20, // Type could contain a type variable
-
-    ClassOrInterface = Class | Interface,
-    /** @internal */
-    RequiresWidening = ContainsWideningType | ContainsObjectOrArrayLiteral,
-    /** @internal */
-    PropagatingFlags = ContainsWideningType | ContainsObjectOrArrayLiteral | NonInferrableType,
-    /** @internal */
-    InstantiatedMapped = Mapped | Instantiated,
-    // Object flags that uniquely identify the kind of ObjectType
-    /** @internal */
-    ObjectTypeKindMask = ClassOrInterface | Reference | Tuple | Anonymous | Mapped | ReverseMapped | EvolvingArray,
-
-    // Flags that require TypeFlags.Object
-    ContainsSpread   = 1 << 21,  // Object literal contains spread operation
-    ObjectRestType   = 1 << 22,  // Originates in object rest declaration
-    InstantiationExpressionType = 1 << 23,  // Originates in instantiation expression
-    SingleSignatureType = 1 << 27,  // A single signature type extracted from a potentially broader type
-    /** @internal */
-    IsClassInstanceClone = 1 << 24, // Type is a clone of a class instance type
-    // Flags that require TypeFlags.Object and ObjectFlags.Reference
-    /** @internal */
-    IdenticalBaseTypeCalculated = 1 << 25, // has had `getSingleBaseForNonAugmentingSubtype` invoked on it already
-    /** @internal */
-    IdenticalBaseTypeExists = 1 << 26, // has a defined cachedEquivalentBaseType member
-
-    // Flags that require TypeFlags.UnionOrIntersection or TypeFlags.Substitution
-    /** @internal */
-    IsGenericTypeComputed = 1 << 21, // IsGenericObjectType flag has been computed
-    /** @internal */
-    IsGenericObjectType = 1 << 22, // Union or intersection contains generic object type
-    /** @internal */
-    IsGenericIndexType = 1 << 23, // Union or intersection contains generic index type
-    /** @internal */
-    IsGenericType = IsGenericObjectType | IsGenericIndexType,
-
-    // Flags that require TypeFlags.Union
-    /** @internal */
-    ContainsIntersections = 1 << 24, // Union contains intersections
-    /** @internal */
-    IsUnknownLikeUnionComputed = 1 << 25, // IsUnknownLikeUnion flag has been computed
-    /** @internal */
-    IsUnknownLikeUnion = 1 << 26, // Union of null, undefined, and empty object type
-    /** @internal */
-
-    // Flags that require TypeFlags.Intersection
-    /** @internal */
-    IsNeverIntersectionComputed = 1 << 24, // IsNeverLike flag has been computed
-    /** @internal */
-    IsNeverIntersection = 1 << 25, // Intersection reduces to never
-    /** @internal */
-    IsConstrainedTypeVariable = 1 << 26, // T & C, where T's constraint and C are primitives, object, or {}
-}
-*/
-
 bitflags! {
     /// Object flags further qualify [`TypeFlags`] for object types.
     ///
@@ -229,7 +141,7 @@ bitflags! {
     /// > are specific to certain types and reuse the same bit position. Those ObjectFlags require a check
     /// > for a certain TypeFlags value to determine their meaning.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    struct ObjectFlags: u32 {
+    pub struct ObjectFlags: u32 {
         const None = 0;
         /// Class
         const Class = 1 << 0;
