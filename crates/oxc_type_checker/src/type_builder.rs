@@ -1,19 +1,21 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::*;
 use std::{
-    cell::{RefCell, RefMut},
+    cell::{Ref, RefCell, RefMut},
     fmt,
+    ops::Deref,
     rc::Rc,
 };
 
 use oxc_allocator::{Allocator, Box};
+use oxc_semantic::SymbolId;
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 // use oxc_type_ast::Type;
 
 use crate::TypeTable;
 
 #[derive(Clone)]
-pub struct TypeBuilder<'a> {
+pub(crate) struct TypeBuilder<'a> {
     alloc: &'a Allocator,
     table: Rc<RefCell<TypeTable<'a>>>,
 }
@@ -27,7 +29,11 @@ impl<'a> TypeBuilder<'a> {
         Box::new_in(value, self.alloc)
     }
 
-    fn table(&self) -> RefMut<'_, TypeTable<'a>> {
+    pub fn table(&self) -> Ref<'_, TypeTable<'a>> {
+        self.table.as_ref().borrow()
+    }
+
+    fn table_mut(&self) -> RefMut<'_, TypeTable<'a>> {
         self.table.as_ref().borrow_mut()
     }
 
@@ -50,9 +56,31 @@ impl<'a> TypeBuilder<'a> {
         debug_name: Option<&'a str>,
     ) -> TypeId {
         let ty = Type::Intrinsic(self.alloc(IntrinsicType { name, debug_name, object_flags }));
-        self.table().create_type(ty, flags, None, None)
+        self.table_mut().create_type(ty, flags, None, None)
     }
+
+    // /// Creates a [`UnionType`]
+    // pub fn create_union_type(
+    //     &self,
+    //     types: &[TypeId],
+    //     union_reduction: UnionReduction,
+    //     alias_symbol: Option<SymbolId>,
+    //     type_alias_arguments: Option<&[TypeId]>,
+    //     origin: Option<TypeId>,
+    // ) -> TypeId {
+    //     match types.len() {
+    //         0 => self.table.
+    //     }
+    // }
 }
+
+// #[derive(Debug, Default, Clone, Copy, PartialEq, Ord)]
+// pub enum UnionReduction {
+//     None = 0,
+//     #[default]
+//     Literal,
+//     Subtype,
+// }
 
 impl fmt::Debug for TypeBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

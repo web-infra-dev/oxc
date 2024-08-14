@@ -74,11 +74,7 @@ pub(crate) struct Intrinsics {
 }
 
 impl Intrinsics {
-    pub fn new<'a>(
-        builder: &TypeBuilder<'a>,
-        settings: &CheckerSettings,
-        // /* strict_null_checks: bool, */ exact_optional_property_types: bool,
-    ) -> Self {
+    pub fn new<'a>(builder: &TypeBuilder<'a>, settings: &CheckerSettings) -> Self {
         let any = builder.create_intrinsic_type(TypeFlags::Any, "any", None);
         let auto = builder.create_intrinsic_type(TypeFlags::Any, "any", Some("auto"));
         let wildcard = builder.create_intrinsic_type(TypeFlags::Any, "any", Some("wildcard"));

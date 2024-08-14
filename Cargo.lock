@@ -2017,7 +2017,6 @@ dependencies = [
  "oxc_syntax",
  "phf 0.11.2",
  "rustc-hash",
- "static_assertions",
 ]
 
 [[package]]

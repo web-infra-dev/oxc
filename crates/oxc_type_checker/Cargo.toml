@@ -33,8 +33,5 @@ phf              = { workspace = true, features = ["macros"] }
 rustc-hash       = { workspace = true }
 itertools        = { workspace = true }
 
-[dev-dependencies]
-static_assertions = { workspace = true }
-
 [features]
 default = []
