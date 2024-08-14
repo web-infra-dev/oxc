@@ -3,14 +3,11 @@ use crate::ast::*;
 use std::{
     cell::{Ref, RefCell, RefMut},
     fmt,
-    ops::Deref,
     rc::Rc,
 };
 
 use oxc_allocator::{Allocator, Box};
-use oxc_semantic::SymbolId;
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
-// use oxc_type_ast::Type;
 
 use crate::TypeTable;
 

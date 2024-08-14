@@ -6,11 +6,11 @@ use super::Checker;
 
 /// See: checker.ts, line 19871, getTypeFromTypeNodeWorker
 pub(crate) trait GetTypeFromTypeNode<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId;
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId;
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         match self {
             Self::TSAnyKeyword(_) => checker.intrinsics.any,
             Self::TSUnknownKeyword(_) => checker.intrinsics.unknown,
@@ -45,31 +45,31 @@ impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSThisType {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSThisType): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSLiteralType<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSLiteralType): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeReference<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypeReference): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypePredicate<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypePredicate): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeQuery<'a> {
-    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypeQuery): {:?}", self)
     }
 }
