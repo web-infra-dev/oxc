@@ -9,4 +9,7 @@ declare module "foo" {
 	interface Foo {}
 	const foo = 42;
 }
-export {};
+declare global {
+	interface Bar {}
+	const bar = 42;
+}
