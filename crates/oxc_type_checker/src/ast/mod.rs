@@ -1,7 +1,6 @@
 mod ast_impl;
 mod literal;
 
-use std::{ops, cell::{Ref, RefMut}};
 pub use literal::*;
 use oxc_allocator::{Box, Vec};
 use oxc_syntax::types::{ObjectFlags, TypeId};

@@ -1,6 +1,7 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::*;
 use std::{
+    ops::{Deref, DerefMut},
     cell::{Ref, RefCell, RefMut},
     fmt,
     rc::Rc,
