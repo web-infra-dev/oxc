@@ -96,12 +96,6 @@ impl<'a> Traverse<'a> for React<'a> {
         }
     }
 
-    fn enter_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.jsx_plugin {
-            self.jsx.enter_expression(expr, ctx);
-        }
-    }
-
     fn enter_call_expression(
         &mut self,
         call_expr: &mut CallExpression<'a>,
@@ -130,6 +124,9 @@ impl<'a> Traverse<'a> for React<'a> {
     }
 
     fn exit_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
+        if self.jsx_plugin {
+            self.jsx.enter_expression(expr, ctx);
+        }
         if self.refresh_plugin {
             self.refresh.exit_expression(expr, ctx);
         }

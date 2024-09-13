@@ -1,10 +1,9 @@
 commit: 3bcfee23
 
-Passed: 330/1022
+Passed: 318/1022
 
 # All Passed:
 * babel-plugin-transform-optional-catch-binding
-* babel-preset-react
 * babel-plugin-transform-react-display-name
 * babel-plugin-transform-react-jsx-self
 * babel-plugin-transform-react-jsx-source
@@ -3466,7 +3465,37 @@ after transform: ["T", "f"]
 rebuilt        : ["f"]
 
 
-# babel-plugin-transform-react-jsx (124/144)
+# babel-preset-react (7/9)
+* preset-options/development/input.js
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-preset-react/test/fixtures/preset-options/development/input.js:1:1]
+ 1 | <Foo bar="baz" />;
+   : ^
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-preset-react/test/fixtures/preset-options/development/input.js:1:1]
+ 1 | <Foo bar="baz" />;
+   : ^
+   `----
+
+
+* preset-options/development-runtime-automatic/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-preset-react/test/fixtures/preset-options/development-runtime-automatic/input.js:1:1]
+ 1 | <Foo bar="baz" />
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-preset-react/test/fixtures/preset-options/development-runtime-automatic/input.js:1:1]
+ 1 | <Foo bar="baz" />
+   : ^
+   `----
+
+
+
+# babel-plugin-transform-react-jsx (122/144)
 * pure/false-pragma-comment-automatic-runtime/input.js
 pragma and pragmaFrag cannot be set when runtime is automatic.
 
@@ -3484,6 +3513,9 @@ pragma and pragmaFrag cannot be set when runtime is automatic.
 
 * pure/unset-pragma-option-automatic-runtime/input.js
 pragma and pragmaFrag cannot be set when runtime is automatic.
+
+* react/arrow-functions/input.js
+x Output mismatch
 
 * react/should-disallow-spread-children/input.js
 Spread children are not supported in React.
@@ -3523,6 +3555,9 @@ importSource cannot be set when runtime is classic.
 
 * react/should-warn-when-importSource-pragma-is-set/input.js
 importSource cannot be set when runtime is classic.
+
+* react-automatic/arrow-functions/input.js
+x Output mismatch
 
 * react-automatic/does-not-add-source-self-automatic/input.mjs
 transform-react-jsx: unknown field `autoImport`, expected one of `runtime`, `development`, `throwIfNamespace`, `pure`, `importSource`, `pragma`, `pragmaFrag`, `useBuiltIns`, `useSpread`, `refresh`
@@ -3570,8 +3605,164 @@ x Output mismatch
 x Output mismatch
 
 
-# babel-plugin-transform-react-jsx-development (8/11)
+# babel-plugin-transform-react-jsx-development (0/11)
+* cross-platform/auto-import-dev/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+
+* cross-platform/classic-runtime/input.js
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/classic-runtime/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |     <>
+   `----
+
+
 * cross-platform/disallow-__self-as-jsx-attribute/input.js
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/disallow-__self-as-jsx-attribute/input.js:1:14]
+ 1 | var x = <div __self={self}></div>;
+   :              ^^^^^^
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/disallow-__self-as-jsx-attribute/input.js:1:1]
+ 1 | var x = <div __self={self}></div>;
+   : ^
+   `----
+
   ! Duplicate __self prop found.
    ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/disallow-__self-as-jsx-attribute/input.js:1:14]
  1 | var x = <div __self={self}></div>;
@@ -3586,8 +3777,329 @@ x Output mismatch
    :              ^^^^^^^^
    `----
 
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/disallow-__source-as-jsx-attribute/input.js:1:14]
+ 1 | var x = <div __source={source}></div>;
+   :              ^^^^^^^^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/disallow-__source-as-jsx-attribute/input.js:1:1]
+ 1 | var x = <div __source={source}></div>;
+   : ^
+   `----
+
+
+* cross-platform/fragments/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/fragments/input.js:1:1]
+ 1 | var x = <><div /></>;
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/fragments/input.js:1:1]
+ 1 | var x = <><div /></>;
+   : ^
+   `----
+
+
+* cross-platform/handle-fragments-with-key/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-fragments-with-key/input.js:1:1]
+ 1 | var x = <React.Fragment key="foo"></React.Fragment>;
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-fragments-with-key/input.js:1:1]
+ 1 | var x = <React.Fragment key="foo"></React.Fragment>;
+   : ^
+   `----
+
+
+* cross-platform/handle-nonstatic-children/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-nonstatic-children/input.js:1:1]
+ 1 | var x = <div>{[<span key={"0"} />, <span key={"1"} />]}</div>;
+   : ^
+   `----
+
+
+* cross-platform/handle-static-children/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <div>
+   `----
+
+
+* cross-platform/source-and-self-defined/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
+ 1 | var x = (
+   : ^
+ 2 |   <>
+   `----
+
+
+* cross-platform/within-derived-classes-constructor/input.js
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-derived-classes-constructor/input.js:1:1]
+ 1 | class A { }
+   : ^
+ 2 | 
+   `----
+
 
 * cross-platform/within-ts-module-block/input.ts
-x Output mismatch
+  ! Duplicate __source prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-ts-module-block/input.ts:1:1]
+ 1 | export namespace Namespaced {
+   : ^
+ 2 |     export const Component = () => (
+   `----
+
+  ! Duplicate __self prop found.
+   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/within-ts-module-block/input.ts:1:1]
+ 1 | export namespace Namespaced {
+   : ^
+ 2 |     export const Component = () => (
+   `----
+
 
 
