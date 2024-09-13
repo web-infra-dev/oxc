@@ -511,19 +511,19 @@ impl<'a> ReactJsx<'a> {
         // Append children to object properties in automatic mode
         if is_automatic {
             let allocator = self.ast().allocator;
-            let mut children = Vec::from_iter_in(
-                children.iter().filter_map(|child| self.transform_jsx_child(child, ctx)),
-                allocator,
-            );
-            let children_len = children.len();
+            let mut children =
+                children.iter().filter_map(|child| self.transform_jsx_child(child, ctx));
+
+            let children_len = children.by_ref().count();
+
             if children_len != 0 {
-                let value = if children_len == 1 {
-                    children.pop().unwrap()
+                let value = if children.by_ref().count() == 1 {
+                    let mut res = children.collect::<std::vec::Vec<_>>();
+                    res.pop().unwrap()
+                    // children.collect::<std::vec::Vec<_>>().pop().unwrap()
                 } else {
-                    let elements = Vec::from_iter_in(
-                        children.into_iter().map(ArrayExpressionElement::from),
-                        allocator,
-                    );
+                    let elements =
+                        Vec::from_iter_in(children.map(ArrayExpressionElement::from), allocator);
                     need_jsxs = true;
                     self.ast().expression_array(SPAN, elements, None)
                 };

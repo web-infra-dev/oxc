@@ -28,6 +28,7 @@ on:
   push:
     branches:
       - main
+      - 09-13-refactor_transformer_call_transform_jsx_in_exit_expression_instead_of_enter_expression-test
     paths:
       - "**/*.rs"
       - "napi/parser/**/*.js"

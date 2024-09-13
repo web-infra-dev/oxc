@@ -1,6 +1,6 @@
 commit: 3bcfee23
 
-Passed: 318/1022
+Passed: 284/1022
 
 # All Passed:
 * babel-plugin-transform-optional-catch-binding
@@ -3495,7 +3495,31 @@ rebuilt        : ["f"]
 
 
 
-# babel-plugin-transform-react-jsx (122/144)
+# babel-plugin-transform-react-jsx (87/144)
+* autoImport/after-polyfills/input.mjs
+x Output mismatch
+
+* autoImport/after-polyfills-2/input.mjs
+x Output mismatch
+
+* autoImport/after-polyfills-script-not-supported/input.js
+x Output mismatch
+
+* autoImport/auto-import-react-source-type-module/input.js
+x Output mismatch
+
+* autoImport/auto-import-react-source-type-script/input.js
+x Output mismatch
+
+* autoImport/import-source/input.js
+x Output mismatch
+
+* autoImport/import-source-pragma/input.js
+x Output mismatch
+
+* autoImport/react-defined/input.js
+x Output mismatch
+
 * pure/false-pragma-comment-automatic-runtime/input.js
 pragma and pragmaFrag cannot be set when runtime is automatic.
 
@@ -3559,11 +3583,50 @@ importSource cannot be set when runtime is classic.
 * react-automatic/arrow-functions/input.js
 x Output mismatch
 
+* react-automatic/concatenates-adjacent-string-literals/input.js
+x Output mismatch
+
 * react-automatic/does-not-add-source-self-automatic/input.mjs
 transform-react-jsx: unknown field `autoImport`, expected one of `runtime`, `development`, `throwIfNamespace`, `pure`, `importSource`, `pragma`, `pragmaFrag`, `useBuiltIns`, `useSpread`, `refresh`
 
-* react-automatic/should-disallow-spread-children/input.js
-Spread children are not supported in React.
+* react-automatic/dont-coerce-expression-containers/input.js
+x Output mismatch
+
+* react-automatic/duplicate-props/input.js
+x Output mismatch
+
+* react-automatic/flattens-spread/input.js
+x Output mismatch
+
+* react-automatic/handle-fragments/input.js
+x Output mismatch
+
+* react-automatic/handle-nonstatic-children/input.js
+x Output mismatch
+
+* react-automatic/handle-spread-with-proto/input.js
+x Output mismatch
+
+* react-automatic/handle-static-children/input.js
+x Output mismatch
+
+* react-automatic/jsx-with-retainlines-option/input.js
+x Output mismatch
+
+* react-automatic/jsx-without-retainlines-option/input.js
+x Output mismatch
+
+* react-automatic/pragma-works-with-no-space-at-the-end/input.js
+x Output mismatch
+
+* react-automatic/should-allow-nested-fragments/input.js
+x Output mismatch
+
+* react-automatic/should-avoid-wrapping-in-extra-parens-if-not-needed/input.js
+x Output mismatch
+
+* react-automatic/should-convert-simple-text/input.js
+x Output mismatch
 
 * react-automatic/should-disallow-valueless-key/input.js
   ! Please provide an explicit key value. Using "key" as a shorthand for
@@ -3585,6 +3648,36 @@ Spread children are not supported in React.
    `----
 
 
+* react-automatic/should-escape-xhtml-jsxtext/input.js
+x Output mismatch
+
+* react-automatic/should-handle-attributed-elements/input.js
+x Output mismatch
+
+* react-automatic/should-handle-has-own-property-correctly/input.js
+x Output mismatch
+
+* react-automatic/should-have-correct-comma-in-nested-children/input.js
+x Output mismatch
+
+* react-automatic/should-not-mangle-expressioncontainer-attribute-values/input.js
+x Output mismatch
+
+* react-automatic/should-not-strip-nbsp-even-coupled-with-other-whitespace/input.js
+x Output mismatch
+
+* react-automatic/should-not-strip-tags-with-a-single-child-of-nbsp/input.js
+x Output mismatch
+
+* react-automatic/should-properly-handle-comments-between-props/input.js
+x Output mismatch
+
+* react-automatic/should-properly-handle-keys/input.js
+x Output mismatch
+
+* react-automatic/should-quote-jsx-attributes/input.js
+x Output mismatch
+
 * react-automatic/should-throw-error-namespaces-if-not-flag/input.js
   ! Namespace tags are not supported by default. React's JSX doesn't support
   | namespace tags. You can set `throwIfNamespace: false` to bypass this
@@ -3598,6 +3691,18 @@ Spread children are not supported in React.
 * react-automatic/should-warn-when-pragma-or-pragmaFrag-is-set/input.js
 pragma and pragmaFrag cannot be set when runtime is automatic.
 
+* react-automatic/this-tag-name/input.js
+x Output mismatch
+
+* react-automatic/weird-symbols/input.js
+x Output mismatch
+
+* runtime/defaults-to-automatic/input.js
+x Output mismatch
+
+* runtime/runtime-automatic/input.js
+x Output mismatch
+
 * spread-transform/transform-to-babel-extend/input.js
 x Output mismatch
 
@@ -3605,78 +3710,9 @@ x Output mismatch
 x Output mismatch
 
 
-# babel-plugin-transform-react-jsx-development (0/11)
+# babel-plugin-transform-react-jsx-development (1/11)
 * cross-platform/auto-import-dev/input.js
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/auto-import-dev/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
+x Output mismatch
 
 * cross-platform/classic-runtime/input.js
   ! Duplicate __self prop found.
@@ -3791,18 +3827,7 @@ x Output mismatch
 
 
 * cross-platform/fragments/input.js
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/fragments/input.js:1:1]
- 1 | var x = <><div /></>;
-   : ^
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/fragments/input.js:1:1]
- 1 | var x = <><div /></>;
-   : ^
-   `----
-
+x Output mismatch
 
 * cross-platform/handle-fragments-with-key/input.js
   ! Duplicate __source prop found.
@@ -3897,92 +3922,6 @@ x Output mismatch
  1 | var x = (
    : ^
  2 |   <div>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <div>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/handle-static-children/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <div>
-   `----
-
-
-* cross-platform/source-and-self-defined/input.js
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __source prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
-   `----
-
-  ! Duplicate __self prop found.
-   ,-[tasks/coverage/babel/packages/babel-plugin-transform-react-jsx-development/test/fixtures/cross-platform/source-and-self-defined/input.js:1:1]
- 1 | var x = (
-   : ^
- 2 |   <>
    `----
 
 

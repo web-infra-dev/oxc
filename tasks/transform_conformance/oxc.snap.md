@@ -1,6 +1,6 @@
 commit: 3bcfee23
 
-Passed: 41/52
+Passed: 23/52
 
 # All Passed:
 * babel-plugin-transform-nullish-coalescing-operator
@@ -167,11 +167,65 @@ rebuilt        : SymbolId(2): []
 x Output mismatch
 
 
-# babel-plugin-transform-react-jsx (27/30)
+# babel-plugin-transform-react-jsx (9/30)
+* refresh/does-not-consider-require-like-methods-to-be-hocs/input.jsx
+x Output mismatch
+
 * refresh/does-not-transform-it-because-it-is-not-used-in-the-AST/input.jsx
 x Output mismatch
 
+* refresh/generates-signatures-for-function-declarations-calling-hooks/input.jsx
+x Output mismatch
+
+* refresh/generates-signatures-for-function-expressions-calling-hooks/input.jsx
+x Output mismatch
+
+* refresh/generates-valid-signature-for-exotic-ways-to-call-hooks/input.jsx
+x Output mismatch
+
+* refresh/ignores-complex-definitions/input.jsx
+x Output mismatch
+
+* refresh/ignores-hoc-definitions/input.jsx
+x Output mismatch
+
+* refresh/includes-custom-hooks-into-the-signatures/input.jsx
+x Output mismatch
+
+* refresh/registers-capitalized-identifiers-in-hoc-calls/input.jsx
+x Output mismatch
+
+* refresh/registers-identifiers-used-in-jsx-at-definition-site/input.jsx
+x Output mismatch
+
+* refresh/registers-likely-hocs-with-inline-functions-1/input.jsx
+x Output mismatch
+
+* refresh/registers-likely-hocs-with-inline-functions-2/input.jsx
+x Output mismatch
+
+* refresh/registers-likely-hocs-with-inline-functions-3/input.jsx
+x Output mismatch
+
+* refresh/registers-top-level-exported-function-declarations/input.jsx
+x Output mismatch
+
+* refresh/registers-top-level-exported-named-arrow-functions/input.jsx
+x Output mismatch
+
+* refresh/registers-top-level-function-declarations/input.jsx
+x Output mismatch
+
+* refresh/registers-top-level-variable-declarations-with-arrow-functions/input.jsx
+x Output mismatch
+
+* refresh/registers-top-level-variable-declarations-with-function-expressions/input.jsx
+x Output mismatch
+
 * refresh/supports-typescript-namespace-syntax/input.tsx
+x Output mismatch
+
+* refresh/uses-original-function-declaration-if-it-get-reassigned/input.jsx
 x Output mismatch
 
 * unicode/input.jsx
