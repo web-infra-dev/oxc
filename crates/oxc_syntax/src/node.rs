@@ -6,6 +6,10 @@ use oxc_index::Idx;
 #[cfg(feature = "serialize")]
 use serde::{Serialize, Serializer};
 
+pub trait GetNodeId {
+    fn node_id(&self) -> NodeId;
+}
+
 #[ast]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NodeId(NonMaxU32);
