@@ -1,3 +1,5 @@
+//! Methods used while creating new types. Does not contain type-creation logic itself.
+
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
 use super::Checker;

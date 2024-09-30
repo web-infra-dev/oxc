@@ -1,9 +1,10 @@
 mod composite;
 mod get_type;
-mod inquisition;
 mod intrinsics;
 mod settings;
+mod type_cache;
 mod type_factory;
+mod type_inquisition;
 
 use std::{cell::Ref, rc::Rc};
 
@@ -14,9 +15,8 @@ use oxc_ast::Visit;
 use oxc_semantic::Semantic;
 use oxc_syntax::types::{TypeFlags, TypeId};
 
+use self::{intrinsics::Intrinsics, settings::CheckerSettings, type_cache::TypeCache};
 use crate::{ast::Type, TypeBuilder};
-use intrinsics::Intrinsics;
-use settings::CheckerSettings;
 
 /// ## References
 /// - <https://gist.github.com/Boshen/d189de0fe0720a30c5182cb666e3e9a5>
@@ -25,6 +25,7 @@ pub struct Checker<'a> {
     builder: TypeBuilder<'a>,
     intrinsics: Intrinsics,
     semantic: Rc<Semantic<'a>>,
+    cache: TypeCache,
 }
 
 // public interface
@@ -34,7 +35,7 @@ impl<'a> Checker<'a> {
         let builder = TypeBuilder::new(alloc);
         let intrinsics = Intrinsics::new(&builder, &settings);
 
-        Self { settings, builder, intrinsics, semantic }
+        Self { settings, builder, intrinsics, semantic, cache: TypeCache::default() }
     }
 }
 

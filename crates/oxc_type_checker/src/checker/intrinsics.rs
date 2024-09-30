@@ -1,3 +1,4 @@
+//! Intrinsic type constants. Near the top of `checker.ts`
 use oxc_syntax::types::{TypeFlags, TypeId};
 
 use crate::TypeBuilder;
