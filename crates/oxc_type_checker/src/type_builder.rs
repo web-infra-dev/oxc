@@ -3,7 +3,6 @@ use crate::ast::*;
 use std::{
     cell::{Ref, RefCell, RefMut},
     fmt,
-    ops::{Deref, DerefMut},
     rc::Rc,
 };
 
@@ -11,7 +10,7 @@ use oxc_allocator::{Allocator, Box, String, Vec};
 use oxc_semantic::SymbolId;
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
-use crate::{checker::UnionReduction, TypeTable};
+use crate::TypeTable;
 
 #[derive(Clone)]
 pub(crate) struct TypeBuilder<'a> {

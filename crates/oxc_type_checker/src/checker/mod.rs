@@ -18,9 +18,6 @@ use crate::{ast::Type, TypeBuilder};
 use intrinsics::Intrinsics;
 use settings::CheckerSettings;
 
-pub use composite::UnionReduction;
-pub use inquisition::*;
-
 /// ## References
 /// - <https://gist.github.com/Boshen/d189de0fe0720a30c5182cb666e3e9a5>
 pub struct Checker<'a> {

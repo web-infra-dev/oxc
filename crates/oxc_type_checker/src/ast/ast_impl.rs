@@ -1,5 +1,3 @@
-use oxc_syntax::types::ObjectFlags;
-
 use super::{Type, UnionType};
 
 // Conventions:
@@ -8,7 +6,7 @@ use super::{Type, UnionType};
 impl<'a> Type<'a> {
     pub fn as_union(&self) -> Option<&UnionType<'a>> {
         match self {
-            Self::Union(union) => Some(&union),
+            Self::Union(union) => Some(union),
             _ => None,
         }
     }

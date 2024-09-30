@@ -1,5 +1,4 @@
 //! Union and intersection types
-use std::{borrow::Borrow, cell::Ref};
 
 use oxc_allocator::{String, Vec};
 use oxc_semantic::SymbolId;
@@ -338,7 +337,7 @@ impl<'a> Checker<'a> {
             let ty = self.get_type(ty_id);
             match &*ty {
                 Type::Union(union) => {
-                    let new_includes = if self.is_named_union_type(&union, ty_id) {
+                    let new_includes = if self.is_named_union_type(union, ty_id) {
                         includes | TypeFlags::Union
                     } else {
                         includes
@@ -515,15 +514,14 @@ impl<'a> Checker<'a> {
                 // };
                 let object_flags = precomputed_object_flags
                     .union(self.get_propagating_flags_of_types(types, Some(TypeFlags::Nullable)));
-                let ty = self.builder.create_union_type(
+
+                self.builder.create_union_type(
                     types,
                     object_flags,
                     alias_symbol,
                     alias_symbol_arguments,
                     origin,
-                );
-
-                ty
+                )
             }
         }
     }

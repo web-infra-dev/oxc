@@ -2028,18 +2028,12 @@ dependencies = [
 name = "oxc_type_checker"
 version = "0.24.1"
 dependencies = [
- "assert-unchecked",
- "indexmap",
- "itertools",
  "oxc_allocator",
  "oxc_ast",
- "oxc_diagnostics",
  "oxc_index",
  "oxc_semantic",
  "oxc_span",
  "oxc_syntax",
- "phf 0.11.2",
- "rustc-hash",
 ]
 
 [[package]]

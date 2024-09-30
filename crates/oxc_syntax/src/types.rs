@@ -1,4 +1,4 @@
-use std::{fmt, ops};
+use std::fmt;
 
 use bitflags::bitflags;
 use nonmax::NonMaxU32;
@@ -45,11 +45,8 @@ impl PartialEq<usize> for TypeId {
     fn eq(&self, other: &usize) -> bool {
         u32::try_from(*other).map_or(false, |other| self.0.get() == other)
     }
-    #[inline]
-    fn ne(&self, other: &usize) -> bool {
-        u32::try_from(*other).map_or(true, |other| self.0.get() != other)
-    }
 }
+
 impl From<TypeId> for usize {
     #[inline]
     fn from(id: TypeId) -> Self {
@@ -376,6 +373,7 @@ impl TypeFlags {
     /// Apply [`Self::IncludesMask`] to the flags, masking out non-includes
     /// related flags
     #[inline]
+    #[must_use]
     pub const fn mask_for_includes(self) -> Self {
         // self & Self::IncludesMask
         self.intersection(Self::IncludesMask)

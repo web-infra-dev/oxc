@@ -1,16 +1,16 @@
 [package]
-name                   = "oxc_type_checker"
-version                = "0.24.1"
-authors.workspace      = true
-description.workspace  = true
-edition.workspace      = true
-homepage.workspace     = true
-keywords.workspace     = true
-license.workspace      = true
-repository.workspace   = true
+name = "oxc_type_checker"
+version = "0.24.1"
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+homepage.workspace = true
+include = ["/src"]
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
 rust-version.workspace = true
-categories.workspace   = true
-include                = ["/src"]
+description.workspace = true
 
 [lints]
 workspace = true
@@ -19,19 +19,12 @@ workspace = true
 doctest = false
 
 [dependencies]
-oxc_allocator   = { workspace = true }
-oxc_ast         = { workspace = true }
-oxc_diagnostics = { workspace = true }
-oxc_index       = { workspace = true }
-oxc_span        = { workspace = true }
-oxc_syntax      = { workspace = true }
-oxc_semantic    = { workspace = true }
-
-assert-unchecked = { workspace = true }
-indexmap         = { workspace = true }
-phf              = { workspace = true, features = ["macros"] }
-rustc-hash       = { workspace = true }
-itertools        = { workspace = true }
+oxc_allocator = { workspace = true }
+oxc_ast = { workspace = true }
+oxc_index = { workspace = true }
+oxc_semantic = { workspace = true }
+oxc_span = { workspace = true }
+oxc_syntax = { workspace = true }
 
 [features]
 default = []
