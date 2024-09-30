@@ -1,8 +1,9 @@
 mod composite;
 mod get_type;
+mod inquisition;
 mod intrinsics;
 mod settings;
-mod type_ref;
+mod type_factory;
 
 use std::{cell::Ref, rc::Rc};
 
@@ -16,6 +17,9 @@ use oxc_syntax::types::{TypeFlags, TypeId};
 use crate::{ast::Type, TypeBuilder};
 use intrinsics::Intrinsics;
 use settings::CheckerSettings;
+
+pub use composite::UnionReduction;
+pub use inquisition::*;
 
 /// ## References
 /// - <https://gist.github.com/Boshen/d189de0fe0720a30c5182cb666e3e9a5>

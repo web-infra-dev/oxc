@@ -1,3 +1,5 @@
+use oxc_syntax::types::ObjectFlags;
+
 use super::{Type, UnionType};
 
 // Conventions:

@@ -1,4 +1,6 @@
 use crate::ast::Type;
+
+use oxc_allocator::Vec;
 use oxc_index::IndexVec;
 use oxc_syntax::{
     symbol::SymbolId,
@@ -15,6 +17,7 @@ pub struct TypeTable<'a> {
     symbols: IndexVec<TypeId, Option<SymbolId>>,
     /// Type alias associated with each type (if any)
     alias_symbols: IndexVec<TypeId, Option<SymbolId>>,
+    alias_type_arguments: IndexVec<TypeId, Option<Vec<'a, TypeId>>>,
     // todo
     /*
     aliasTypeArguments?: readonly Type[]; // Alias type arguments (if any)
@@ -40,17 +43,23 @@ impl<'a> TypeTable<'a> {
         self.flags[id]
     }
 
+    pub fn get_alias_symbol(&self, id: TypeId) -> Option<SymbolId> {
+        self.alias_symbols[id]
+    }
+
     pub(crate) fn create_type(
         &mut self,
         r#type: Type<'a>,
         flags: TypeFlags,
         symbol: Option<SymbolId>,
         alias_symbol: Option<SymbolId>,
+        alias_type_arguments: Option<Vec<'a, TypeId>>,
     ) -> TypeId {
         let id = self.types.push(r#type);
         let _ = self.flags.push(flags);
         let _ = self.symbols.push(symbol);
         let _ = self.alias_symbols.push(alias_symbol);
+        let _ = self.alias_type_arguments.push(alias_type_arguments);
         // TODO
         let _ = self.widened.push(None);
         id

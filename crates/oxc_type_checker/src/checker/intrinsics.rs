@@ -88,8 +88,14 @@ impl Intrinsics {
             builder.create_intrinsic_type(TypeFlags::Any, "any", Some("intrinsic"));
         let unknown = builder.create_intrinsic_type(TypeFlags::Unknown, "unknown", None);
         let undefined = builder.create_intrinsic_type(TypeFlags::Undefined, "undefined", None);
-        // NOTE: strictNullChecks: false is not supported rn
-        let undefined_widening = undefined;
+        let undefined_widening = if settings.strict_null_checks {
+            undefined
+        } else {
+            // createIntrinsicType(TypeFlags.Undefined, "undefined", ObjectFlags.ContainsWideningType, "widening")
+            todo!(
+                "[checker::intrinsics::undefined_widening] strictNullChecks: false is not supported rn."
+            );
+        };
         let missing =
             builder.create_intrinsic_type(TypeFlags::Undefined, "undefined", Some("missing"));
         let undefined_or_missing =
@@ -97,8 +103,14 @@ impl Intrinsics {
         let optional =
             builder.create_intrinsic_type(TypeFlags::Undefined, "undefined", Some("optional"));
         let null = builder.create_intrinsic_type(TypeFlags::Null, "null", None);
-        // NOTE: strictNullChecks: false is not supported rn
-        let null_widening = null;
+        let null_widening = if settings.strict_null_checks {
+            null
+        } else {
+            // createIntrinsicType(TypeFlags.Null, "null", ObjectFlags.ContainsWideningType, "widening")
+            todo!(
+                "[checker::intrinsics::null_widening] strictNullChecks: false is not supported rn."
+            );
+        };
         let string = builder.create_intrinsic_type(TypeFlags::String, "string", None);
         let number = builder.create_intrinsic_type(TypeFlags::Number, "number", None);
         let bigint = builder.create_intrinsic_type(TypeFlags::BigInt, "bigint", None);

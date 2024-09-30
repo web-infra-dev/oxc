@@ -1,3 +1,5 @@
+use core::fmt;
+
 use bitflags::bitflags;
 use nonmax::NonMaxU32;
 use oxc_index::Idx;
@@ -27,6 +29,13 @@ impl Serialize for SymbolId {
         S: Serializer,
     {
         serializer.serialize_u32(self.0.get())
+    }
+}
+
+impl fmt::Display for SymbolId {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.get().fmt(f)
     }
 }
 

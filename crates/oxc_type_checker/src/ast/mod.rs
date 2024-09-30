@@ -26,5 +26,6 @@ pub struct IntrinsicType<'a> {
 pub struct UnionType<'a> {
     pub types: Vec<'a, TypeId>,
     pub object_flags: ObjectFlags,
-    // TODO: add the other fields
+    /// Denormalized union, intersection, or index type in which union originates
+    pub(crate) origin: Option<TypeId>, // TODO: add the other fields
 }

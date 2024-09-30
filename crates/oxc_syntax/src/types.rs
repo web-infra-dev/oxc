@@ -1,3 +1,5 @@
+use std::{fmt, ops};
+
 use bitflags::bitflags;
 use nonmax::NonMaxU32;
 #[cfg(feature = "serialize")]
@@ -28,6 +30,30 @@ impl Serialize for TypeId {
         S: Serializer,
     {
         serializer.serialize_u32(self.0.get())
+    }
+}
+
+impl fmt::Display for TypeId {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.get().fmt(f)
+    }
+}
+
+impl PartialEq<usize> for TypeId {
+    #[inline]
+    fn eq(&self, other: &usize) -> bool {
+        u32::try_from(*other).map_or(false, |other| self.0.get() == other)
+    }
+    #[inline]
+    fn ne(&self, other: &usize) -> bool {
+        u32::try_from(*other).map_or(true, |other| self.0.get() != other)
+    }
+}
+impl From<TypeId> for usize {
+    #[inline]
+    fn from(id: TypeId) -> Self {
+        id.0.get() as usize
     }
 }
 
@@ -129,6 +155,7 @@ bitflags! {
         const IncludesEmptyObject = Self::Conditional.bits();
         const IncludesInstantiable = Self::Substitution.bits();
         const IncludesConstrainedTypeVariable = Self::Reserved1.bits();
+        const IncludesError = Self::Reserved2.bits();
         const NonPrimitiveUnion = Self::Any.bits() | Self::Unknown.bits() | Self::Void.bits() | Self::Never.bits() | Self::Object.bits() | Self::Intersection.bits() | Self::IncludesInstantiable.bits();
     }
 }
@@ -246,8 +273,146 @@ bitflags! {
 }
 
 impl TypeFlags {
+    // =========================================================================
+    // ========================== SIMPLE FLAG CHECKS ===========================
+    // =========================================================================
+
+    #[inline]
+    pub const fn is_any(self) -> bool {
+        self.contains(Self::Any)
+    }
+
+    #[inline]
+    pub const fn is_unknown(self) -> bool {
+        self.contains(Self::Unknown)
+    }
+
+    #[inline]
+    pub const fn is_never(self) -> bool {
+        self.contains(Self::Never)
+    }
+
+    #[inline]
+    pub const fn is_void(self) -> bool {
+        self.contains(Self::Void)
+    }
+
+    #[inline]
+    pub const fn is_undefined(self) -> bool {
+        self.contains(Self::Undefined)
+    }
+
+    #[inline]
+    pub const fn is_null(self) -> bool {
+        self.contains(Self::Null)
+    }
+
+    #[inline]
+    pub const fn is_nullable(self) -> bool {
+        self.contains(Self::Nullable)
+    }
+
     #[inline]
     pub const fn is_union(self) -> bool {
         self.contains(Self::Union)
+    }
+
+    #[inline]
+    pub const fn is_intersection(self) -> bool {
+        self.contains(Self::Intersection)
+    }
+
+    // =========================================================================
+    // ========================= COMPOUND FLAG CHECKS ==========================
+    // =========================================================================
+
+    #[inline]
+    pub const fn is_any_or_unknown(self) -> bool {
+        self.intersects(Self::AnyOrUnknown)
+    }
+
+    #[inline]
+    pub const fn is_instantiable(self) -> bool {
+        self.intersects(Self::Instantiable)
+    }
+
+    #[inline]
+    pub const fn is_type_with_object_flags(self) -> bool {
+        self.intersects(Self::ObjectFlagsType)
+    }
+
+    #[inline]
+    pub const fn is_non_primitive_union(self) -> bool {
+        self.intersects(Self::NonPrimitiveUnion)
+    }
+
+    // =========================================================================
+    // =============================== INCLUSION ===============================
+    // =========================================================================
+
+    #[inline]
+    pub const fn includes_wildcard(self) -> bool {
+        self.intersects(Self::IncludesWildcard)
+    }
+    #[inline]
+    pub const fn includes_error(self) -> bool {
+        self.intersects(Self::IncludesError)
+    }
+
+    #[inline]
+    pub const fn includes_constrained_type_variable(self) -> bool {
+        self.intersects(Self::IncludesConstrainedTypeVariable)
+    }
+
+    #[inline]
+    pub const fn includes_non_widening_type(self) -> bool {
+        self.intersects(Self::IncludesNonWideningType)
+    }
+
+    // =========================================================================
+    // ============================== TYPE MASKS ===============================
+    // =========================================================================
+
+    /// Apply [`Self::IncludesMask`] to the flags, masking out non-includes
+    /// related flags
+    #[inline]
+    pub const fn mask_for_includes(self) -> Self {
+        // self & Self::IncludesMask
+        self.intersection(Self::IncludesMask)
+    }
+}
+
+impl ObjectFlags {
+    #[inline]
+    pub const fn is_constrained_type_variable(self) -> bool {
+        self.contains(Self::IsConstrainedTypeVariable)
+    }
+
+    // =========================================================================
+    // =============================== BUILDERS ================================
+    // =========================================================================
+
+    /// Conditionally union flags with [`ObjectFlags::PrimitiveUnion`].
+    ///
+    /// No-op if `is_primitive_union` is `false`.
+    #[must_use]
+    pub const fn with_primitive_union(self, is_primitive_union: bool) -> Self {
+        if is_primitive_union {
+            self.union(Self::PrimitiveUnion)
+        } else {
+            self
+        }
+    }
+
+    /// Conditionally union flags with [`ObjectFlags::ContainsIntersections`].
+    ///
+    /// No-op if `contains_intersections` is `false`.
+    #[must_use]
+    pub const fn with_contains_intersections(self, contains_intersections: bool) -> Self {
+        if contains_intersections {
+            self.union(Self::ContainsIntersections)
+        } else {
+            self
+        }
     }
 }

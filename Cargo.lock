@@ -2030,7 +2030,7 @@ version = "0.24.1"
 dependencies = [
  "assert-unchecked",
  "indexmap",
- "itertools 0.13.0",
+ "itertools",
  "oxc_allocator",
  "oxc_ast",
  "oxc_diagnostics",

@@ -1,16 +1,17 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::*;
 use std::{
-    ops::{Deref, DerefMut},
     cell::{Ref, RefCell, RefMut},
     fmt,
+    ops::{Deref, DerefMut},
     rc::Rc,
 };
 
-use oxc_allocator::{Allocator, Box};
+use oxc_allocator::{Allocator, Box, String, Vec};
+use oxc_semantic::SymbolId;
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
-use crate::TypeTable;
+use crate::{checker::UnionReduction, TypeTable};
 
 #[derive(Clone)]
 pub(crate) struct TypeBuilder<'a> {
@@ -19,12 +20,63 @@ pub(crate) struct TypeBuilder<'a> {
 }
 
 impl<'a> TypeBuilder<'a> {
+    #[must_use]
     pub fn new(alloc: &'a Allocator) -> Self {
         Self { alloc, table: Rc::new(RefCell::new(TypeTable::default())) }
     }
 
+    #[must_use]
     fn alloc<T>(&self, value: T) -> Box<'a, T> {
         Box::new_in(value, self.alloc)
+    }
+
+    /// Create a new empty [`Vec`] inside the builder's memory arena.
+    #[must_use]
+    pub fn vec<T>(&self) -> Vec<'a, T> {
+        Vec::new_in(self.alloc)
+    }
+
+    /// Create a new empty [`Vec`] inside the builder's memory arena with at
+    /// least the specified capacity.
+    ///
+    /// This [`Vec`] will be able to hold at least `capacity` elements without re-allocating.
+    #[must_use]
+    pub fn vec_with_capacity<T>(&self, capacity: usize) -> Vec<'a, T> {
+        Vec::with_capacity_in(capacity, self.alloc)
+    }
+
+    pub fn vec_from_slice<T>(&self, slice: &[T]) -> Vec<'a, T>
+    where
+        T: Copy,
+    {
+        let mut v = Vec::with_capacity_in(slice.len(), self.alloc);
+        v.copy_from_slice(slice);
+        v
+    }
+
+    /// Create a new empty [`String`] inside the builder's memory arena.
+    #[must_use]
+    pub fn string(&self) -> String<'a> {
+        String::new_in(self.alloc)
+    }
+
+    /// Construct a new `String<'bump>` from a string slice.
+    #[must_use]
+    pub fn string_from(&self, s: &str) -> String<'a> {
+        String::from_str_in(s, self.alloc)
+    }
+
+    /// Creates a new empty [`String`] with a particular capacity.
+    ///
+    /// `String`s have an internal buffer to hold their data. The capacity is
+    /// the length of that buffer, and can be queried with the [`capacity`]
+    /// method. This method creates an empty `String`, but one with an initial
+    /// buffer that can hold `capacity` bytes. This is useful when you may be
+    /// appending a bunch of data to the `String`, reducing the number of
+    /// reallocations it needs to do.
+    #[must_use]
+    pub fn string_with_capacity(&self, capacity: usize) -> String<'a> {
+        String::with_capacity_in(capacity, self.alloc)
     }
 
     pub fn table(&self) -> Ref<'_, TypeTable<'a>> {
@@ -54,31 +106,36 @@ impl<'a> TypeBuilder<'a> {
         debug_name: Option<&'a str>,
     ) -> TypeId {
         let ty = Type::Intrinsic(self.alloc(IntrinsicType { name, debug_name, object_flags }));
-        self.table_mut().create_type(ty, flags, None, None)
+        self.table_mut().create_type(ty, flags, None, None, None)
     }
 
-    // /// Creates a [`UnionType`]
-    // pub fn create_union_type(
-    //     &self,
-    //     types: &[TypeId],
-    //     union_reduction: UnionReduction,
-    //     alias_symbol: Option<SymbolId>,
-    //     type_alias_arguments: Option<&[TypeId]>,
-    //     origin: Option<TypeId>,
-    // ) -> TypeId {
-    //     match types.len() {
-    //         0 => self.table.
-    //     }
-    // }
-}
+    /// Creates a [`UnionType`]
+    pub fn create_union_type(
+        &self,
+        types: &[TypeId],
+        // union_reduction: UnionReduction,
+        object_flags: ObjectFlags,
+        alias_symbol: Option<SymbolId>,
+        alias_type_arguments: Option<&[TypeId]>,
+        origin: Option<TypeId>,
+    ) -> TypeId {
+        assert!(types.len() > 1, "Union types must have at least two members");
 
-// #[derive(Debug, Default, Clone, Copy, PartialEq, Ord)]
-// pub enum UnionReduction {
-//     None = 0,
-//     #[default]
-//     Literal,
-//     Subtype,
-// }
+        let ty = Type::Union(self.alloc(UnionType {
+            types: self.vec_from_slice(types),
+            object_flags,
+            origin,
+        }));
+
+        self.table_mut().create_type(
+            ty,
+            TypeFlags::Union,
+            None,
+            alias_symbol,
+            alias_type_arguments.map(|args| self.vec_from_slice(args)),
+        )
+    }
+}
 
 impl fmt::Debug for TypeBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
