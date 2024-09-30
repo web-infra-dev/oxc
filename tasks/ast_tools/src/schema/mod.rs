@@ -1,4 +1,5 @@
 use quote::ToTokens;
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use crate::{
@@ -94,8 +95,8 @@ impl Schema {
 }
 
 impl<'a> IntoIterator for &'a Schema {
-    type Item = &'a TypeDef;
     type IntoIter = std::slice::Iter<'a, TypeDef>;
+    type Item = &'a TypeDef;
 
     fn into_iter(self) -> Self::IntoIter {
         self.defs.iter()
@@ -131,7 +132,7 @@ fn lower_ast_type(ty: &rust::AstType, ctx: &codegen::EarlyCtx) -> TypeDef {
     match ty {
         rust::AstType::Enum(it) => TypeDef::Enum(lower_ast_enum(it, ctx)),
         rust::AstType::Struct(it) => TypeDef::Struct(lower_ast_struct(it, ctx)),
-        rust::AstType::Macro(it) => panic!("{}", unexpanded_macro_err(it)),
+        rust::AstType::Macro(it) => panic!("{}", unexpanded_macro_err(&it.item)),
     }
 }
 
@@ -167,6 +168,8 @@ fn lower_ast_enum(it @ rust::Enum { item, meta }: &rust::Enum, ctx: &codegen::Ea
         offsets_32,
 
         generated_derives: parse_generate_derive(&item.attrs),
+
+        module_path: meta.module_path.clone(),
     }
 }
 
@@ -190,15 +193,18 @@ fn lower_ast_struct(
         visitable: meta.visitable,
         fields: item.fields.iter().map(|fi| lower_field(fi, ctx)).collect(),
         has_lifetime: item.generics.lifetimes().count() > 0,
+
         size_64,
         align_64,
         offsets_64,
         size_32,
         align_32,
         offsets_32,
-        markers: parse_outer_markers(&item.attrs).unwrap(),
 
+        markers: parse_outer_markers(&item.attrs).unwrap(),
         generated_derives: parse_generate_derive(&item.attrs),
+
+        module_path: meta.module_path.clone(),
     }
 }
 
@@ -289,7 +295,7 @@ fn get_docs(attrs: &[syn::Attribute]) -> Vec<String> {
 }
 
 fn parse_generate_derive(attrs: &[syn::Attribute]) -> Vec<String> {
-    let mut derives = std::collections::HashSet::new();
+    let mut derives = FxHashSet::default();
     for attr in attrs {
         if !attr.path().is_ident("generate_derive") {
             continue;

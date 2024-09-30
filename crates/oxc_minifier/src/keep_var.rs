@@ -1,9 +1,10 @@
-use oxc_ast::{ast::*, syntax_directed_operations::BoundNames, AstBuilder, Visit};
+use oxc_ast::{ast::*, syntax_directed_operations::BoundNames, AstBuilder, Visit, NONE};
 use oxc_span::{Atom, Span, SPAN};
 
 pub struct KeepVar<'a> {
     ast: AstBuilder<'a>,
     vars: std::vec::Vec<(Atom<'a>, Span)>,
+    all_hoisted: bool,
 }
 
 impl<'a> Visit<'a> for KeepVar<'a> {
@@ -37,6 +38,9 @@ impl<'a> Visit<'a> for KeepVar<'a> {
                     decl.bound_names(&mut |ident| {
                         self.vars.push((ident.name.clone(), ident.span));
                     });
+                    if decl.has_init() {
+                        self.all_hoisted = false;
+                    }
                 }
             }
             _ => {}
@@ -46,7 +50,11 @@ impl<'a> Visit<'a> for KeepVar<'a> {
 
 impl<'a> KeepVar<'a> {
     pub fn new(ast: AstBuilder<'a>) -> Self {
-        Self { ast, vars: std::vec![] }
+        Self { ast, vars: std::vec![], all_hoisted: true }
+    }
+
+    pub fn all_hoisted(&self) -> bool {
+        self.all_hoisted
     }
 
     pub fn get_variable_declaration_statement(self) -> Option<Statement<'a>> {
@@ -57,8 +65,7 @@ impl<'a> KeepVar<'a> {
         let kind = VariableDeclarationKind::Var;
         let decls = self.ast.vec_from_iter(self.vars.into_iter().map(|(name, span)| {
             let binding_kind = self.ast.binding_pattern_kind_binding_identifier(span, name);
-            let id =
-                self.ast.binding_pattern::<Option<TSTypeAnnotation>>(binding_kind, None, false);
+            let id = self.ast.binding_pattern(binding_kind, NONE, false);
             self.ast.variable_declarator(span, kind, id, None, false)
         }));
 

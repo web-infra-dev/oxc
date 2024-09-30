@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use oxc_ast::{
     ast::{Expression, JSXAttributeItem, JSXAttributeName, JSXAttributeValue},
     AstKind,
@@ -7,21 +5,28 @@ use oxc_ast::{
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::Span;
+use rustc_hash::FxHashSet;
 
-use crate::{context::LintContext, rule::Rule, utils::get_prop_value, AstNode};
+use crate::{
+    context::{ContextHost, LintContext},
+    rule::Rule,
+    utils::get_prop_value,
+    AstNode,
+};
 
-fn boolean_value_diagnostic(x0: &str, span0: Span) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("Value must be omitted for boolean attribute {x0:?}"))
-        .with_label(span0)
+fn boolean_value_diagnostic(attr: &str, span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn(format!("Value must be omitted for boolean attribute {attr:?}"))
+        .with_label(span)
 }
 
-fn boolean_value_always_diagnostic(x0: &str, span0: Span) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("Value must be set for boolean attribute {x0:?}")).with_label(span0)
+fn boolean_value_always_diagnostic(attr: &str, span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn(format!("Value must be set for boolean attribute {attr:?}"))
+        .with_label(span)
 }
 
-fn boolean_value_undefined_false_diagnostic(x0: &str, span0: Span) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("Value must be omitted for `false` attribute {x0:?}"))
-        .with_label(span0)
+fn boolean_value_undefined_false_diagnostic(attr: &str, span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn(format!("Value must be omitted for `false` attribute {attr:?}"))
+        .with_label(span)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -37,7 +42,7 @@ pub enum EnforceBooleanAttribute {
 #[derive(Debug, Default, Clone)]
 pub struct JsxBooleanValueConfig {
     pub enforce_boolean_attribute: EnforceBooleanAttribute,
-    pub exceptions: HashSet<String>,
+    pub exceptions: FxHashSet<String>,
     pub assume_undefined_is_false: bool,
 }
 
@@ -119,7 +124,7 @@ impl Rule for JsxBooleanValue {
                 }
                 Some(JSXAttributeValue::ExpressionContainer(container)) => {
                     if let Some(expr) = container.expression.as_expression() {
-                        if let Expression::BooleanLiteral(expr) = expr.without_parenthesized() {
+                        if let Expression::BooleanLiteral(expr) = expr.without_parentheses() {
                             if expr.value && self.is_never(ident.name.as_str()) {
                                 let span = Span::new(ident.span.end, jsx_attr.span.end);
                                 ctx.diagnostic_with_fix(
@@ -146,6 +151,10 @@ impl Rule for JsxBooleanValue {
                 _ => {}
             }
         }
+    }
+
+    fn should_run(&self, ctx: &ContextHost) -> bool {
+        ctx.source_type().is_jsx()
     }
 }
 

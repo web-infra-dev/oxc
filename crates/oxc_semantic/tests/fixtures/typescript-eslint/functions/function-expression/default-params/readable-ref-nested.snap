@@ -2,6 +2,10 @@
 source: crates/oxc_semantic/tests/main.rs
 input_file: crates/oxc_semantic/tests/fixtures/typescript-eslint/functions/function-expression/default-params/readable-ref-nested.ts
 ---
+================================================================================
+SCOPES
+================================================================================
+
 [
   {
     "children": [
@@ -9,18 +13,18 @@ input_file: crates/oxc_semantic/tests/fixtures/typescript-eslint/functions/funct
         "children": [
           {
             "children": [],
-            "flag": "ScopeFlags(StrictMode | Function)",
+            "flags": "ScopeFlags(StrictMode | Function)",
             "id": 2,
             "node": "Function(<anonymous>)",
             "symbols": []
           }
         ],
-        "flag": "ScopeFlags(StrictMode | Function)",
+        "flags": "ScopeFlags(StrictMode | Function)",
         "id": 1,
         "node": "Function(<anonymous>)",
         "symbols": [
           {
-            "flag": "SymbolFlags(FunctionScopedVariable)",
+            "flags": "SymbolFlags(FunctionScopedVariable)",
             "id": 2,
             "name": "b",
             "node": "FormalParameter(b)",
@@ -29,18 +33,18 @@ input_file: crates/oxc_semantic/tests/fixtures/typescript-eslint/functions/funct
         ]
       }
     ],
-    "flag": "ScopeFlags(StrictMode | Top)",
+    "flags": "ScopeFlags(StrictMode | Top)",
     "id": 0,
     "node": "Program",
     "symbols": [
       {
-        "flag": "SymbolFlags(BlockScopedVariable)",
+        "flags": "SymbolFlags(BlockScopedVariable)",
         "id": 0,
         "name": "a",
         "node": "VariableDeclarator(a)",
         "references": [
           {
-            "flag": "ReferenceFlag(Read)",
+            "flags": "ReferenceFlags(Read)",
             "id": 0,
             "name": "a",
             "node_id": 16
@@ -48,7 +52,7 @@ input_file: crates/oxc_semantic/tests/fixtures/typescript-eslint/functions/funct
         ]
       },
       {
-        "flag": "SymbolFlags(BlockScopedVariable)",
+        "flags": "SymbolFlags(BlockScopedVariable)",
         "id": 1,
         "name": "foo",
         "node": "VariableDeclarator(foo)",
@@ -57,3 +61,9 @@ input_file: crates/oxc_semantic/tests/fixtures/typescript-eslint/functions/funct
     ]
   }
 ]
+
+================================================================================
+CONFORMANCE
+================================================================================
+
+All tests passed.

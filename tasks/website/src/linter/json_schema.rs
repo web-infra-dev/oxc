@@ -1,5 +1,5 @@
 use handlebars::Handlebars;
-use oxc_linter::OxlintConfig;
+use oxc_linter::Oxlintrc;
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject, SingleOrVec, SubschemaValidation},
     schema_for,
@@ -11,7 +11,7 @@ pub fn print_schema_json() {
 }
 
 fn generate_schema_json() -> String {
-    let schema = schema_for!(OxlintConfig);
+    let schema = schema_for!(Oxlintrc);
     serde_json::to_string_pretty(&schema).unwrap()
 }
 
@@ -28,7 +28,7 @@ pub fn print_schema_markdown() {
 }
 
 fn generate_schema_markdown() -> String {
-    let root_schema = schema_for!(OxlintConfig);
+    let root_schema = schema_for!(Oxlintrc);
     Renderer::new(root_schema).render()
 }
 
@@ -154,7 +154,7 @@ impl Renderer {
         }
         if let Some(subschemas) = &schema.subschemas {
             let key = parent_key.unwrap_or("");
-            return self.render_sub_schema(depth, key, subschemas);
+            self.render_sub_schema(depth, key, subschemas);
         }
         vec![]
     }
@@ -171,7 +171,9 @@ impl Renderer {
                 .map(|schema| {
                     let schema = Self::get_schema_object(schema);
                     let schema = self.get_referenced_schema(schema);
-                    self.render_schema(depth + 1, key, schema)
+                    let mut section = self.render_schema(depth + 1, key, schema);
+                    section.sanitize();
+                    section
                 })
                 .collect::<Vec<Section>>();
         }
@@ -200,6 +202,12 @@ impl Renderer {
 impl Root {
     fn sanitize(&mut self) {
         sanitize(&mut self.title);
+    }
+}
+
+impl Section {
+    fn sanitize(&mut self) {
+        sanitize(&mut self.description);
     }
 }
 

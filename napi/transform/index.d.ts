@@ -18,17 +18,31 @@ export interface Es2015BindingOptions {
 }
 
 /** TypeScript Isolated Declarations for Standalone DTS Emit */
-export declare function isolatedDeclaration(filename: string, sourceText: string): IsolatedDeclarationsResult
+export declare function isolatedDeclaration(filename: string, sourceText: string, options?: IsolatedDeclarationsOptions | undefined | null): IsolatedDeclarationsResult
+
+export interface IsolatedDeclarationsOptions {
+  /**
+   * Do not emit declarations for code that has an @internal annotation in its JSDoc comment.
+   * This is an internal compiler option; use at your own risk, because the compiler does not check that the result is valid.
+   *
+   * Default: `false`
+   *
+   * See <https://www.typescriptlang.org/tsconfig/#stripInternal>
+   */
+  stripInternal?: boolean
+  sourcemap?: boolean
+}
 
 export interface IsolatedDeclarationsResult {
-  sourceText: string
+  code: string
+  map?: SourceMap
   errors: Array<string>
 }
 
 /**
  * Configure how TSX and JSX are transformed.
  *
- * @see [@babel/plugin-transform-react-jsx](https://babeljs.io/docs/babel-plugin-transform-react-jsx#options)
+ * @see {@link https://babeljs.io/docs/babel-plugin-transform-react-jsx#options}
  */
 export interface ReactBindingOptions {
   /**
@@ -45,7 +59,7 @@ export interface ReactBindingOptions {
    *
    * @default false
    *
-   * @see [@babel/plugin-transform-react-jsx-development](https://babeljs.io/docs/babel-plugin-transform-react-jsx-development)
+   * @see {@link https://babeljs.io/docs/babel-plugin-transform-react-jsx-development}
    */
   development?: boolean
   /**
@@ -59,9 +73,11 @@ export interface ReactBindingOptions {
    */
   throwIfNamespace?: boolean
   /**
-   * Enables [@babel/plugin-transform-react-pure-annotations](https://babeljs.io/docs/en/babel-plugin-transform-react-pure-annotations).
+   * Enables `@babel/plugin-transform-react-pure-annotations`.
    *
    * It will mark top-level React method calls as pure for tree shaking.
+   *
+   * @see {@link https://babeljs.io/docs/en/babel-plugin-transform-react-pure-annotations}
    *
    * @default true
    */
@@ -108,15 +124,41 @@ export interface ReactBindingOptions {
    * @default false
    */
   useSpread?: boolean
+  /**
+   * Enable React Fast Refresh .
+   *
+   * Conforms to the implementation in {@link https://github.com/facebook/react/tree/main/packages/react-refresh}
+   *
+   * @default false
+   */
+  refresh?: boolean | ReactRefreshBindingOptions
+}
+
+export interface ReactRefreshBindingOptions {
+  /**
+   * Specify the identifier of the refresh registration variable.
+   *
+   * @default `$RefreshReg$`.
+   */
+  refreshReg?: string
+  /**
+   * Specify the identifier of the refresh signature variable.
+   *
+   * @default `$RefreshSig$`.
+   */
+  refreshSig?: string
+  emitFullSignatures?: boolean
 }
 
 export interface SourceMap {
   file?: string
-  mappings?: string
+  mappings: string
+  names: Array<string>
   sourceRoot?: string
-  sources?: Array<string | undefined | null>
-  sourcesContent?: Array<string | undefined | null>
-  names?: Array<string>
+  sources: Array<string>
+  sourcesContent?: Array<string>
+  version: number
+  x_google_ignoreList?: Array<number>
 }
 
 /**
@@ -145,18 +187,12 @@ export interface TransformOptions {
    * options.
    */
   cwd?: string
-  /**
-   * Force jsx parsing,
-   *
-   * @default false
-   */
-  jsx?: boolean
   /** Configure how TypeScript is transformed. */
   typescript?: TypeScriptBindingOptions
   /** Configure how TSX and JSX are transformed. */
   react?: ReactBindingOptions
   /** Enable ES2015 transformations. */
-  es2015?: Es2015BindingOptions
+  es2015?: ES2015BindingOptions
   /**
    * Enable source map generation.
    *
@@ -175,13 +211,13 @@ export interface TransformResult {
    *
    * If parsing failed, this will be an empty string.
    */
-  sourceText: string
+  code: string
   /**
    * The source map for the transformed code.
    *
    * This will be set if {@link TransformOptions#sourcemap} is `true`.
    */
-  sourceMap?: SourceMap
+  map?: SourceMap
   /**
    * The `.d.ts` declaration file for the transformed code. Declarations are
    * only generated if `declaration` is set to `true` and a TypeScript file
@@ -224,6 +260,17 @@ export interface TypeScriptBindingOptions {
    *
    * @default false
    */
-  declaration?: boolean
+  declaration?: IsolatedDeclarationsOptions
+  /**
+   * Rewrite or remove TypeScript import/export declaration extensions.
+   *
+   * - When set to `rewrite`, it will change `.ts`, `.mts`, `.cts` extensions to `.js`, `.mjs`, `.cjs` respectively.
+   * - When set to `remove`, it will remove `.ts`/`.mts`/`.cts`/`.tsx` extension entirely.
+   * - When set to `true`, it's equivalent to `rewrite`.
+   * - When set to `false` or omitted, no changes will be made to the extensions.
+   *
+   * @default false
+   */
+  rewriteImportExtensions?: 'rewrite' | 'remove' | boolean
 }
 

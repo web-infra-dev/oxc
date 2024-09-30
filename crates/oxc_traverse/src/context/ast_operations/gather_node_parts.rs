@@ -461,8 +461,10 @@ impl<'a> GatherNodeParts<'a> for JSXElementName<'a> {
     fn gather<F: FnMut(&str)>(&self, f: &mut F) {
         match self {
             JSXElementName::Identifier(ident) => ident.gather(f),
+            JSXElementName::IdentifierReference(ident) => ident.gather(f),
             JSXElementName::NamespacedName(ns) => ns.gather(f),
             JSXElementName::MemberExpression(expr) => expr.gather(f),
+            JSXElementName::ThisExpression(expr) => expr.gather(f),
         }
     }
 }
@@ -484,8 +486,9 @@ impl<'a> GatherNodeParts<'a> for JSXMemberExpression<'a> {
 impl<'a> GatherNodeParts<'a> for JSXMemberExpressionObject<'a> {
     fn gather<F: FnMut(&str)>(&self, f: &mut F) {
         match self {
-            JSXMemberExpressionObject::Identifier(ident) => ident.gather(f),
+            JSXMemberExpressionObject::IdentifierReference(ident) => ident.gather(f),
             JSXMemberExpressionObject::MemberExpression(expr) => expr.gather(f),
+            JSXMemberExpressionObject::ThisExpression(expr) => expr.gather(f),
         }
     }
 }

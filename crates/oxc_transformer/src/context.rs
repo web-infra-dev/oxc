@@ -2,7 +2,6 @@ use std::{
     cell::RefCell,
     mem,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
 use oxc_allocator::Allocator;
@@ -10,9 +9,9 @@ use oxc_ast::{AstBuilder, Trivias};
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_span::SourceType;
 
-use crate::{helpers::module_imports::ModuleImports, TransformOptions};
-
-pub type Ctx<'a> = Rc<TransformCtx<'a>>;
+use crate::{
+    common::VarDeclarationsStore, helpers::module_imports::ModuleImports, TransformOptions,
+};
 
 pub struct TransformCtx<'a> {
     errors: RefCell<Vec<OxcDiagnostic>>,
@@ -34,6 +33,8 @@ pub struct TransformCtx<'a> {
     // Helpers
     /// Manage import statement globally
     pub module_imports: ModuleImports<'a>,
+    /// Manage inserting `var` statements globally
+    pub var_declarations: VarDeclarationsStore<'a>,
 }
 
 impl<'a> TransformCtx<'a> {
@@ -61,7 +62,8 @@ impl<'a> TransformCtx<'a> {
             source_type,
             source_text,
             trivias,
-            module_imports: ModuleImports::new(allocator),
+            module_imports: ModuleImports::new(),
+            var_declarations: VarDeclarationsStore::new(),
         }
     }
 

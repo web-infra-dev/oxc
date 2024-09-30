@@ -5,16 +5,16 @@ use oxc_span::Span;
 
 use crate::{context::LintContext, rule::Rule, AstNode};
 
-fn zero_fraction(span0: Span, x1: &str) -> OxcDiagnostic {
+fn zero_fraction(span: Span, lit: &str) -> OxcDiagnostic {
     OxcDiagnostic::warn("Don't use a zero fraction in the number.")
-        .with_help(format!("Replace the number literal with `{x1}`"))
-        .with_label(span0)
+        .with_help(format!("Replace the number literal with `{lit}`"))
+        .with_label(span)
 }
 
-fn dangling_dot(span0: Span, x1: &str) -> OxcDiagnostic {
+fn dangling_dot(span: Span, lit: &str) -> OxcDiagnostic {
     OxcDiagnostic::warn("Don't use a dangling dot in the number.")
-        .with_help(format!("Replace the number literal with `{x1}`"))
-        .with_label(span0)
+        .with_help(format!("Replace the number literal with `{lit}`"))
+        .with_label(span)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -30,13 +30,16 @@ declare_oxc_lint!(
     /// There is no difference in JavaScript between, for example, `1`, `1.0` and `1.`, so prefer the former for consistency and brevity.
     ///
     /// ### Example
+    ///
+    /// Examples of **incorrect** code for this rule:
     /// ```javascript
-    /// // Bad
     /// const foo = 1.0;
     /// const foo = -1.0;
     /// const foo = 123_456.000_000;
+    /// ```
     ///
-    /// // Good
+    /// Examples of **correct** code for this rule:
+    /// ```javascript
     /// const foo = 1;
     /// const foo = -1;
     /// const foo = 123456;

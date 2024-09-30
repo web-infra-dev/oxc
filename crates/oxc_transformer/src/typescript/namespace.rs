@@ -1,28 +1,36 @@
 use oxc_allocator::{Box, Vec};
-use oxc_ast::{ast::*, syntax_directed_operations::BoundNames};
+use oxc_ast::{ast::*, syntax_directed_operations::BoundNames, NONE};
 use oxc_span::{Atom, CompactStr, SPAN};
 use oxc_syntax::{
     operator::{AssignmentOperator, LogicalOperator},
     scope::{ScopeFlags, ScopeId},
     symbol::SymbolFlags,
 };
-use oxc_traverse::TraverseCtx;
+use oxc_traverse::{Traverse, TraverseCtx};
 use rustc_hash::FxHashSet;
 
 use super::{
     diagnostics::{ambient_module_nested, namespace_exporting_non_const, namespace_not_supported},
-    TypeScript,
+    TypeScriptOptions,
 };
+use crate::TransformCtx;
 
-// TODO:
-// 1. register scope for the newly created function: <https://github.com/babel/babel/blob/08b0472069cd207f043dd40a4d157addfdd36011/packages/babel-plugin-transform-typescript/src/namespace.ts#L38>
-impl<'a> TypeScript<'a> {
+pub struct TypeScriptNamespace<'a, 'ctx> {
+    ctx: &'ctx TransformCtx<'a>,
+
+    // Options
+    allow_namespaces: bool,
+}
+
+impl<'a, 'ctx> TypeScriptNamespace<'a, 'ctx> {
+    pub fn new(options: &TypeScriptOptions, ctx: &'ctx TransformCtx<'a>) -> Self {
+        Self { ctx, allow_namespaces: options.allow_namespaces }
+    }
+}
+
+impl<'a, 'ctx> Traverse<'a> for TypeScriptNamespace<'a, 'ctx> {
     // `namespace Foo { }` -> `let Foo; (function (_Foo) { })(Foo || (Foo = {}));`
-    pub(super) fn transform_program_for_namespace(
-        &self,
-        program: &mut Program<'a>,
-        ctx: &mut TraverseCtx,
-    ) {
+    fn enter_program(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
         // namespace declaration is only allowed at the top level
 
         if !has_namespace(program.body.as_slice()) {
@@ -37,11 +45,11 @@ impl<'a> TypeScript<'a> {
         // every time a namespace declaration is encountered.
         let mut new_stmts = self.ctx.ast.vec();
 
-        for stmt in self.ctx.ast.move_statement_vec(&mut program.body) {
+        for stmt in self.ctx.ast.move_vec(&mut program.body) {
             match stmt {
                 Statement::TSModuleDeclaration(decl) => {
                     if !decl.declare {
-                        if !self.options.allow_namespaces {
+                        if !self.allow_namespaces {
                             self.ctx.error(namespace_not_supported(decl.span));
                         }
 
@@ -69,7 +77,7 @@ impl<'a> TypeScript<'a> {
                     match &export_decl.declaration {
                         Some(Declaration::TSModuleDeclaration(decl)) => {
                             if !decl.declare {
-                                if !self.options.allow_namespaces {
+                                if !self.allow_namespaces {
                                     self.ctx.error(namespace_not_supported(decl.span));
                                 }
 
@@ -129,7 +137,9 @@ impl<'a> TypeScript<'a> {
 
         program.body = new_stmts;
     }
+}
 
+impl<'a, 'ctx> TypeScriptNamespace<'a, 'ctx> {
     fn handle_nested(
         &self,
         decl: TSModuleDeclaration<'a>,
@@ -288,8 +298,7 @@ impl<'a> TypeScript<'a> {
         let kind = VariableDeclarationKind::Let;
         let declarations = {
             let pattern_kind = self.ctx.ast.binding_pattern_kind_binding_identifier(SPAN, name);
-            let binding =
-                self.ctx.ast.binding_pattern(pattern_kind, Option::<TSTypeAnnotation>::None, false);
+            let binding = self.ctx.ast.binding_pattern(pattern_kind, NONE, false);
             let decl = self.ctx.ast.variable_declarator(SPAN, kind, binding, None, false);
             self.ctx.ast.vec1(decl)
         };
@@ -315,14 +324,13 @@ impl<'a> TypeScript<'a> {
             let body = self.ctx.ast.function_body(SPAN, directives, stmts);
             let params = {
                 let ident = self.ctx.ast.binding_pattern_kind_binding_identifier(SPAN, arg_name);
-                let pattern =
-                    self.ctx.ast.binding_pattern(ident, Option::<TSTypeAnnotation>::None, false);
+                let pattern = self.ctx.ast.binding_pattern(ident, NONE, false);
                 let items = self.ctx.ast.vec1(self.ctx.ast.plain_formal_parameter(SPAN, pattern));
                 self.ctx.ast.formal_parameters(
                     SPAN,
                     FormalParameterKind::FormalParameter,
                     items,
-                    Option::<BindingRestElement>::None,
+                    NONE,
                 )
             };
             let function = self.ctx.ast.plain_function(
@@ -400,13 +408,7 @@ impl<'a> TypeScript<'a> {
             self.ctx.ast.vec1(self.ctx.ast.argument_expression(expr))
         };
 
-        let expr = self.ctx.ast.expression_call(
-            SPAN,
-            arguments,
-            callee,
-            Option::<TSTypeParameterInstantiation>::None,
-            false,
-        );
+        let expr = self.ctx.ast.expression_call(SPAN, callee, NONE, arguments, false);
         self.ctx.ast.statement_expression(SPAN, expr)
     }
 
@@ -460,7 +462,7 @@ impl<'a> TypeScript<'a> {
                 let Some(property_name) = declarator.id.get_identifier() else {
                     return;
                 };
-                if let Some(init) = &declarator.init {
+                if let Some(init) = &mut declarator.init {
                     declarator.init = Some(
                         self.ctx.ast.expression_assignment(
                             SPAN,
@@ -476,8 +478,7 @@ impl<'a> TypeScript<'a> {
                                     ),
                                 )
                                 .into(),
-                            // SAFETY: `ast.copy` is unsound! We need to fix.
-                            unsafe { self.ctx.ast.copy(init) },
+                            self.ctx.ast.move_expression(init),
                         ),
                     );
                 }

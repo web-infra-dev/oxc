@@ -1,12 +1,12 @@
-use markdown::{to_html_with_options, Options};
-use oxc_diagnostics::NamedSource;
-use scraper::{ElementRef, Html, Selector};
 use std::sync::{Arc, OnceLock};
 
+use markdown::{to_html_with_options, Options};
 use oxc_allocator::Allocator;
+use oxc_diagnostics::NamedSource;
 use oxc_linter::table::RuleTable;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
+use scraper::{ElementRef, Html, Selector};
 
 use super::{render_rule_docs_page, render_rules_table};
 
@@ -106,13 +106,9 @@ fn source_type_from_code_element(code: ElementRef) -> Option<SourceType> {
     };
 
     match *lang {
-        "javascript" | "js" => Some(SourceType::default().with_always_strict(true)),
-        "typescript" | "ts" => {
-            Some(SourceType::default().with_typescript(true).with_always_strict(true))
-        }
-        "tsx" => Some(
-            SourceType::default().with_typescript(true).with_jsx(true).with_always_strict(true),
-        ),
+        "javascript" | "js" => Some(SourceType::default()),
+        "typescript" | "ts" => Some(SourceType::default().with_typescript(true)),
+        "tsx" => Some(SourceType::tsx()),
         // FIXME: lots of jsx examples are usefully succinct but not valid JSX.
         // "jsx" => Some(SourceType::default().with_jsx(true).with_always_strict(true)),
         _ => None,

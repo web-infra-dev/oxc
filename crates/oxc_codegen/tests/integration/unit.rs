@@ -1,4 +1,4 @@
-use crate::tester::{test, test_minify};
+use crate::tester::{test, test_minify, test_without_source};
 
 #[test]
 fn module_decl() {
@@ -27,7 +27,7 @@ fn expr() {
 fn access_property() {
     test(
         "export default class Foo { @x @y accessor #aDef = 1 }",
-        "export default class Foo {\n\taccessor #aDef=1;\n}\n",
+        "export default class Foo {\n\t@x @y accessor #aDef = 1;\n}\n",
     );
 }
 
@@ -64,7 +64,40 @@ fn unicode_escape() {
 }
 
 #[test]
+fn regex() {
+    fn test_all(source: &str, expect: &str, minify: &str) {
+        test(source, expect);
+        test_minify(source, minify);
+        test_without_source(source, expect);
+    }
+    test_all("/regex/giv", "/regex/giv;\n", "/regex/giv;");
+    test_all(
+        r"/(.)(.)(.)(.)(.)(.)(.)(.)\8\8/",
+        "/(.)(.)(.)(.)(.)(.)(.)(.)\\8\\8/;\n",
+        "/(.)(.)(.)(.)(.)(.)(.)(.)\\8\\8/;",
+    );
+
+    test_all(
+        r"/\n\cM\0\x41\u{1f600}\./u",
+        "/\\n\\cM\\0\\x41\\u{1f600}\\./u;\n",
+        "/\\n\\cM\\0\\x41\\u{1f600}\\./u;",
+    );
+    test_all(r"/\n\cM\0\x41\./u", "/\\n\\cM\\0\\x41\\./u;\n", "/\\n\\cM\\0\\x41\\./u;");
+    test_all(
+        r"/\n\cM\0\x41\u1234\./",
+        "/\\n\\cM\\0\\x41\\u1234\\./;\n",
+        "/\\n\\cM\\0\\x41\\u1234\\./;",
+    );
+}
+
+#[test]
 fn comma() {
+    test("[1, 2, 3]", "[\n\t1,\n\t2,\n\t3\n];\n");
+    test("[1, 2, 3,]", "[\n\t1,\n\t2,\n\t3\n];\n");
+    test("[,]", "[,];\n");
+    test("[,,]", "[, ,];\n");
+    test("[,1]", "[, 1];\n");
+
     test_minify("1, 2, 3", "1,2,3;");
     test_minify("1, a = b, 3", "1,a=b,3;");
     test_minify("1, (2, 3), 4", "1,2,3,4;");
@@ -72,6 +105,7 @@ fn comma() {
 
 #[test]
 fn assignment() {
+    test("(let[0] = 100);", "(let)[0] = 100;\n");
     test_minify("a = b ? c : d", "a=b?c:d;");
     test_minify("[a,b] = (1, 2)", "[a,b]=(1,2);");
     // `{a,b}` is a block, must wrap the whole expression to be an assignment expression
@@ -220,4 +254,20 @@ fn equality() {
     test_minify("(a | b) == (c & d)", "(a|b)==(c&d);");
     test_minify("a, b == c , d", "a,b==c,d;");
     test_minify("(a, b) == (c , d)", "(a,b)==(c,d);");
+}
+
+#[test]
+fn vite_special_comments() {
+    test(
+        "new URL(/* @vite-ignore */ 'non-existent', import.meta.url)",
+        "new URL(\n\t/* @vite-ignore */\n\t\"non-existent\",\n\timport.meta.url\n);\n",
+    );
+    test(
+        "const importPromise = import(\n/* @vite-ignore */\nbase + '.js'\n);",
+        "const importPromise = import(\n\t/* @vite-ignore */\n\tbase + \".js\"\n);\n",
+    );
+    test(
+        "import(/* @vite-ignore */ module1Url).then((module1) => {\nself.postMessage(module.default + module1.msg1 + import.meta.env.BASE_URL)})",
+        "import(\n\t/* @vite-ignore */\n\tmodule1Url\n).then((module1) => {\n\tself.postMessage(module.default + module1.msg1 + import.meta.env.BASE_URL);\n});\n",
+    );
 }

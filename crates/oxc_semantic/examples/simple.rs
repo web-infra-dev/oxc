@@ -26,16 +26,16 @@ fn main() -> std::io::Result<()> {
         let error_message: String = parser_ret
             .errors
             .into_iter()
-            .map(|error| error.with_source_code(Arc::clone(&source_text)).to_string())
-            .join("\n\n");
-
+            .map(|error| format!("{:?}", error.with_source_code(Arc::clone(&source_text))))
+            .join("\n");
         println!("Parsing failed:\n\n{error_message}",);
         return Ok(());
     }
 
     let program = allocator.alloc(parser_ret.program);
 
-    let semantic = SemanticBuilder::new(&source_text, source_type)
+    let semantic = SemanticBuilder::new(&source_text)
+        .build_module_record(path, program)
         // Enable additional syntax checks not performed by the parser
         .with_check_syntax_error(true)
         // Inform Semantic about comments found while parsing
@@ -46,9 +46,8 @@ fn main() -> std::io::Result<()> {
         let error_message: String = semantic
             .errors
             .into_iter()
-            .map(|error| error.with_source_code(Arc::clone(&source_text)).to_string())
-            .join("\n\n");
-
+            .map(|error| format!("{:?}", error.with_source_code(Arc::clone(&source_text))))
+            .join("\n");
         println!("Semantic analysis failed:\n\n{error_message}",);
     }
 

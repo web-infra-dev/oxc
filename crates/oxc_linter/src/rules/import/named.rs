@@ -5,10 +5,10 @@ use oxc_syntax::module_record::{ExportImportName, ImportImportName};
 
 use crate::{context::LintContext, rule::Rule};
 
-fn named_diagnostic(x0: &str, x1: &str, span2: Span) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("named import {x0:?} not found"))
-        .with_help(format!("does {x1:?} have the export {x0:?}?"))
-        .with_label(span2)
+fn named_diagnostic(imported_name: &str, module_name: &str, span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn(format!("named import {imported_name:?} not found"))
+        .with_help(format!("does {module_name:?} have the export {imported_name:?}?"))
+        .with_label(span)
 }
 
 /// <https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/named.md>
@@ -35,15 +35,33 @@ declare_oxc_lint!(
     ///
     /// ### Why is this bad?
     ///
-    /// ### Example
+    /// Importing or exporting names that do not exist in the referenced module
+    /// can lead to runtime errors and confusion. It may suggest that certain
+    /// functionality is available when it is not, making the code harder to
+    /// maintain and understand. This rule helps ensure that your code
+    /// accurately reflects the available exports, improving reliability.
+    ///
+    /// ### Examples
+    ///
     /// Given
     /// ```js
     /// // ./foo.js
-    /// export const foo = "I'm so foo"
+    /// export const foo = "I'm so foo";
     /// ```
     ///
-    /// The following is considered valid:
+    /// Examples of **incorrect** code for this rule:
+    /// ```js
+    /// // ./baz.js
+    /// import { notFoo } from './foo'
     ///
+    /// // ES7 proposal
+    /// export { notFoo as defNotBar } from './foo'
+    ///
+    /// // will follow 'jsnext:main', if available
+    /// import { dontCreateStore } from 'redux'
+    /// ```
+    ///
+    /// Examples of **correct** code for this rule:
     /// ```js
     /// // ./bar.js
     /// import { foo } from './foo'
@@ -54,19 +72,6 @@ declare_oxc_lint!(
     /// // node_modules without jsnext:main are not analyzed by default
     /// // (import/ignore setting)
     /// import { SomeNonsenseThatDoesntExist } from 'react'
-    /// ```
-    ///
-    /// ...and the following are reported:
-    ///
-    /// ```js
-    /// // ./baz.js
-    /// import { notFoo } from './foo'
-    ///
-    /// // ES7 proposal
-    /// export { notFoo as defNotBar } from './foo'
-    ///
-    /// // will follow 'jsnext:main', if available
-    /// import { dontCreateStore } from 'redux'
     /// ```
     Named,
     correctness

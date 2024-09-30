@@ -1,13 +1,43 @@
-use std::cell::Cell;
+//! ES2016: Exponentiation Operator
+//!
+//! This plugin transforms the exponentiation operator (`**`) to `Math.pow`.
+//!
+//! > This plugin is included in `preset-env`, in ES2016
+//!
+//! ## Example
+//!
+//! Input:
+//! ```js
+//! let x = 10 ** 2;
+//!
+//! x **= 3;
+//! ```
+//!
+//! Output:
+//! ```js
+//! let x = Math.pow(10, 2);
+//!
+//! x = Math.pow(x, 3);
+//! ```
+//!
+//! ## Implementation
+//!
+//! Implementation based on [@babel/plugin-transform-exponentiation-operator](https://babel.dev/docs/babel-plugin-transform-exponentiation-operator).
+//!
+//! ## References:
+//!
+//! * Babel plugin implementation: <https://github.com/babel/babel/blob/main/packages/babel-plugin-transform-exponentiation-operator>
+//! * Exponentiation operator TC39 proposal: <https://github.com/tc39/proposal-exponentiation-operator>
+//! * Exponentiation operator specification: <https://tc39.es/ecma262/#sec-exp-operator>
 
 use oxc_allocator::{CloneIn, Vec};
-use oxc_ast::ast::*;
-use oxc_semantic::{ReferenceFlag, SymbolFlags};
+use oxc_ast::{ast::*, NONE};
+use oxc_semantic::{ReferenceFlags, SymbolFlags};
 use oxc_span::SPAN;
 use oxc_syntax::operator::{AssignmentOperator, BinaryOperator};
-use oxc_traverse::TraverseCtx;
+use oxc_traverse::{Traverse, TraverseCtx};
 
-use crate::context::Ctx;
+use crate::TransformCtx;
 
 /// ES2016: Exponentiation Operator
 ///
@@ -15,9 +45,8 @@ use crate::context::Ctx;
 /// * <https://babel.dev/docs/babel-plugin-transform-exponentiation-operator>
 /// * <https://github.com/babel/babel/blob/main/packages/babel-plugin-transform-exponentiation-operator>
 /// * <https://github.com/babel/babel/blob/main/packages/babel-helper-builder-binary-assignment-operator-visitor>
-pub struct ExponentiationOperator<'a> {
-    _ctx: Ctx<'a>,
-    var_declarations: std::vec::Vec<Vec<'a, VariableDeclarator<'a>>>,
+pub struct ExponentiationOperator<'a, 'ctx> {
+    ctx: &'ctx TransformCtx<'a>,
 }
 
 #[derive(Debug)]
@@ -26,70 +55,37 @@ struct Exploded<'a> {
     uid: Expression<'a>,
 }
 
-impl<'a> ExponentiationOperator<'a> {
-    pub fn new(ctx: Ctx<'a>) -> Self {
-        Self { _ctx: ctx, var_declarations: vec![] }
+impl<'a, 'ctx> ExponentiationOperator<'a, 'ctx> {
+    pub fn new(ctx: &'ctx TransformCtx<'a>) -> Self {
+        Self { ctx }
     }
+}
 
-    fn clone_identifier_reference(
-        ident: &IdentifierReference<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) -> IdentifierReference<'a> {
-        let reference = ctx.symbols().get_reference(ident.reference_id.get().unwrap());
-        let symbol_id = reference.symbol_id();
-        let flag = reference.flag();
-        ctx.create_reference_id(ident.span, ident.name.clone(), symbol_id, *flag)
-    }
-
-    fn clone_expression(expr: &Expression<'a>, ctx: &mut TraverseCtx<'a>) -> Expression<'a> {
+impl<'a, 'ctx> Traverse<'a> for ExponentiationOperator<'a, 'ctx> {
+    // NOTE: Bail bigint arguments to `Math.pow`, which are runtime errors.
+    fn enter_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
         match expr {
-            Expression::Identifier(ident) => ctx
-                .ast
-                .expression_from_identifier_reference(Self::clone_identifier_reference(ident, ctx)),
-            _ => expr.clone_in(ctx.ast.allocator),
-        }
-    }
+            // left ** right
+            Expression::BinaryExpression(binary_expr) => {
+                if binary_expr.operator != BinaryOperator::Exponential
+                    || binary_expr.left.is_big_int_literal()
+                    || binary_expr.right.is_big_int_literal()
+                {
+                    return;
+                }
 
-    pub fn transform_statements(
-        &mut self,
-        _statements: &mut Vec<'a, Statement<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-        self.var_declarations.push(ctx.ast.vec());
-    }
-
-    pub fn transform_statements_on_exit(
-        &mut self,
-        statements: &mut Vec<'a, Statement<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-        if let Some(declarations) = self.var_declarations.pop() {
-            if declarations.is_empty() {
-                return;
-            }
-            let variable = ctx.ast.alloc_variable_declaration(
-                SPAN,
-                VariableDeclarationKind::Var,
-                declarations,
-                false,
-            );
-            statements.insert(0, Statement::VariableDeclaration(variable));
-        }
-    }
-
-    pub fn transform_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
-        // left ** right
-        if let Expression::BinaryExpression(binary_expr) = expr {
-            if binary_expr.operator == BinaryOperator::Exponential {
                 let left = ctx.ast.move_expression(&mut binary_expr.left);
                 let right = ctx.ast.move_expression(&mut binary_expr.right);
                 *expr = Self::math_pow(left, right, ctx);
             }
-        }
+            // left **= right
+            Expression::AssignmentExpression(assign_expr) => {
+                if assign_expr.operator != AssignmentOperator::Exponential
+                    || assign_expr.right.is_big_int_literal()
+                {
+                    return;
+                }
 
-        // left **= right
-        if let Expression::AssignmentExpression(assign_expr) = expr {
-            if assign_expr.operator == AssignmentOperator::Exponential {
                 let mut nodes = ctx.ast.vec();
                 let Some(Exploded { reference, uid }) =
                     self.explode(&mut assign_expr.left, &mut nodes, ctx)
@@ -107,6 +103,18 @@ impl<'a> ExponentiationOperator<'a> {
                 nodes.push(assign_expr);
                 *expr = ctx.ast.expression_sequence(SPAN, nodes);
             }
+            _ => {}
+        }
+    }
+}
+
+impl<'a, 'ctx> ExponentiationOperator<'a, 'ctx> {
+    fn clone_expression(expr: &Expression<'a>, ctx: &mut TraverseCtx<'a>) -> Expression<'a> {
+        match expr {
+            Expression::Identifier(ident) => ctx.ast.expression_from_identifier_reference(
+                ctx.clone_identifier_reference(ident, ReferenceFlags::Read),
+            ),
+            _ => expr.clone_in(ctx.ast.allocator),
         }
     }
 
@@ -117,7 +125,7 @@ impl<'a> ExponentiationOperator<'a> {
         ctx: &mut TraverseCtx<'a>,
     ) -> Expression<'a> {
         let ident_math =
-            ctx.create_reference_id(SPAN, ctx.ast.atom("Math"), None, ReferenceFlag::Read);
+            ctx.create_reference_id(SPAN, ctx.ast.atom("Math"), None, ReferenceFlags::Read);
         let object = ctx.ast.expression_from_identifier_reference(ident_math);
         let property = ctx.ast.identifier_name(SPAN, "pow");
         let callee =
@@ -125,13 +133,7 @@ impl<'a> ExponentiationOperator<'a> {
         let mut arguments = ctx.ast.vec_with_capacity(2);
         arguments.push(Argument::from(left));
         arguments.push(Argument::from(right));
-        ctx.ast.expression_call(
-            SPAN,
-            arguments,
-            callee,
-            None::<TSTypeParameterInstantiation<'_>>,
-            false,
-        )
+        ctx.ast.expression_call(SPAN, callee, NONE, arguments, false)
     }
 
     /// Change `lhs **= 2` to `var temp; temp = lhs, lhs = Math.pow(temp, 2);`.
@@ -148,9 +150,10 @@ impl<'a> ExponentiationOperator<'a> {
         let obj = self.get_obj_ref(node, nodes, ctx)?;
         let (reference, uid) = match node {
             SimpleAssignmentTarget::AssignmentTargetIdentifier(ident) => {
-                let reference = AssignmentTarget::AssignmentTargetIdentifier(
-                    ctx.ast.alloc(Self::clone_identifier_reference(ident.as_ref(), ctx)),
-                );
+                let reference =
+                    AssignmentTarget::AssignmentTargetIdentifier(ctx.ast.alloc(
+                        ctx.clone_identifier_reference(ident.as_ref(), ReferenceFlags::Write),
+                    ));
                 (reference, obj)
             }
             match_member_expression!(SimpleAssignmentTarget) => {
@@ -214,13 +217,13 @@ impl<'a> ExponentiationOperator<'a> {
                     // that evaluating it multiple times won't trigger a getter
                     // or something else
                     return Some(ctx.ast.expression_from_identifier_reference(
-                        Self::clone_identifier_reference(ident, ctx),
+                        ctx.clone_identifier_reference(ident, ReferenceFlags::Write),
                     ));
                 }
                 // could possibly trigger a getter so we need to only evaluate it once
-                ctx.ast.expression_from_identifier_reference(Self::clone_identifier_reference(
-                    ident, ctx,
-                ))
+                ctx.ast.expression_from_identifier_reference(
+                    ctx.clone_identifier_reference(ident, ReferenceFlags::Read),
+                )
             }
             match_member_expression!(SimpleAssignmentTarget) => {
                 let expr = match node {
@@ -291,29 +294,16 @@ impl<'a> ExponentiationOperator<'a> {
             ctx.generate_uid_in_current_scope(name, SymbolFlags::FunctionScopedVariable);
         let symbol_name = ctx.ast.atom(ctx.symbols().get_name(symbol_id));
 
-        {
-            // var _name;
-            let binding_identifier = BindingIdentifier {
-                span: SPAN,
-                name: symbol_name.clone(),
-                symbol_id: Cell::new(Some(symbol_id)),
-            };
-            let kind = VariableDeclarationKind::Var;
-            let id = ctx.ast.binding_pattern_kind_from_binding_identifier(binding_identifier);
-            let id = ctx.ast.binding_pattern(id, None::<TSTypeAnnotation<'_>>, false);
-            self.var_declarations
-                .last_mut()
-                .unwrap()
-                .push(ctx.ast.variable_declarator(SPAN, kind, id, None, false));
-        }
+        // var _name;
+        self.ctx.var_declarations.insert_declarator(symbol_name.clone(), symbol_id, None, ctx);
 
         let ident =
-            ctx.create_reference_id(SPAN, symbol_name, Some(symbol_id), ReferenceFlag::Read);
+            ctx.create_reference_id(SPAN, symbol_name, Some(symbol_id), ReferenceFlags::Read);
 
         // let ident = self.create_new_var_with_expression(&expr);
         // Add new reference `_name = name` to nodes
         let left = ctx.ast.simple_assignment_target_from_identifier_reference(
-            Self::clone_identifier_reference(&ident, ctx),
+            ctx.clone_identifier_reference(&ident, ReferenceFlags::Write),
         );
         let op = AssignmentOperator::Assign;
         nodes.push(ctx.ast.expression_assignment(SPAN, op, AssignmentTarget::from(left), expr));

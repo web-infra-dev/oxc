@@ -1,8 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use oxc::span::SourceType;
-use oxc::transformer::{
-    ES2015Options, ReactJsxRuntime, ReactOptions, TransformOptions, TypeScriptOptions,
+use oxc::{
+    span::SourceType,
+    transformer::{
+        ES2015Options, ReactJsxRuntime, ReactOptions, TransformOptions, TypeScriptOptions,
+    },
 };
 
 use crate::{
@@ -74,7 +76,7 @@ impl Case for SemanticTest262Case {
     }
 
     fn skip_test_case(&self) -> bool {
-        self.base.should_fail()
+        self.base.should_fail() || self.base.skip_test_case()
     }
 
     fn run(&mut self) {

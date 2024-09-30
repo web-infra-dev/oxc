@@ -1,4 +1,4 @@
-#![allow(clippy::print_stdout, clippy::print_stderr)]
+#![allow(clippy::print_stdout, clippy::print_stderr, clippy::disallowed_methods)]
 // Core
 mod runtime;
 mod suite;
@@ -13,7 +13,7 @@ mod tools;
 
 use std::{fs, path::PathBuf, process::Command, time::Duration};
 
-use oxc_tasks_common::agent;
+use oxc_tasks_common::{agent, project_root};
 use runtime::{CodegenRuntimeTest262Case, V8_TEST_262_FAILED_TESTS_PATH};
 use similar::DiffableStr;
 
@@ -32,7 +32,6 @@ use crate::{
         semantic::{
             SemanticBabelCase, SemanticMiscCase, SemanticTest262Case, SemanticTypeScriptCase,
         },
-        sourcemap::{SourcemapCase, SourcemapSuite},
         transformer::{
             TransformerBabelCase, TransformerMiscCase, TransformerTest262Case,
             TransformerTypeScriptCase,
@@ -41,10 +40,12 @@ use crate::{
     typescript::{TranspileRunner, TypeScriptCase, TypeScriptSuite, TypeScriptTranspileCase},
 };
 
-/// # Panics
-/// Invalid Project Root
 pub fn workspace_root() -> PathBuf {
-    project_root::get_project_root().unwrap().join("tasks").join("coverage")
+    project_root().join("tasks").join("coverage")
+}
+
+fn snap_root() -> PathBuf {
+    workspace_root().join("snapshots")
 }
 
 #[derive(Debug, Default)]
@@ -91,7 +92,6 @@ impl AppArgs {
         BabelSuite::<CodegenBabelCase>::new().run("codegen_babel", self);
         TypeScriptSuite::<CodegenTypeScriptCase>::new().run("codegen_typescript", self);
         MiscSuite::<CodegenMiscCase>::new().run("codegen_misc", self);
-        SourcemapSuite::<SourcemapCase>::new().run("codegen_sourcemap", self);
     }
 
     pub fn run_prettier(&self) {
@@ -132,7 +132,7 @@ impl AppArgs {
 
     // Generate v8 test262 status file, which is used to skip failed tests
     // see https://chromium.googlesource.com/v8/v8/+/refs/heads/main/test/test262/test262.status
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn run_sync_v8_test262_status(&self) {
         let res = agent()
             .get("http://raw.githubusercontent.com/v8/v8/main/test/test262/test262.status")

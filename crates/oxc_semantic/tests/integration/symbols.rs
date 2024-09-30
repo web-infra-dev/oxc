@@ -231,6 +231,23 @@ fn test_class_with_type_parameter() {
 }
 
 #[test]
+fn test_class_with_accessor() {
+    SemanticTester::ts(
+        "
+    type T = 1;
+
+    abstract class Foo {
+        accessor prop: T;
+    }
+    ",
+    )
+    .has_some_symbol("T")
+    .has_number_of_references(1)
+    .has_number_of_references_where(1, Reference::is_type)
+    .test();
+}
+
+#[test]
 fn test_ts_mapped_type() {
     let tester = SemanticTester::ts(
         "
@@ -353,5 +370,123 @@ fn test_ts_interface_heritage() {
     .expect_errors(true)
     .has_some_symbol("Heritage")
     .has_number_of_references(1)
+    .test();
+}
+
+#[test]
+fn test_arrow_implicit_return() {
+    SemanticTester::js("let i = 0; const x = () => i")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(0)
+        .test();
+
+    SemanticTester::js("let i = 0; const x = () => ++i")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(1)
+        .test();
+
+    SemanticTester::js("let i = 0; const x = () => { ++i }")
+        .has_root_symbol("i")
+        .has_number_of_reads(0)
+        .has_number_of_writes(1)
+        .test();
+
+    SemanticTester::js("let i = 0; const x = () => (0, ++i)")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(1)
+        .test();
+
+    SemanticTester::js("let i = 0; const x = () => (++i, 0)")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(1)
+        .test();
+
+    SemanticTester::js("let i = 1; const foo = () => () => { i++ }")
+        .has_root_symbol("i")
+        .has_number_of_reads(0)
+        .has_number_of_writes(1)
+        .test();
+}
+
+#[test]
+fn test_arrow_explicit_return() {
+    SemanticTester::js("let i = 0; const x = () => { return i }")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(0)
+        .test();
+
+    SemanticTester::js("let i = 0; const x = () => { return ++i }")
+        .has_root_symbol("i")
+        .has_number_of_reads(1)
+        .has_number_of_writes(1)
+        .test();
+}
+
+#[test]
+fn test_tagged_templates() {
+    // https://github.com/oxc-project/oxc/issues/5391
+    SemanticTester::tsx(
+        "
+        import styled from 'styled-components';
+
+        import { Prose, ProseProps } from './prose';
+        
+        interface Props extends ProseProps {
+          density?: number;
+        }
+        export const HandMarkedPaperBallotProse = styled(Prose)<Props>`
+          line-height: ${({ density }) => (density !== 0 ? '1.1' : '1.3')};
+        `;
+    ",
+    )
+    .has_some_symbol("density")
+    .has_number_of_reads(1)
+    .has_number_of_writes(0)
+    .test();
+}
+
+#[test]
+fn test_module_like_declarations() {
+    SemanticTester::ts("namespace A { export const x = 1; }")
+        .has_root_symbol("A")
+        .contains_flags(SymbolFlags::NameSpaceModule)
+        .test();
+
+    SemanticTester::ts("module A { export const x = 1; }")
+        .has_root_symbol("A")
+        .contains_flags(SymbolFlags::NameSpaceModule)
+        .test();
+
+    SemanticTester::ts(r#"module "A" { export const x = 1; }"#)
+        .has_root_symbol("A")
+        .contains_flags(SymbolFlags::NameSpaceModule)
+        .test();
+
+    let test = SemanticTester::ts("declare global { interface Window { x: number; } }");
+    let semantic = test.build();
+    let global = semantic.symbols().names.iter().find(|name| *name == "global");
+    assert!(
+        global.is_none(),
+        "A symbol should not be created for global augmentation declarations."
+    );
+}
+
+#[test]
+fn test_class_merging() {
+    // classes can be merged with interfaces, resulting in a single symbol
+    SemanticTester::ts(
+        "
+        class Foo {}
+        interface Foo {}
+    ",
+    )
+    .has_root_symbol("Foo")
+    .contains_flags(SymbolFlags::Class)
+    .contains_flags(SymbolFlags::Interface)
     .test();
 }

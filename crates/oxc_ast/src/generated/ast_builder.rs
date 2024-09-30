@@ -679,17 +679,17 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - arguments
     /// - callee
     /// - type_parameters
+    /// - arguments
     /// - optional
     #[inline]
     pub fn expression_call<T1>(
         self,
         span: Span,
-        arguments: Vec<'a, Argument<'a>>,
         callee: Expression<'a>,
         type_parameters: T1,
+        arguments: Vec<'a, Argument<'a>>,
         optional: bool,
     ) -> Expression<'a>
     where
@@ -697,9 +697,9 @@ impl<'a> AstBuilder<'a> {
     {
         Expression::CallExpression(self.alloc(self.call_expression(
             span,
-            arguments,
             callee,
             type_parameters,
+            arguments,
             optional,
         )))
     }
@@ -832,17 +832,17 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - r#type
     /// - span: The [`Span`] covering this node
-    /// - id
-    /// - generator
+    /// - id: The function identifier. [`None`] for anonymous function expressions.
+    /// - generator: Is this a generator function?
     /// - r#async
     /// - declare
     /// - type_parameters
     /// - this_param: Declaring `this` in a Function <https://www.typescriptlang.org/docs/handbook/2/functions.html#declaring-this-in-a-function>
-    /// - params
-    /// - return_type
-    /// - body
+    /// - params: Function parameters.
+    /// - return_type: The TypeScript return type annotation.
+    /// - body: The function body.
     #[inline]
-    pub fn expression_function<T1, T2, T3, T4>(
+    pub fn expression_function<T1, T2, T3, T4, T5>(
         self,
         r#type: FunctionType,
         span: Span,
@@ -851,16 +851,17 @@ impl<'a> AstBuilder<'a> {
         r#async: bool,
         declare: bool,
         type_parameters: T1,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T2,
-        return_type: T3,
-        body: T4,
+        this_param: T2,
+        params: T3,
+        return_type: T4,
+        body: T5,
     ) -> Expression<'a>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
-        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T4: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T3: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T5: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
     {
         Expression::FunctionExpression(self.alloc(self.function(
             r#type,
@@ -1346,8 +1347,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - expression
-    /// - type_annotation
+    /// - expression: The value expression being constrained.
+    /// - type_annotation: The type `expression` must satisfy.
     #[inline]
     pub fn expression_ts_satisfies(
         self,
@@ -1508,7 +1509,6 @@ impl<'a> AstBuilder<'a> {
             span,
             name: name.into_in(self.allocator),
             reference_id: Default::default(),
-            reference_flag: Default::default(),
         }
     }
 
@@ -2294,17 +2294,17 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - arguments
     /// - callee
     /// - type_parameters
+    /// - arguments
     /// - optional
     #[inline]
     pub fn call_expression<T1>(
         self,
         span: Span,
-        arguments: Vec<'a, Argument<'a>>,
         callee: Expression<'a>,
         type_parameters: T1,
+        arguments: Vec<'a, Argument<'a>>,
         optional: bool,
     ) -> CallExpression<'a>
     where
@@ -2312,9 +2312,9 @@ impl<'a> AstBuilder<'a> {
     {
         CallExpression {
             span,
-            arguments,
             callee,
             type_parameters: type_parameters.into_in(self.allocator),
+            arguments,
             optional,
         }
     }
@@ -2325,24 +2325,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - arguments
     /// - callee
     /// - type_parameters
+    /// - arguments
     /// - optional
     #[inline]
     pub fn alloc_call_expression<T1>(
         self,
         span: Span,
-        arguments: Vec<'a, Argument<'a>>,
         callee: Expression<'a>,
         type_parameters: T1,
+        arguments: Vec<'a, Argument<'a>>,
         optional: bool,
     ) -> Box<'a, CallExpression<'a>>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
     {
         Box::new_in(
-            self.call_expression(span, arguments, callee, type_parameters, optional),
+            self.call_expression(span, callee, type_parameters, arguments, optional),
             self.allocator,
         )
     }
@@ -2853,8 +2853,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - expression
-    /// - type_annotation
+    /// - expression: The value expression being constrained.
+    /// - type_annotation: The type `expression` must satisfy.
     #[inline]
     pub fn simple_assignment_target_ts_satisfies_expression(
         self,
@@ -3496,17 +3496,17 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - arguments
     /// - callee
     /// - type_parameters
+    /// - arguments
     /// - optional
     #[inline]
     pub fn chain_element_call_expression<T1>(
         self,
         span: Span,
-        arguments: Vec<'a, Argument<'a>>,
         callee: Expression<'a>,
         type_parameters: T1,
+        arguments: Vec<'a, Argument<'a>>,
         optional: bool,
     ) -> ChainElement<'a>
     where
@@ -3514,9 +3514,9 @@ impl<'a> AstBuilder<'a> {
     {
         ChainElement::CallExpression(self.alloc(self.call_expression(
             span,
-            arguments,
             callee,
             type_parameters,
+            arguments,
             optional,
         )))
     }
@@ -3925,7 +3925,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - argument
+    /// - argument: The expression being thrown, e.g. `err` in `throw err;`
     #[inline]
     pub fn statement_throw(self, span: Span, argument: Expression<'a>) -> Statement<'a> {
         Statement::ThrowStatement(self.alloc(self.throw_statement(span, argument)))
@@ -3946,9 +3946,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - block
-    /// - handler
-    /// - finalizer
+    /// - block: Statements in the `try` block
+    /// - handler: The `catch` clause, including the parameter and the block statement
+    /// - finalizer: The `finally` clause
     #[inline]
     pub fn statement_try<T1, T2, T3>(
         self,
@@ -4179,17 +4179,17 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - r#type
     /// - span: The [`Span`] covering this node
-    /// - id
-    /// - generator
+    /// - id: The function identifier. [`None`] for anonymous function expressions.
+    /// - generator: Is this a generator function?
     /// - r#async
     /// - declare
     /// - type_parameters
     /// - this_param: Declaring `this` in a Function <https://www.typescriptlang.org/docs/handbook/2/functions.html#declaring-this-in-a-function>
-    /// - params
-    /// - return_type
-    /// - body
+    /// - params: Function parameters.
+    /// - return_type: The TypeScript return type annotation.
+    /// - body: The function body.
     #[inline]
-    pub fn declaration_function<T1, T2, T3, T4>(
+    pub fn declaration_function<T1, T2, T3, T4, T5>(
         self,
         r#type: FunctionType,
         span: Span,
@@ -4198,16 +4198,17 @@ impl<'a> AstBuilder<'a> {
         r#async: bool,
         declare: bool,
         type_parameters: T1,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T2,
-        return_type: T3,
-        body: T4,
+        this_param: T2,
+        params: T3,
+        return_type: T4,
+        body: T5,
     ) -> Declaration<'a>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
-        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T4: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T3: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T5: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
     {
         Declaration::FunctionDeclaration(self.alloc(self.function(
             r#type,
@@ -4293,44 +4294,13 @@ impl<'a> AstBuilder<'a> {
         Declaration::ClassDeclaration(inner.into_in(self.allocator))
     }
 
-    /// Build a [`Declaration::UsingDeclaration`]
-    ///
-    /// This node contains a [`UsingDeclaration`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// - span: The [`Span`] covering this node
-    /// - is_await
-    /// - declarations
-    #[inline]
-    pub fn declaration_using(
-        self,
-        span: Span,
-        is_await: bool,
-        declarations: Vec<'a, VariableDeclarator<'a>>,
-    ) -> Declaration<'a> {
-        Declaration::UsingDeclaration(self.alloc(self.using_declaration(
-            span,
-            is_await,
-            declarations,
-        )))
-    }
-
-    /// Convert a [`UsingDeclaration`] into a [`Declaration::UsingDeclaration`]
-    #[inline]
-    pub fn declaration_from_using<T>(self, inner: T) -> Declaration<'a>
-    where
-        T: IntoIn<'a, Box<'a, UsingDeclaration<'a>>>,
-    {
-        Declaration::UsingDeclaration(inner.into_in(self.allocator))
-    }
-
     /// Build a [`Declaration::TSTypeAliasDeclaration`]
     ///
     /// This node contains a [`TSTypeAliasDeclaration`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: Type alias's identifier, e.g. `Foo` in `type Foo = number`.
     /// - type_parameters
     /// - type_annotation
     /// - declare
@@ -4371,10 +4341,10 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - id: The identifier (name) of the interface.
-    /// - extends
-    /// - type_parameters
+    /// - extends: Other interfaces/types this interface extends.
+    /// - type_parameters: Type parameters that get bound to the interface.
     /// - body
-    /// - declare
+    /// - declare: `true` for `declare interface Foo {}`
     #[inline]
     pub fn declaration_ts_interface<T1, T2>(
         self,
@@ -4416,7 +4386,7 @@ impl<'a> AstBuilder<'a> {
     /// - span: The [`Span`] covering this node
     /// - id
     /// - members
-    /// - r#const
+    /// - r#const: `true` for const enums
     /// - declare
     #[inline]
     pub fn declaration_ts_enum(
@@ -4447,9 +4417,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: The name of the module/namespace being declared.
     /// - body
-    /// - kind: The keyword used to define this module declaration
+    /// - kind: The keyword used to define this module declaration.
     /// - declare
     #[inline]
     pub fn declaration_ts_module(
@@ -4590,42 +4560,6 @@ impl<'a> AstBuilder<'a> {
         definite: bool,
     ) -> Box<'a, VariableDeclarator<'a>> {
         Box::new_in(self.variable_declarator(span, kind, id, init, definite), self.allocator)
-    }
-
-    /// Builds a [`UsingDeclaration`]
-    ///
-    /// If you want the built node to be allocated in the memory arena, use [`AstBuilder::alloc_using_declaration`] instead.
-    ///
-    /// ## Parameters
-    /// - span: The [`Span`] covering this node
-    /// - is_await
-    /// - declarations
-    #[inline]
-    pub fn using_declaration(
-        self,
-        span: Span,
-        is_await: bool,
-        declarations: Vec<'a, VariableDeclarator<'a>>,
-    ) -> UsingDeclaration<'a> {
-        UsingDeclaration { span, is_await, declarations }
-    }
-
-    /// Builds a [`UsingDeclaration`] and stores it in the memory arena.
-    ///
-    /// Returns a [`Box`] containing the newly-allocated node. If you want a stack-allocated node, use [`AstBuilder::using_declaration`] instead.
-    ///
-    /// ## Parameters
-    /// - span: The [`Span`] covering this node
-    /// - is_await
-    /// - declarations
-    #[inline]
-    pub fn alloc_using_declaration(
-        self,
-        span: Span,
-        is_await: bool,
-        declarations: Vec<'a, VariableDeclarator<'a>>,
-    ) -> Box<'a, UsingDeclaration<'a>> {
-        Box::new_in(self.using_declaration(span, is_await, declarations), self.allocator)
     }
 
     /// Builds a [`EmptyStatement`]
@@ -4872,37 +4806,6 @@ impl<'a> AstBuilder<'a> {
         ForStatementInit::VariableDeclaration(inner.into_in(self.allocator))
     }
 
-    /// Build a [`ForStatementInit::UsingDeclaration`]
-    ///
-    /// This node contains a [`UsingDeclaration`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// - span: The [`Span`] covering this node
-    /// - is_await
-    /// - declarations
-    #[inline]
-    pub fn for_statement_init_using_declaration(
-        self,
-        span: Span,
-        is_await: bool,
-        declarations: Vec<'a, VariableDeclarator<'a>>,
-    ) -> ForStatementInit<'a> {
-        ForStatementInit::UsingDeclaration(self.alloc(self.using_declaration(
-            span,
-            is_await,
-            declarations,
-        )))
-    }
-
-    /// Convert a [`UsingDeclaration`] into a [`ForStatementInit::UsingDeclaration`]
-    #[inline]
-    pub fn for_statement_init_from_using_declaration<T>(self, inner: T) -> ForStatementInit<'a>
-    where
-        T: IntoIn<'a, Box<'a, UsingDeclaration<'a>>>,
-    {
-        ForStatementInit::UsingDeclaration(inner.into_in(self.allocator))
-    }
-
     #[inline]
     pub fn for_statement_init_expression(self, inner: Expression<'a>) -> ForStatementInit<'a> {
         ForStatementInit::from(inner)
@@ -4980,37 +4883,6 @@ impl<'a> AstBuilder<'a> {
         T: IntoIn<'a, Box<'a, VariableDeclaration<'a>>>,
     {
         ForStatementLeft::VariableDeclaration(inner.into_in(self.allocator))
-    }
-
-    /// Build a [`ForStatementLeft::UsingDeclaration`]
-    ///
-    /// This node contains a [`UsingDeclaration`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// - span: The [`Span`] covering this node
-    /// - is_await
-    /// - declarations
-    #[inline]
-    pub fn for_statement_left_using_declaration(
-        self,
-        span: Span,
-        is_await: bool,
-        declarations: Vec<'a, VariableDeclarator<'a>>,
-    ) -> ForStatementLeft<'a> {
-        ForStatementLeft::UsingDeclaration(self.alloc(self.using_declaration(
-            span,
-            is_await,
-            declarations,
-        )))
-    }
-
-    /// Convert a [`UsingDeclaration`] into a [`ForStatementLeft::UsingDeclaration`]
-    #[inline]
-    pub fn for_statement_left_from_using_declaration<T>(self, inner: T) -> ForStatementLeft<'a>
-    where
-        T: IntoIn<'a, Box<'a, UsingDeclaration<'a>>>,
-    {
-        ForStatementLeft::UsingDeclaration(inner.into_in(self.allocator))
     }
 
     #[inline]
@@ -5311,7 +5183,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - argument
+    /// - argument: The expression being thrown, e.g. `err` in `throw err;`
     #[inline]
     pub fn throw_statement(self, span: Span, argument: Expression<'a>) -> ThrowStatement<'a> {
         ThrowStatement { span, argument }
@@ -5323,7 +5195,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - argument
+    /// - argument: The expression being thrown, e.g. `err` in `throw err;`
     #[inline]
     pub fn alloc_throw_statement(
         self,
@@ -5339,9 +5211,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - block
-    /// - handler
-    /// - finalizer
+    /// - block: Statements in the `try` block
+    /// - handler: The `catch` clause, including the parameter and the block statement
+    /// - finalizer: The `finally` clause
     #[inline]
     pub fn try_statement<T1, T2, T3>(
         self,
@@ -5369,9 +5241,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - block
-    /// - handler
-    /// - finalizer
+    /// - block: Statements in the `try` block
+    /// - handler: The `catch` clause, including the parameter and the block statement
+    /// - finalizer: The `finally` clause
     #[inline]
     pub fn alloc_try_statement<T1, T2, T3>(
         self,
@@ -5394,8 +5266,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - param
-    /// - body
+    /// - param: The caught error parameter, e.g. `e` in `catch (e) {}`
+    /// - body: The statements run when an error is caught
     #[inline]
     pub fn catch_clause<T1>(
         self,
@@ -5420,8 +5292,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - param
-    /// - body
+    /// - param: The caught error parameter, e.g. `e` in `catch (e) {}`
+    /// - body: The statements run when an error is caught
     #[inline]
     pub fn alloc_catch_clause<T1>(
         self,
@@ -5441,7 +5313,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - pattern
+    /// - pattern: The bound error
     #[inline]
     pub fn catch_parameter(self, span: Span, pattern: BindingPattern<'a>) -> CatchParameter<'a> {
         CatchParameter { span, pattern }
@@ -5453,7 +5325,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - pattern
+    /// - pattern: The bound error
     #[inline]
     pub fn alloc_catch_parameter(
         self,
@@ -5847,17 +5719,17 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - r#type
     /// - span: The [`Span`] covering this node
-    /// - id
-    /// - generator
+    /// - id: The function identifier. [`None`] for anonymous function expressions.
+    /// - generator: Is this a generator function?
     /// - r#async
     /// - declare
     /// - type_parameters
     /// - this_param: Declaring `this` in a Function <https://www.typescriptlang.org/docs/handbook/2/functions.html#declaring-this-in-a-function>
-    /// - params
-    /// - return_type
-    /// - body
+    /// - params: Function parameters.
+    /// - return_type: The TypeScript return type annotation.
+    /// - body: The function body.
     #[inline]
-    pub fn function<T1, T2, T3, T4>(
+    pub fn function<T1, T2, T3, T4, T5>(
         self,
         r#type: FunctionType,
         span: Span,
@@ -5866,16 +5738,17 @@ impl<'a> AstBuilder<'a> {
         r#async: bool,
         declare: bool,
         type_parameters: T1,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T2,
-        return_type: T3,
-        body: T4,
+        this_param: T2,
+        params: T3,
+        return_type: T4,
+        body: T5,
     ) -> Function<'a>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
-        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T4: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T3: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T5: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
     {
         Function {
             r#type,
@@ -5885,7 +5758,7 @@ impl<'a> AstBuilder<'a> {
             r#async,
             declare,
             type_parameters: type_parameters.into_in(self.allocator),
-            this_param,
+            this_param: this_param.into_in(self.allocator),
             params: params.into_in(self.allocator),
             return_type: return_type.into_in(self.allocator),
             body: body.into_in(self.allocator),
@@ -5900,17 +5773,17 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - r#type
     /// - span: The [`Span`] covering this node
-    /// - id
-    /// - generator
+    /// - id: The function identifier. [`None`] for anonymous function expressions.
+    /// - generator: Is this a generator function?
     /// - r#async
     /// - declare
     /// - type_parameters
     /// - this_param: Declaring `this` in a Function <https://www.typescriptlang.org/docs/handbook/2/functions.html#declaring-this-in-a-function>
-    /// - params
-    /// - return_type
-    /// - body
+    /// - params: Function parameters.
+    /// - return_type: The TypeScript return type annotation.
+    /// - body: The function body.
     #[inline]
-    pub fn alloc_function<T1, T2, T3, T4>(
+    pub fn alloc_function<T1, T2, T3, T4, T5>(
         self,
         r#type: FunctionType,
         span: Span,
@@ -5919,16 +5792,17 @@ impl<'a> AstBuilder<'a> {
         r#async: bool,
         declare: bool,
         type_parameters: T1,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T2,
-        return_type: T3,
-        body: T4,
+        this_param: T2,
+        params: T3,
+        return_type: T4,
+        body: T5,
     ) -> Box<'a, Function<'a>>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
-        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T4: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T3: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T5: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
     {
         Box::new_in(
             self.function(
@@ -6495,10 +6369,13 @@ impl<'a> AstBuilder<'a> {
     /// - decorators: Decorators applied to the accessor property.
     /// - key: The expression used to declare the property.
     /// - value: Initialized value in the declaration, if present.
-    /// - computed
-    /// - r#static
+    /// - computed: Property was declared with a computed key
+    /// - r#static: Property was declared with a `static` modifier
+    /// - definite: Property has a `!` after its key.
+    /// - type_annotation: Type annotation on the property.
+    /// - accessibility: Accessibility modifier.
     #[inline]
-    pub fn class_element_accessor_property(
+    pub fn class_element_accessor_property<T1>(
         self,
         r#type: AccessorPropertyType,
         span: Span,
@@ -6507,10 +6384,25 @@ impl<'a> AstBuilder<'a> {
         value: Option<Expression<'a>>,
         computed: bool,
         r#static: bool,
-    ) -> ClassElement<'a> {
-        ClassElement::AccessorProperty(self.alloc(
-            self.accessor_property(r#type, span, decorators, key, value, computed, r#static),
-        ))
+        definite: bool,
+        type_annotation: T1,
+        accessibility: Option<TSAccessibility>,
+    ) -> ClassElement<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+    {
+        ClassElement::AccessorProperty(self.alloc(self.accessor_property(
+            r#type,
+            span,
+            decorators,
+            key,
+            value,
+            computed,
+            r#static,
+            definite,
+            type_annotation,
+            accessibility,
+        )))
     }
 
     /// Convert a [`AccessorProperty`] into a [`ClassElement::AccessorProperty`]
@@ -6848,14 +6740,17 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Some(vec![]) for empty assertion
     /// - import_kind: `import type { foo } from 'bar'`
     #[inline]
-    pub fn module_declaration_import_declaration(
+    pub fn module_declaration_import_declaration<T1>(
         self,
         span: Span,
         specifiers: Option<Vec<'a, ImportDeclarationSpecifier<'a>>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         import_kind: ImportOrExportKind,
-    ) -> ModuleDeclaration<'a> {
+    ) -> ModuleDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         ModuleDeclaration::ImportDeclaration(self.alloc(self.import_declaration(
             span,
             specifiers,
@@ -6885,14 +6780,17 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Will be `Some(vec![])` for empty assertion
     /// - export_kind
     #[inline]
-    pub fn module_declaration_export_all_declaration(
+    pub fn module_declaration_export_all_declaration<T1>(
         self,
         span: Span,
         exported: Option<ModuleExportName<'a>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         export_kind: ImportOrExportKind,
-    ) -> ModuleDeclaration<'a> {
+    ) -> ModuleDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         ModuleDeclaration::ExportAllDeclaration(self.alloc(self.export_all_declaration(
             span,
             exported,
@@ -6960,15 +6858,18 @@ impl<'a> AstBuilder<'a> {
     /// - export_kind: `export type { foo }`
     /// - with_clause: Some(vec![]) for empty assertion
     #[inline]
-    pub fn module_declaration_export_named_declaration(
+    pub fn module_declaration_export_named_declaration<T1>(
         self,
         span: Span,
         declaration: Option<Declaration<'a>>,
         specifiers: Vec<'a, ExportSpecifier<'a>>,
         source: Option<StringLiteral<'a>>,
         export_kind: ImportOrExportKind,
-        with_clause: Option<WithClause<'a>>,
-    ) -> ModuleDeclaration<'a> {
+        with_clause: T1,
+    ) -> ModuleDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         ModuleDeclaration::ExportNamedDeclaration(self.alloc(self.export_named_declaration(
             span,
             declaration,
@@ -7058,10 +6959,13 @@ impl<'a> AstBuilder<'a> {
     /// - decorators: Decorators applied to the accessor property.
     /// - key: The expression used to declare the property.
     /// - value: Initialized value in the declaration, if present.
-    /// - computed
-    /// - r#static
+    /// - computed: Property was declared with a computed key
+    /// - r#static: Property was declared with a `static` modifier
+    /// - definite: Property has a `!` after its key.
+    /// - type_annotation: Type annotation on the property.
+    /// - accessibility: Accessibility modifier.
     #[inline]
-    pub fn accessor_property(
+    pub fn accessor_property<T1>(
         self,
         r#type: AccessorPropertyType,
         span: Span,
@@ -7070,8 +6974,25 @@ impl<'a> AstBuilder<'a> {
         value: Option<Expression<'a>>,
         computed: bool,
         r#static: bool,
-    ) -> AccessorProperty<'a> {
-        AccessorProperty { r#type, span, decorators, key, value, computed, r#static }
+        definite: bool,
+        type_annotation: T1,
+        accessibility: Option<TSAccessibility>,
+    ) -> AccessorProperty<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+    {
+        AccessorProperty {
+            r#type,
+            span,
+            decorators,
+            key,
+            value,
+            computed,
+            r#static,
+            definite,
+            type_annotation: type_annotation.into_in(self.allocator),
+            accessibility,
+        }
     }
 
     /// Builds a [`AccessorProperty`] and stores it in the memory arena.
@@ -7084,10 +7005,13 @@ impl<'a> AstBuilder<'a> {
     /// - decorators: Decorators applied to the accessor property.
     /// - key: The expression used to declare the property.
     /// - value: Initialized value in the declaration, if present.
-    /// - computed
-    /// - r#static
+    /// - computed: Property was declared with a computed key
+    /// - r#static: Property was declared with a `static` modifier
+    /// - definite: Property has a `!` after its key.
+    /// - type_annotation: Type annotation on the property.
+    /// - accessibility: Accessibility modifier.
     #[inline]
-    pub fn alloc_accessor_property(
+    pub fn alloc_accessor_property<T1>(
         self,
         r#type: AccessorPropertyType,
         span: Span,
@@ -7096,9 +7020,26 @@ impl<'a> AstBuilder<'a> {
         value: Option<Expression<'a>>,
         computed: bool,
         r#static: bool,
-    ) -> Box<'a, AccessorProperty<'a>> {
+        definite: bool,
+        type_annotation: T1,
+        accessibility: Option<TSAccessibility>,
+    ) -> Box<'a, AccessorProperty<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+    {
         Box::new_in(
-            self.accessor_property(r#type, span, decorators, key, value, computed, r#static),
+            self.accessor_property(
+                r#type,
+                span,
+                decorators,
+                key,
+                value,
+                computed,
+                r#static,
+                definite,
+                type_annotation,
+                accessibility,
+            ),
             self.allocator,
         )
     }
@@ -7150,15 +7091,24 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Some(vec![]) for empty assertion
     /// - import_kind: `import type { foo } from 'bar'`
     #[inline]
-    pub fn import_declaration(
+    pub fn import_declaration<T1>(
         self,
         span: Span,
         specifiers: Option<Vec<'a, ImportDeclarationSpecifier<'a>>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         import_kind: ImportOrExportKind,
-    ) -> ImportDeclaration<'a> {
-        ImportDeclaration { span, specifiers, source, with_clause, import_kind }
+    ) -> ImportDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
+        ImportDeclaration {
+            span,
+            specifiers,
+            source,
+            with_clause: with_clause.into_in(self.allocator),
+            import_kind,
+        }
     }
 
     /// Builds a [`ImportDeclaration`] and stores it in the memory arena.
@@ -7172,14 +7122,17 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Some(vec![]) for empty assertion
     /// - import_kind: `import type { foo } from 'bar'`
     #[inline]
-    pub fn alloc_import_declaration(
+    pub fn alloc_import_declaration<T1>(
         self,
         span: Span,
         specifiers: Option<Vec<'a, ImportDeclarationSpecifier<'a>>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         import_kind: ImportOrExportKind,
-    ) -> Box<'a, ImportDeclaration<'a>> {
+    ) -> Box<'a, ImportDeclaration<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         Box::new_in(
             self.import_declaration(span, specifiers, source, with_clause, import_kind),
             self.allocator,
@@ -7523,16 +7476,26 @@ impl<'a> AstBuilder<'a> {
     /// - export_kind: `export type { foo }`
     /// - with_clause: Some(vec![]) for empty assertion
     #[inline]
-    pub fn export_named_declaration(
+    pub fn export_named_declaration<T1>(
         self,
         span: Span,
         declaration: Option<Declaration<'a>>,
         specifiers: Vec<'a, ExportSpecifier<'a>>,
         source: Option<StringLiteral<'a>>,
         export_kind: ImportOrExportKind,
-        with_clause: Option<WithClause<'a>>,
-    ) -> ExportNamedDeclaration<'a> {
-        ExportNamedDeclaration { span, declaration, specifiers, source, export_kind, with_clause }
+        with_clause: T1,
+    ) -> ExportNamedDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
+        ExportNamedDeclaration {
+            span,
+            declaration,
+            specifiers,
+            source,
+            export_kind,
+            with_clause: with_clause.into_in(self.allocator),
+        }
     }
 
     /// Builds a [`ExportNamedDeclaration`] and stores it in the memory arena.
@@ -7547,15 +7510,18 @@ impl<'a> AstBuilder<'a> {
     /// - export_kind: `export type { foo }`
     /// - with_clause: Some(vec![]) for empty assertion
     #[inline]
-    pub fn alloc_export_named_declaration(
+    pub fn alloc_export_named_declaration<T1>(
         self,
         span: Span,
         declaration: Option<Declaration<'a>>,
         specifiers: Vec<'a, ExportSpecifier<'a>>,
         source: Option<StringLiteral<'a>>,
         export_kind: ImportOrExportKind,
-        with_clause: Option<WithClause<'a>>,
-    ) -> Box<'a, ExportNamedDeclaration<'a>> {
+        with_clause: T1,
+    ) -> Box<'a, ExportNamedDeclaration<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         Box::new_in(
             self.export_named_declaration(
                 span,
@@ -7616,15 +7582,24 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Will be `Some(vec![])` for empty assertion
     /// - export_kind
     #[inline]
-    pub fn export_all_declaration(
+    pub fn export_all_declaration<T1>(
         self,
         span: Span,
         exported: Option<ModuleExportName<'a>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         export_kind: ImportOrExportKind,
-    ) -> ExportAllDeclaration<'a> {
-        ExportAllDeclaration { span, exported, source, with_clause, export_kind }
+    ) -> ExportAllDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
+        ExportAllDeclaration {
+            span,
+            exported,
+            source,
+            with_clause: with_clause.into_in(self.allocator),
+            export_kind,
+        }
     }
 
     /// Builds a [`ExportAllDeclaration`] and stores it in the memory arena.
@@ -7638,14 +7613,17 @@ impl<'a> AstBuilder<'a> {
     /// - with_clause: Will be `Some(vec![])` for empty assertion
     /// - export_kind
     #[inline]
-    pub fn alloc_export_all_declaration(
+    pub fn alloc_export_all_declaration<T1>(
         self,
         span: Span,
         exported: Option<ModuleExportName<'a>>,
         source: StringLiteral<'a>,
-        with_clause: Option<WithClause<'a>>,
+        with_clause: T1,
         export_kind: ImportOrExportKind,
-    ) -> Box<'a, ExportAllDeclaration<'a>> {
+    ) -> Box<'a, ExportAllDeclaration<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, WithClause<'a>>>>,
+    {
         Box::new_in(
             self.export_all_declaration(span, exported, source, with_clause, export_kind),
             self.allocator,
@@ -7699,17 +7677,17 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - r#type
     /// - span: The [`Span`] covering this node
-    /// - id
-    /// - generator
+    /// - id: The function identifier. [`None`] for anonymous function expressions.
+    /// - generator: Is this a generator function?
     /// - r#async
     /// - declare
     /// - type_parameters
     /// - this_param: Declaring `this` in a Function <https://www.typescriptlang.org/docs/handbook/2/functions.html#declaring-this-in-a-function>
-    /// - params
-    /// - return_type
-    /// - body
+    /// - params: Function parameters.
+    /// - return_type: The TypeScript return type annotation.
+    /// - body: The function body.
     #[inline]
-    pub fn export_default_declaration_kind_function<T1, T2, T3, T4>(
+    pub fn export_default_declaration_kind_function<T1, T2, T3, T4, T5>(
         self,
         r#type: FunctionType,
         span: Span,
@@ -7718,16 +7696,17 @@ impl<'a> AstBuilder<'a> {
         r#async: bool,
         declare: bool,
         type_parameters: T1,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T2,
-        return_type: T3,
-        body: T4,
+        this_param: T2,
+        params: T3,
+        return_type: T4,
+        body: T5,
     ) -> ExportDefaultDeclarationKind<'a>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
-        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T4: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T3: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T5: IntoIn<'a, Option<Box<'a, FunctionBody<'a>>>>,
     {
         ExportDefaultDeclarationKind::FunctionDeclaration(self.alloc(self.function(
             r#type,
@@ -7826,10 +7805,10 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - id: The identifier (name) of the interface.
-    /// - extends
-    /// - type_parameters
+    /// - extends: Other interfaces/types this interface extends.
+    /// - type_parameters: Type parameters that get bound to the interface.
     /// - body
-    /// - declare
+    /// - declare: `true` for `declare interface Foo {}`
     #[inline]
     pub fn export_default_declaration_kind_ts_interface_declaration<T1, T2>(
         self,
@@ -7945,19 +7924,23 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - this
-    /// - type_annotation
+    /// - this_span
+    /// - type_annotation: Type type the `this` keyword will have in the function
     #[inline]
     pub fn ts_this_parameter<T1>(
         self,
         span: Span,
-        this: IdentifierName<'a>,
+        this_span: Span,
         type_annotation: T1,
     ) -> TSThisParameter<'a>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
     {
-        TSThisParameter { span, this, type_annotation: type_annotation.into_in(self.allocator) }
+        TSThisParameter {
+            span,
+            this_span,
+            type_annotation: type_annotation.into_in(self.allocator),
+        }
     }
 
     /// Builds a [`TSThisParameter`] and stores it in the memory arena.
@@ -7966,19 +7949,19 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - this
-    /// - type_annotation
+    /// - this_span
+    /// - type_annotation: Type type the `this` keyword will have in the function
     #[inline]
     pub fn alloc_ts_this_parameter<T1>(
         self,
         span: Span,
-        this: IdentifierName<'a>,
+        this_span: Span,
         type_annotation: T1,
     ) -> Box<'a, TSThisParameter<'a>>
     where
         T1: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
     {
-        Box::new_in(self.ts_this_parameter(span, this, type_annotation), self.allocator)
+        Box::new_in(self.ts_this_parameter(span, this_span, type_annotation), self.allocator)
     }
 
     /// Builds a [`TSEnumDeclaration`]
@@ -7989,7 +7972,7 @@ impl<'a> AstBuilder<'a> {
     /// - span: The [`Span`] covering this node
     /// - id
     /// - members
-    /// - r#const
+    /// - r#const: `true` for const enums
     /// - declare
     #[inline]
     pub fn ts_enum_declaration(
@@ -8011,7 +7994,7 @@ impl<'a> AstBuilder<'a> {
     /// - span: The [`Span`] covering this node
     /// - id
     /// - members
-    /// - r#const
+    /// - r#const: `true` for const enums
     /// - declare
     #[inline]
     pub fn alloc_ts_enum_declaration(
@@ -8185,7 +8168,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: starts at the `:` token and ends at the end of the type annotation
-    /// - type_annotation
+    /// - type_annotation: The actual type in the annotation
     #[inline]
     pub fn ts_type_annotation(
         self,
@@ -8201,7 +8184,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: starts at the `:` token and ends at the end of the type annotation
-    /// - type_annotation
+    /// - type_annotation: The actual type in the annotation
     #[inline]
     pub fn alloc_ts_type_annotation(
         self,
@@ -8734,10 +8717,10 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - check_type
-    /// - extends_type
-    /// - true_type
-    /// - false_type
+    /// - check_type: The type before `extends` in the test expression.
+    /// - extends_type: The type `check_type` is being tested against.
+    /// - true_type: The type evaluated to if the test is true.
+    /// - false_type: The type evaluated to if the test is false.
     #[inline]
     pub fn ts_type_conditional_type(
         self,
@@ -8813,23 +8796,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - this_param
-    /// - params
-    /// - return_type
-    /// - type_parameters
+    /// - this_param: `this` parameter
+    /// - params: Function parameters. Akin to [`Function::params`].
+    /// - return_type: Return type of the function.
+    /// - type_parameters: Generic type parameters
     #[inline]
-    pub fn ts_type_function_type<T1, T2, T3>(
+    pub fn ts_type_function_type<T1, T2, T3, T4>(
         self,
         span: Span,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> TSType<'a>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         TSType::TSFunctionType(self.alloc(self.ts_function_type(
             span,
@@ -8855,23 +8839,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - is_type_of
+    /// - is_type_of: `true` for `typeof import("foo")`
     /// - parameter
     /// - qualifier
     /// - attributes
     /// - type_parameters
     #[inline]
-    pub fn ts_type_import_type<T1>(
+    pub fn ts_type_import_type<T1, T2>(
         self,
         span: Span,
         is_type_of: bool,
         parameter: TSType<'a>,
         qualifier: Option<TSTypeName<'a>>,
-        attributes: Option<TSImportAttributes<'a>>,
-        type_parameters: T1,
+        attributes: T1,
+        type_parameters: T2,
     ) -> TSType<'a>
     where
-        T1: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSImportAttributes<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
     {
         TSType::TSImportType(self.alloc(self.ts_import_type(
             span,
@@ -8929,7 +8914,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: The type bound when the
     #[inline]
     pub fn ts_type_infer_type<T1>(self, span: Span, type_parameter: T1) -> TSType<'a>
     where
@@ -8995,11 +8980,11 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: Key type parameter, e.g. `P` in `[P in keyof T]`.
     /// - name_type
     /// - type_annotation
-    /// - optional
-    /// - readonly
+    /// - optional: Optional modifier on type annotation
+    /// - readonly: Readonly modifier before keyed index signature
     #[inline]
     pub fn ts_type_mapped_type<T1>(
         self,
@@ -9099,8 +9084,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - quasis
-    /// - types
+    /// - quasis: The string parts of the template literal.
+    /// - types: The interpolated expressions in the template literal.
     #[inline]
     pub fn ts_type_template_literal_type(
         self,
@@ -9195,7 +9180,7 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - operator
-    /// - type_annotation
+    /// - type_annotation: The type being operated on
     #[inline]
     pub fn ts_type_type_operator(
         self,
@@ -9225,8 +9210,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - parameter_name
-    /// - asserts
+    /// - parameter_name: The identifier the predicate operates on
+    /// - asserts: Does this predicate include an `asserts` modifier?
     /// - type_annotation
     #[inline]
     pub fn ts_type_type_predicate<T1>(
@@ -9326,7 +9311,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - types
+    /// - types: The types in the union.
     #[inline]
     pub fn ts_type_union_type(self, span: Span, types: Vec<'a, TSType<'a>>) -> TSType<'a> {
         TSType::TSUnionType(self.alloc(self.ts_union_type(span, types)))
@@ -9450,10 +9435,10 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - check_type
-    /// - extends_type
-    /// - true_type
-    /// - false_type
+    /// - check_type: The type before `extends` in the test expression.
+    /// - extends_type: The type `check_type` is being tested against.
+    /// - true_type: The type evaluated to if the test is true.
+    /// - false_type: The type evaluated to if the test is false.
     #[inline]
     pub fn ts_conditional_type(
         self,
@@ -9479,10 +9464,10 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - check_type
-    /// - extends_type
-    /// - true_type
-    /// - false_type
+    /// - check_type: The type before `extends` in the test expression.
+    /// - extends_type: The type `check_type` is being tested against.
+    /// - true_type: The type evaluated to if the test is true.
+    /// - false_type: The type evaluated to if the test is false.
     #[inline]
     pub fn alloc_ts_conditional_type(
         self,
@@ -9504,7 +9489,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - types
+    /// - types: The types in the union.
     #[inline]
     pub fn ts_union_type(self, span: Span, types: Vec<'a, TSType<'a>>) -> TSUnionType<'a> {
         TSUnionType { span, types }
@@ -9516,7 +9501,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - types
+    /// - types: The types in the union.
     #[inline]
     pub fn alloc_ts_union_type(
         self,
@@ -9597,7 +9582,7 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - operator
-    /// - type_annotation
+    /// - type_annotation: The type being operated on
     #[inline]
     pub fn ts_type_operator(
         self,
@@ -9615,7 +9600,7 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - operator
-    /// - type_annotation
+    /// - type_annotation: The type being operated on
     #[inline]
     pub fn alloc_ts_type_operator(
         self,
@@ -10352,12 +10337,12 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - name
-    /// - constraint
-    /// - default
-    /// - r#in
-    /// - out
-    /// - r#const
+    /// - name: The name of the parameter, e.g. `T` in `type Foo<T> = ...`.
+    /// - constraint: Constrains what types can be passed to the type parameter.
+    /// - default: Default value of the type parameter if no type is provided when using the type.
+    /// - r#in: Was an `in` modifier keyword present?
+    /// - out: Was an `out` modifier keyword present?
+    /// - r#const: Was a `const` modifier keyword present?
     #[inline]
     pub fn ts_type_parameter(
         self,
@@ -10378,12 +10363,12 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - name
-    /// - constraint
-    /// - default
-    /// - r#in
-    /// - out
-    /// - r#const
+    /// - name: The name of the parameter, e.g. `T` in `type Foo<T> = ...`.
+    /// - constraint: Constrains what types can be passed to the type parameter.
+    /// - default: Default value of the type parameter if no type is provided when using the type.
+    /// - r#in: Was an `in` modifier keyword present?
+    /// - out: Was an `out` modifier keyword present?
+    /// - r#const: Was a `const` modifier keyword present?
     #[inline]
     pub fn alloc_ts_type_parameter(
         self,
@@ -10439,7 +10424,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: Type alias's identifier, e.g. `Foo` in `type Foo = number`.
     /// - type_parameters
     /// - type_annotation
     /// - declare
@@ -10471,7 +10456,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: Type alias's identifier, e.g. `Foo` in `type Foo = number`.
     /// - type_parameters
     /// - type_annotation
     /// - declare
@@ -10546,10 +10531,10 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - id: The identifier (name) of the interface.
-    /// - extends
-    /// - type_parameters
+    /// - extends: Other interfaces/types this interface extends.
+    /// - type_parameters: Type parameters that get bound to the interface.
     /// - body
-    /// - declare
+    /// - declare: `true` for `declare interface Foo {}`
     #[inline]
     pub fn ts_interface_declaration<T1, T2>(
         self,
@@ -10582,10 +10567,10 @@ impl<'a> AstBuilder<'a> {
     /// ## Parameters
     /// - span: The [`Span`] covering this node
     /// - id: The identifier (name) of the interface.
-    /// - extends
-    /// - type_parameters
+    /// - extends: Other interfaces/types this interface extends.
+    /// - type_parameters: Type parameters that get bound to the interface.
     /// - body
-    /// - declare
+    /// - declare: `true` for `declare interface Foo {}`
     #[inline]
     pub fn alloc_ts_interface_declaration<T1, T2>(
         self,
@@ -10878,22 +10863,23 @@ impl<'a> AstBuilder<'a> {
     /// - return_type
     /// - type_parameters
     #[inline]
-    pub fn ts_signature_method_signature<T1, T2, T3>(
+    pub fn ts_signature_method_signature<T1, T2, T3, T4>(
         self,
         span: Span,
         key: PropertyKey<'a>,
         computed: bool,
         optional: bool,
         kind: TSMethodSignatureKind,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> TSSignature<'a>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         TSSignature::TSMethodSignature(self.alloc(self.ts_method_signature(
             span,
@@ -11055,22 +11041,23 @@ impl<'a> AstBuilder<'a> {
     /// - return_type
     /// - type_parameters
     #[inline]
-    pub fn ts_method_signature<T1, T2, T3>(
+    pub fn ts_method_signature<T1, T2, T3, T4>(
         self,
         span: Span,
         key: PropertyKey<'a>,
         computed: bool,
         optional: bool,
         kind: TSMethodSignatureKind,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> TSMethodSignature<'a>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         TSMethodSignature {
             span,
@@ -11078,7 +11065,7 @@ impl<'a> AstBuilder<'a> {
             computed,
             optional,
             kind,
-            this_param,
+            this_param: this_param.into_in(self.allocator),
             params: params.into_in(self.allocator),
             return_type: return_type.into_in(self.allocator),
             type_parameters: type_parameters.into_in(self.allocator),
@@ -11101,22 +11088,23 @@ impl<'a> AstBuilder<'a> {
     /// - return_type
     /// - type_parameters
     #[inline]
-    pub fn alloc_ts_method_signature<T1, T2, T3>(
+    pub fn alloc_ts_method_signature<T1, T2, T3, T4>(
         self,
         span: Span,
         key: PropertyKey<'a>,
         computed: bool,
         optional: bool,
         kind: TSMethodSignatureKind,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> Box<'a, TSMethodSignature<'a>>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Option<Box<'a, TSTypeAnnotation<'a>>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         Box::new_in(
             self.ts_method_signature(
@@ -11293,8 +11281,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - parameter_name
-    /// - asserts
+    /// - parameter_name: The identifier the predicate operates on
+    /// - asserts: Does this predicate include an `asserts` modifier?
     /// - type_annotation
     #[inline]
     pub fn ts_type_predicate<T1>(
@@ -11321,8 +11309,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - parameter_name
-    /// - asserts
+    /// - parameter_name: The identifier the predicate operates on
+    /// - asserts: Does this predicate include an `asserts` modifier?
     /// - type_annotation
     #[inline]
     pub fn alloc_ts_type_predicate<T1>(
@@ -11393,9 +11381,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: The name of the module/namespace being declared.
     /// - body
-    /// - kind: The keyword used to define this module declaration
+    /// - kind: The keyword used to define this module declaration.
     /// - declare
     #[inline]
     pub fn ts_module_declaration(
@@ -11415,9 +11403,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: The name of the module/namespace being declared.
     /// - body
-    /// - kind: The keyword used to define this module declaration
+    /// - kind: The keyword used to define this module declaration.
     /// - declare
     #[inline]
     pub fn alloc_ts_module_declaration(
@@ -11495,9 +11483,9 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - id
+    /// - id: The name of the module/namespace being declared.
     /// - body
-    /// - kind: The keyword used to define this module declaration
+    /// - kind: The keyword used to define this module declaration.
     /// - declare
     #[inline]
     pub fn ts_module_declaration_body_module_declaration(
@@ -11631,7 +11619,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: The type bound when the
     #[inline]
     pub fn ts_infer_type<T1>(self, span: Span, type_parameter: T1) -> TSInferType<'a>
     where
@@ -11646,7 +11634,7 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: The type bound when the
     #[inline]
     pub fn alloc_ts_infer_type<T1>(self, span: Span, type_parameter: T1) -> Box<'a, TSInferType<'a>>
     where
@@ -11703,23 +11691,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - is_type_of
+    /// - is_type_of: `true` for `typeof import("foo")`
     /// - parameter
     /// - qualifier
     /// - attributes
     /// - type_parameters
     #[inline]
-    pub fn ts_type_query_expr_name_import_type<T1>(
+    pub fn ts_type_query_expr_name_import_type<T1, T2>(
         self,
         span: Span,
         is_type_of: bool,
         parameter: TSType<'a>,
         qualifier: Option<TSTypeName<'a>>,
-        attributes: Option<TSImportAttributes<'a>>,
-        type_parameters: T1,
+        attributes: T1,
+        type_parameters: T2,
     ) -> TSTypeQueryExprName<'a>
     where
-        T1: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSImportAttributes<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
     {
         TSTypeQueryExprName::TSImportType(self.alloc(self.ts_import_type(
             span,
@@ -11754,30 +11743,31 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - is_type_of
+    /// - is_type_of: `true` for `typeof import("foo")`
     /// - parameter
     /// - qualifier
     /// - attributes
     /// - type_parameters
     #[inline]
-    pub fn ts_import_type<T1>(
+    pub fn ts_import_type<T1, T2>(
         self,
         span: Span,
         is_type_of: bool,
         parameter: TSType<'a>,
         qualifier: Option<TSTypeName<'a>>,
-        attributes: Option<TSImportAttributes<'a>>,
-        type_parameters: T1,
+        attributes: T1,
+        type_parameters: T2,
     ) -> TSImportType<'a>
     where
-        T1: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSImportAttributes<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
     {
         TSImportType {
             span,
             is_type_of,
             parameter,
             qualifier,
-            attributes,
+            attributes: attributes.into_in(self.allocator),
             type_parameters: type_parameters.into_in(self.allocator),
         }
     }
@@ -11788,23 +11778,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - is_type_of
+    /// - is_type_of: `true` for `typeof import("foo")`
     /// - parameter
     /// - qualifier
     /// - attributes
     /// - type_parameters
     #[inline]
-    pub fn alloc_ts_import_type<T1>(
+    pub fn alloc_ts_import_type<T1, T2>(
         self,
         span: Span,
         is_type_of: bool,
         parameter: TSType<'a>,
         qualifier: Option<TSTypeName<'a>>,
-        attributes: Option<TSImportAttributes<'a>>,
-        type_parameters: T1,
+        attributes: T1,
+        type_parameters: T2,
     ) -> Box<'a, TSImportType<'a>>
     where
-        T1: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSImportAttributes<'a>>>>,
+        T2: IntoIn<'a, Option<Box<'a, TSTypeParameterInstantiation<'a>>>>,
     {
         Box::new_in(
             self.ts_import_type(
@@ -11955,27 +11946,28 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - this_param
-    /// - params
-    /// - return_type
-    /// - type_parameters
+    /// - this_param: `this` parameter
+    /// - params: Function parameters. Akin to [`Function::params`].
+    /// - return_type: Return type of the function.
+    /// - type_parameters: Generic type parameters
     #[inline]
-    pub fn ts_function_type<T1, T2, T3>(
+    pub fn ts_function_type<T1, T2, T3, T4>(
         self,
         span: Span,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> TSFunctionType<'a>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         TSFunctionType {
             span,
-            this_param,
+            this_param: this_param.into_in(self.allocator),
             params: params.into_in(self.allocator),
             return_type: return_type.into_in(self.allocator),
             type_parameters: type_parameters.into_in(self.allocator),
@@ -11988,23 +11980,24 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - this_param
-    /// - params
-    /// - return_type
-    /// - type_parameters
+    /// - this_param: `this` parameter
+    /// - params: Function parameters. Akin to [`Function::params`].
+    /// - return_type: Return type of the function.
+    /// - type_parameters: Generic type parameters
     #[inline]
-    pub fn alloc_ts_function_type<T1, T2, T3>(
+    pub fn alloc_ts_function_type<T1, T2, T3, T4>(
         self,
         span: Span,
-        this_param: Option<TSThisParameter<'a>>,
-        params: T1,
-        return_type: T2,
-        type_parameters: T3,
+        this_param: T1,
+        params: T2,
+        return_type: T3,
+        type_parameters: T4,
     ) -> Box<'a, TSFunctionType<'a>>
     where
-        T1: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
-        T2: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
-        T3: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
+        T1: IntoIn<'a, Option<Box<'a, TSThisParameter<'a>>>>,
+        T2: IntoIn<'a, Box<'a, FormalParameters<'a>>>,
+        T3: IntoIn<'a, Box<'a, TSTypeAnnotation<'a>>>,
+        T4: IntoIn<'a, Option<Box<'a, TSTypeParameterDeclaration<'a>>>>,
     {
         Box::new_in(
             self.ts_function_type(span, this_param, params, return_type, type_parameters),
@@ -12081,11 +12074,11 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: Key type parameter, e.g. `P` in `[P in keyof T]`.
     /// - name_type
     /// - type_annotation
-    /// - optional
-    /// - readonly
+    /// - optional: Optional modifier on type annotation
+    /// - readonly: Readonly modifier before keyed index signature
     #[inline]
     pub fn ts_mapped_type<T1>(
         self,
@@ -12116,11 +12109,11 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - type_parameter
+    /// - type_parameter: Key type parameter, e.g. `P` in `[P in keyof T]`.
     /// - name_type
     /// - type_annotation
-    /// - optional
-    /// - readonly
+    /// - optional: Optional modifier on type annotation
+    /// - readonly: Readonly modifier before keyed index signature
     #[inline]
     pub fn alloc_ts_mapped_type<T1>(
         self,
@@ -12153,8 +12146,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - quasis
-    /// - types
+    /// - quasis: The string parts of the template literal.
+    /// - types: The interpolated expressions in the template literal.
     #[inline]
     pub fn ts_template_literal_type(
         self,
@@ -12171,8 +12164,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - quasis
-    /// - types
+    /// - quasis: The string parts of the template literal.
+    /// - types: The interpolated expressions in the template literal.
     #[inline]
     pub fn alloc_ts_template_literal_type(
         self,
@@ -12225,8 +12218,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - expression
-    /// - type_annotation
+    /// - expression: The value expression being constrained.
+    /// - type_annotation: The type `expression` must satisfy.
     #[inline]
     pub fn ts_satisfies_expression(
         self,
@@ -12243,8 +12236,8 @@ impl<'a> AstBuilder<'a> {
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - expression
-    /// - type_annotation
+    /// - expression: The value expression being constrained.
+    /// - type_annotation: The type `expression` must satisfy.
     #[inline]
     pub fn alloc_ts_satisfies_expression(
         self,
@@ -12878,6 +12871,30 @@ impl<'a> AstBuilder<'a> {
         JSXElementName::Identifier(inner.into_in(self.allocator))
     }
 
+    /// Build a [`JSXElementName::IdentifierReference`]
+    ///
+    /// This node contains a [`IdentifierReference`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// - span: The [`Span`] covering this node
+    /// - name: The name of the identifier being referenced.
+    #[inline]
+    pub fn jsx_element_name_identifier_reference<A>(self, span: Span, name: A) -> JSXElementName<'a>
+    where
+        A: IntoIn<'a, Atom<'a>>,
+    {
+        JSXElementName::IdentifierReference(self.alloc(self.identifier_reference(span, name)))
+    }
+
+    /// Convert a [`IdentifierReference`] into a [`JSXElementName::IdentifierReference`]
+    #[inline]
+    pub fn jsx_element_name_from_identifier_reference<T>(self, inner: T) -> JSXElementName<'a>
+    where
+        T: IntoIn<'a, Box<'a, IdentifierReference<'a>>>,
+    {
+        JSXElementName::IdentifierReference(inner.into_in(self.allocator))
+    }
+
     /// Build a [`JSXElementName::NamespacedName`]
     ///
     /// This node contains a [`JSXNamespacedName`] that will be stored in the memory arena.
@@ -12934,6 +12951,26 @@ impl<'a> AstBuilder<'a> {
         T: IntoIn<'a, Box<'a, JSXMemberExpression<'a>>>,
     {
         JSXElementName::MemberExpression(inner.into_in(self.allocator))
+    }
+
+    /// Build a [`JSXElementName::ThisExpression`]
+    ///
+    /// This node contains a [`ThisExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// - span: The [`Span`] covering this node
+    #[inline]
+    pub fn jsx_element_name_this_expression(self, span: Span) -> JSXElementName<'a> {
+        JSXElementName::ThisExpression(self.alloc(self.this_expression(span)))
+    }
+
+    /// Convert a [`ThisExpression`] into a [`JSXElementName::ThisExpression`]
+    #[inline]
+    pub fn jsx_element_name_from_this_expression<T>(self, inner: T) -> JSXElementName<'a>
+    where
+        T: IntoIn<'a, Box<'a, ThisExpression>>,
+    {
+        JSXElementName::ThisExpression(inner.into_in(self.allocator))
     }
 
     /// Builds a [`JSXNamespacedName`]
@@ -13008,15 +13045,15 @@ impl<'a> AstBuilder<'a> {
         Box::new_in(self.jsx_member_expression(span, object, property), self.allocator)
     }
 
-    /// Build a [`JSXMemberExpressionObject::Identifier`]
+    /// Build a [`JSXMemberExpressionObject::IdentifierReference`]
     ///
-    /// This node contains a [`JSXIdentifier`] that will be stored in the memory arena.
+    /// This node contains a [`IdentifierReference`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// - span: The [`Span`] covering this node
-    /// - name: The name of the identifier.
+    /// - name: The name of the identifier being referenced.
     #[inline]
-    pub fn jsx_member_expression_object_jsx_identifier<A>(
+    pub fn jsx_member_expression_object_identifier_reference<A>(
         self,
         span: Span,
         name: A,
@@ -13024,19 +13061,21 @@ impl<'a> AstBuilder<'a> {
     where
         A: IntoIn<'a, Atom<'a>>,
     {
-        JSXMemberExpressionObject::Identifier(self.alloc(self.jsx_identifier(span, name)))
+        JSXMemberExpressionObject::IdentifierReference(
+            self.alloc(self.identifier_reference(span, name)),
+        )
     }
 
-    /// Convert a [`JSXIdentifier`] into a [`JSXMemberExpressionObject::Identifier`]
+    /// Convert a [`IdentifierReference`] into a [`JSXMemberExpressionObject::IdentifierReference`]
     #[inline]
-    pub fn jsx_member_expression_object_from_jsx_identifier<T>(
+    pub fn jsx_member_expression_object_from_identifier_reference<T>(
         self,
         inner: T,
     ) -> JSXMemberExpressionObject<'a>
     where
-        T: IntoIn<'a, Box<'a, JSXIdentifier<'a>>>,
+        T: IntoIn<'a, Box<'a, IdentifierReference<'a>>>,
     {
-        JSXMemberExpressionObject::Identifier(inner.into_in(self.allocator))
+        JSXMemberExpressionObject::IdentifierReference(inner.into_in(self.allocator))
     }
 
     /// Build a [`JSXMemberExpressionObject::MemberExpression`]
@@ -13069,6 +13108,32 @@ impl<'a> AstBuilder<'a> {
         T: IntoIn<'a, Box<'a, JSXMemberExpression<'a>>>,
     {
         JSXMemberExpressionObject::MemberExpression(inner.into_in(self.allocator))
+    }
+
+    /// Build a [`JSXMemberExpressionObject::ThisExpression`]
+    ///
+    /// This node contains a [`ThisExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// - span: The [`Span`] covering this node
+    #[inline]
+    pub fn jsx_member_expression_object_this_expression(
+        self,
+        span: Span,
+    ) -> JSXMemberExpressionObject<'a> {
+        JSXMemberExpressionObject::ThisExpression(self.alloc(self.this_expression(span)))
+    }
+
+    /// Convert a [`ThisExpression`] into a [`JSXMemberExpressionObject::ThisExpression`]
+    #[inline]
+    pub fn jsx_member_expression_object_from_this_expression<T>(
+        self,
+        inner: T,
+    ) -> JSXMemberExpressionObject<'a>
+    where
+        T: IntoIn<'a, Box<'a, ThisExpression>>,
+    {
+        JSXMemberExpressionObject::ThisExpression(inner.into_in(self.allocator))
     }
 
     /// Builds a [`JSXExpressionContainer`]

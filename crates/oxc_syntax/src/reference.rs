@@ -1,10 +1,9 @@
 use bitflags::bitflags;
 use nonmax::NonMaxU32;
-use oxc_ast_macros::CloneIn;
+use oxc_allocator::CloneIn;
+use oxc_index::Idx;
 #[cfg(feature = "serialize")]
 use serde::{Serialize, Serializer};
-
-use oxc_index::Idx;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ReferenceId(NonMaxU32);
@@ -36,7 +35,7 @@ impl Serialize for ReferenceId {
 #[wasm_bindgen::prelude::wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
 export type ReferenceId = number;
-export type ReferenceFlag = {
+export type ReferenceFlags = {
     None: 0,
     Read: 0b1,
     Write: 0b10,
@@ -51,54 +50,50 @@ bitflags! {
     /// There are three general categories of references:
     /// 1. Values being referenced as values
     /// 2. Types being referenced as types
-    /// 3. Values being referenced as types
+    /// 3. Values being used in type contexts
     ///
-    /// ## Values
-    /// Reading a value is indicated by [`Read`], writing a value
-    /// is indicated by [`Write`]. References can be both a read
-    /// and a write, such as in this scenario:
+    /// ## Value as Type
+    /// The [`ValueAsType`] flag is a temporary marker for references that need to
+    /// resolve to value symbols initially, but will ultimately be treated as type references.
+    /// This flag is crucial in scenarios like TypeScript's `typeof` operator.
     ///
-    /// ```js
-    /// let a = 1;
-    /// a++;
-    /// ```
-    ///
-    /// When a value symbol is used as a type, such as in `typeof a`, it has
-    /// [`TSTypeQuery`] added to its flags. It is, however, still
-    /// considered a read. A good rule of thumb is that if a reference has [`Read`]
-    /// or [`Write`] in its flags, it is referencing a value symbol.
+    /// For example, in `type T = typeof a`:
+    /// 1. The reference to 'a' is initially flagged with [`ValueAsType`].
+    /// 2. This ensures that during symbol resolution, 'a' should be a value symbol.
+    /// 3. However, the final resolved reference's flags will be treated as a type.
     ///
     /// ## Types
     /// Type references are indicated by [`Type`]. These are used primarily in
     /// type definitions and signatures. Types can never be re-assigned, so
     /// there is no read/write distinction for type references.
     ///
-    /// [`Read`]: ReferenceFlag::Read
-    /// [`Write`]: ReferenceFlag::Write
-    /// [`TSTypeQuery`]: ReferenceFlag::TSTypeQuery
-    #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, CloneIn)]
+    /// [`Read`]: ReferenceFlags::Read
+    /// [`Write`]: ReferenceFlags::Write
+    /// [`Type`]: ReferenceFlags::Type
+    /// [`ValueAsType`]: ReferenceFlags::ValueAsType
+    #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
     #[cfg_attr(feature = "serialize", derive(Serialize))]
-    pub struct ReferenceFlag: u8 {
+    pub struct ReferenceFlags: u8 {
         const None = 0;
         /// A symbol is being read as a Value
         const Read = 1 << 0;
         /// A symbol is being written to in a Value context.
         const Write = 1 << 1;
-        // Used in type definitions.
+        /// Used in type definitions.
         const Type = 1 << 2;
-        // Used in `typeof xx`
-        const TSTypeQuery = 1 << 3;
+        /// A value symbol is used in a type context, such as in `typeof` expressions.
+        const ValueAsType = 1 << 3;
         /// The symbol being referenced is a value.
         ///
         /// Note that this does not necessarily indicate the reference is used
         /// in a value context, since type queries are also flagged as [`Read`]
         ///
-        /// [`Read`]: ReferenceFlag::Read
+        /// [`Read`]: ReferenceFlags::Read
         const Value = Self::Read.bits() | Self::Write.bits();
     }
 }
 
-impl ReferenceFlag {
+impl ReferenceFlags {
     #[inline]
     pub const fn read() -> Self {
         Self::Read
@@ -144,10 +139,10 @@ impl ReferenceFlag {
         self.contains(Self::Read | Self::Write)
     }
 
-    /// The identifier is used in a type referenced
+    /// Checks if the reference is a value being used in a type context.
     #[inline]
-    pub fn is_ts_type_query(&self) -> bool {
-        self.contains(Self::TSTypeQuery)
+    pub fn is_value_as_type(&self) -> bool {
+        self.contains(Self::ValueAsType)
     }
 
     /// The identifier is used in a type definition.
@@ -164,5 +159,13 @@ impl ReferenceFlag {
     #[inline]
     pub const fn is_value(&self) -> bool {
         self.intersects(Self::Value)
+    }
+}
+
+impl<'alloc> CloneIn<'alloc> for ReferenceFlags {
+    type Cloned = Self;
+
+    fn clone_in(&self, _: &'alloc oxc_allocator::Allocator) -> Self::Cloned {
+        *self
     }
 }

@@ -1,34 +1,72 @@
+//! React Display Name
+//!
+//! Adds `displayName` property to `React.createClass` calls.
+//!
+//! > This plugin is included in `preset-react`.
+//!
+//! ## Example
+//!
+//! Input:
+//! ```js
+//! // some_filename.jsx
+//! var foo = React.createClass({}); // React <= 15
+//! bar = createReactClass({}); // React 16+
+//!
+//! var obj = { prop: React.createClass({}) };
+//! obj.prop2 = React.createClass({});
+//! obj["prop 3"] = React.createClass({});
+//! export default React.createClass({});
+//! ```
+//!
+//! Output:
+//! ```js
+//! var foo = React.createClass({ displayName: "foo" });
+//! bar = createReactClass({ displayName: "bar" });
+//!
+//! var obj = { prop: React.createClass({ displayName: "prop" }) };
+//! obj.prop2 = React.createClass({ displayName: "prop2" });
+//! obj["prop 3"] = React.createClass({ displayName: "prop 3" });
+//! export default React.createClass({ displayName: "some_filename" });
+//! ```
+//!
+//! ## Implementation
+//!
+//! Implementation based on [@babel/plugin-transform-react-display-name](https://babeljs.io/docs/babel-plugin-transform-react-display-name).
+//!
+//! Babel does not get the display name for this example:
+//!
+//! ```js
+//! obj["prop 3"] = React.createClass({});
+//! ```
+//!
+//! This implementation does, which is a divergence from Babel, but probably an improvement.
+//!
+//! ## References:
+//!
+//! * Babel plugin implementation: <https://github.com/babel/babel/blob/main/packages/babel-plugin-transform-react-display-name/src/index.ts>
+
 use oxc_allocator::Box;
 use oxc_ast::ast::*;
 use oxc_span::{Atom, SPAN};
-use oxc_traverse::{Ancestor, TraverseCtx};
+use oxc_traverse::{Ancestor, Traverse, TraverseCtx};
 
-use crate::context::Ctx;
+use crate::TransformCtx;
 
-/// [plugin-transform-react-display-name](https://babeljs.io/docs/babel-plugin-transform-react-display-name)
-///
-/// This plugin is included in `preset-react`.
-///
-/// ## Example
-///
-/// In: `var bar = createReactClass({});`
-/// Out: `var bar = createReactClass({ displayName: "bar" });`
-pub struct ReactDisplayName<'a> {
-    ctx: Ctx<'a>,
+pub struct ReactDisplayName<'a, 'ctx> {
+    ctx: &'ctx TransformCtx<'a>,
 }
 
-impl<'a> ReactDisplayName<'a> {
-    pub fn new(ctx: Ctx<'a>) -> Self {
+impl<'a, 'ctx> ReactDisplayName<'a, 'ctx> {
+    pub fn new(ctx: &'ctx TransformCtx<'a>) -> Self {
         Self { ctx }
     }
 }
 
-// Transforms
-impl<'a> ReactDisplayName<'a> {
-    pub fn transform_call_expression(
-        &self,
+impl<'a, 'ctx> Traverse<'a> for ReactDisplayName<'a, 'ctx> {
+    fn enter_call_expression(
+        &mut self,
         call_expr: &mut CallExpression<'a>,
-        ctx: &TraverseCtx<'a>,
+        ctx: &mut TraverseCtx<'a>,
     ) {
         let Some(obj_expr) = Self::get_object_from_create_class(call_expr) else {
             return;
@@ -91,7 +129,7 @@ impl<'a> ReactDisplayName<'a> {
     }
 }
 
-impl<'a> ReactDisplayName<'a> {
+impl<'a, 'ctx> ReactDisplayName<'a, 'ctx> {
     /// Get the object from `React.createClass({})` or `createReactClass({})`
     fn get_object_from_create_class<'b>(
         call_expr: &'b mut CallExpression<'a>,

@@ -38,8 +38,9 @@ impl Parse for VisitArg {
 pub struct VisitArgs(Punctuated<VisitArg, Token![,]>);
 
 impl IntoIterator for VisitArgs {
-    type Item = VisitArg;
     type IntoIter = syn::punctuated::IntoIter<Self::Item>;
+    type Item = VisitArg;
+
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
@@ -93,7 +94,6 @@ impl From<&Ident> for CloneInAttribute {
 /// A struct representing the `#[scope(...)]` attribute.
 #[derive(Debug, Default)]
 pub struct ScopeAttribute {
-    pub r#if: Option<Expr>,
     pub flags: Option<Expr>,
     pub strict_if: Option<Expr>,
 }
@@ -104,7 +104,6 @@ impl Parse for ScopeAttribute {
         Ok(parsed.into_iter().fold(Self::default(), |mut acc, CommonAttribute { ident, args }| {
             let expr = parse2(args).expect("Invalid `#[scope]` input.");
             match ident.to_string().as_str() {
-                "if" => acc.r#if = Some(expr),
                 "flags" => acc.flags = Some(expr),
                 "strict_if" => acc.strict_if = Some(expr),
                 _ => {}
@@ -139,7 +138,7 @@ pub fn get_visit_markers<'a, I>(attrs: I) -> crate::Result<VisitMarkers>
 where
     I: IntoIterator<Item = &'a Attribute>,
 {
-    #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn predicate(it: &&Attribute) -> bool {
         it.path().is_ident("visit")
     }
@@ -188,7 +187,7 @@ pub fn get_scope_markers<'a, I>(attrs: I) -> crate::Result<ScopeMarkers>
 where
     I: IntoIterator<Item = &'a Attribute>,
 {
-    #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn predicate(it: &&Attribute) -> bool {
         it.path().is_ident("scope")
     }

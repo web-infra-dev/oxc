@@ -1,24 +1,26 @@
 use napi_derive::napi;
-
-use crate::{context::TransformContext, isolated_declaration, SourceMap, TransformOptions};
 use oxc_allocator::Allocator;
 use oxc_codegen::CodegenReturn;
+use oxc_semantic::SemanticBuilder;
 use oxc_span::SourceType;
 use oxc_transformer::Transformer;
 
-// NOTE: use JSDoc syntax for all doc comments, not rustdoc.
+use crate::{context::TransformContext, isolated_declaration, SourceMap, TransformOptions};
+
+// NOTE: Use JSDoc syntax for all doc comments, not rustdoc.
+// NOTE: Types must be aligned with [@types/babel__core](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/babel__core/index.d.ts).
 
 #[napi(object)]
 pub struct TransformResult {
     /// The transformed code.
     ///
     /// If parsing failed, this will be an empty string.
-    pub source_text: String,
+    pub code: String,
 
     /// The source map for the transformed code.
     ///
     /// This will be set if {@link TransformOptions#sourcemap} is `true`.
-    pub source_map: Option<SourceMap>,
+    pub map: Option<SourceMap>,
 
     /// The `.d.ts` declaration file for the transformed code. Declarations are
     /// only generated if `declaration` is set to `true` and a TypeScript file
@@ -53,7 +55,7 @@ pub struct TransformResult {
 ///
 /// @returns an object containing the transformed code, source maps, and any
 /// errors that occurred during parsing or transformation.
-#[allow(clippy::needless_pass_by_value, dead_code)]
+#[allow(clippy::needless_pass_by_value)]
 #[napi]
 pub fn transform(
     filename: String,
@@ -68,19 +70,17 @@ pub fn transform(
             Some("module") => source_type = source_type.with_module(true),
             _ => {}
         }
-        // Force `jsx`
-        if let Some(jsx) = options.as_ref().and_then(|options| options.jsx.as_ref()) {
-            source_type = source_type.with_jsx(*jsx);
-        }
         source_type
     };
 
     let allocator = Allocator::default();
     let ctx = TransformContext::new(&allocator, &filename, &source_text, source_type, options);
 
-    let should_build_types = ctx.declarations() && source_type.is_typescript();
-    let declarations_result =
-        should_build_types.then(|| isolated_declaration::build_declarations(&ctx));
+    let declarations_result = source_type
+        .is_typescript()
+        .then(|| ctx.declarations())
+        .flatten()
+        .map(|options| isolated_declaration::build_declarations(&ctx, *options));
 
     let transpile_result = transpile(&ctx);
 
@@ -88,8 +88,8 @@ pub fn transform(
         .map_or((None, None), |d| (Some(d.source_text), d.source_map.map(Into::into)));
 
     TransformResult {
-        source_text: transpile_result.source_text,
-        source_map: transpile_result.source_map.map(Into::into),
+        code: transpile_result.source_text,
+        map: transpile_result.source_map.map(Into::into),
         declaration,
         declaration_map,
         errors: ctx.take_and_render_reports(),
@@ -97,6 +97,14 @@ pub fn transform(
 }
 
 fn transpile(ctx: &TransformContext<'_>) -> CodegenReturn {
+    let semantic_ret = SemanticBuilder::new(ctx.source_text())
+        // Estimate transformer will triple scopes, symbols, references
+        .with_excess_capacity(2.0)
+        .with_check_syntax_error(true)
+        .build(&ctx.program());
+    ctx.add_diagnostics(semantic_ret.errors);
+
+    let (symbols, scopes) = semantic_ret.semantic.into_symbol_table_and_scope_tree();
     let ret = Transformer::new(
         ctx.allocator,
         ctx.file_path(),
@@ -105,8 +113,8 @@ fn transpile(ctx: &TransformContext<'_>) -> CodegenReturn {
         ctx.trivias.clone(),
         ctx.oxc_options(),
     )
-    .build(&mut ctx.program_mut());
+    .build_with_symbols_and_scopes(symbols, scopes, &mut ctx.program_mut());
 
     ctx.add_diagnostics(ret.errors);
-    ctx.codegen::<false>().build(&ctx.program())
+    ctx.codegen().build(&ctx.program())
 }

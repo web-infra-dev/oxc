@@ -3,14 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use cow_utils::CowUtils;
 use oxc_allocator::Allocator;
 use oxc_diagnostics::{DiagnosticService, GraphicalReportHandler, GraphicalTheme, NamedSource};
 use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
-    fixer::FixKind, rules::RULES, AllowWarnDeny, Fixer, LintOptions, LintService,
-    LintServiceOptions, Linter, OxlintConfig, RuleEnum, RuleWithSeverity,
+    fixer::FixKind, options::LintPlugins, rules::RULES, AllowWarnDeny, Fixer, LintService,
+    LintServiceOptions, LinterBuilder, Oxlintrc, RuleEnum, RuleWithSeverity,
 };
 
 #[derive(Eq, PartialEq)]
@@ -170,12 +171,7 @@ pub struct Tester {
     /// See: [insta::Settings::set_snapshot_suffix]
     snapshot_suffix: Option<&'static str>,
     current_working_directory: Box<Path>,
-    import_plugin: bool,
-    jest_plugin: bool,
-    vitest_plugin: bool,
-    jsx_a11y_plugin: bool,
-    nextjs_plugin: bool,
-    react_perf_plugin: bool,
+    plugins: LintPlugins,
 }
 
 impl Tester {
@@ -184,7 +180,8 @@ impl Tester {
         expect_pass: Vec<T>,
         expect_fail: Vec<T>,
     ) -> Self {
-        let rule_path = PathBuf::from(rule_name.replace('-', "_")).with_extension("tsx");
+        let rule_path =
+            PathBuf::from(rule_name.cow_replace('-', "_").into_owned()).with_extension("tsx");
         let expect_pass = expect_pass.into_iter().map(Into::into).collect::<Vec<_>>();
         let expect_fail = expect_fail.into_iter().map(Into::into).collect::<Vec<_>>();
         let current_working_directory =
@@ -198,12 +195,7 @@ impl Tester {
             snapshot: String::new(),
             snapshot_suffix: None,
             current_working_directory,
-            import_plugin: false,
-            jest_plugin: false,
-            jsx_a11y_plugin: false,
-            nextjs_plugin: false,
-            react_perf_plugin: false,
-            vitest_plugin: false,
+            plugins: LintPlugins::default(),
         }
     }
 
@@ -225,32 +217,37 @@ impl Tester {
     }
 
     pub fn with_import_plugin(mut self, yes: bool) -> Self {
-        self.import_plugin = yes;
+        self.plugins.set(LintPlugins::IMPORT, yes);
         self
     }
 
     pub fn with_jest_plugin(mut self, yes: bool) -> Self {
-        self.jest_plugin = yes;
+        self.plugins.set(LintPlugins::JEST, yes);
         self
     }
 
     pub fn with_vitest_plugin(mut self, yes: bool) -> Self {
-        self.vitest_plugin = yes;
+        self.plugins.set(LintPlugins::VITEST, yes);
         self
     }
 
     pub fn with_jsx_a11y_plugin(mut self, yes: bool) -> Self {
-        self.jsx_a11y_plugin = yes;
+        self.plugins.set(LintPlugins::JSX_A11Y, yes);
         self
     }
 
     pub fn with_nextjs_plugin(mut self, yes: bool) -> Self {
-        self.nextjs_plugin = yes;
+        self.plugins.set(LintPlugins::NEXTJS, yes);
         self
     }
 
     pub fn with_react_perf_plugin(mut self, yes: bool) -> Self {
-        self.react_perf_plugin = yes;
+        self.plugins.set(LintPlugins::REACT_PERF, yes);
+        self
+    }
+
+    pub fn with_node_plugin(mut self, yes: bool) -> Self {
+        self.plugins.set(LintPlugins::NODE, yes);
         self
     }
 
@@ -293,7 +290,7 @@ impl Tester {
     }
 
     fn snapshot(&self) {
-        let name = self.rule_name.replace('-', "_");
+        let name = self.rule_name.cow_replace('-', "_");
         let mut settings = insta::Settings::clone_current();
 
         settings.set_prepend_module_to_snapshot(false);
@@ -303,7 +300,7 @@ impl Tester {
         }
 
         settings.bind(|| {
-            insta::assert_snapshot!(name, self.snapshot);
+            insta::assert_snapshot!(name.as_ref(), self.snapshot);
         });
     }
 
@@ -348,33 +345,31 @@ impl Tester {
     ) -> TestResult {
         let allocator = Allocator::default();
         let rule = self.find_rule().read_json(rule_config.unwrap_or_default());
-        let options = LintOptions::default()
-            .with_fix(fix.into())
-            .with_import_plugin(self.import_plugin)
-            .with_jest_plugin(self.jest_plugin)
-            .with_vitest_plugin(self.vitest_plugin)
-            .with_jsx_a11y_plugin(self.jsx_a11y_plugin)
-            .with_nextjs_plugin(self.nextjs_plugin)
-            .with_react_perf_plugin(self.react_perf_plugin);
-        let eslint_config = eslint_config
+        let linter = eslint_config
             .as_ref()
-            .map_or_else(OxlintConfig::default, |v| OxlintConfig::deserialize(v).unwrap());
-        let linter = Linter::from_options(options)
-            .unwrap()
-            .with_rules(vec![RuleWithSeverity::new(rule, AllowWarnDeny::Warn)])
-            .with_eslint_config(eslint_config);
-        let path_to_lint = if self.import_plugin {
+            .map_or_else(LinterBuilder::empty, |v| {
+                LinterBuilder::from_oxlintrc(true, Oxlintrc::deserialize(v).unwrap())
+            })
+            .with_fix(fix.into())
+            .with_plugins(self.plugins)
+            .with_rule(RuleWithSeverity::new(rule, AllowWarnDeny::Warn))
+            .build();
+
+        let path_to_lint = if self.plugins.has_import() {
             assert!(path.is_none(), "import plugin does not support path");
             self.current_working_directory.join(&self.rule_path)
         } else if let Some(path) = path {
             self.current_working_directory.join(path)
+        } else if self.plugins.has_jest() {
+            self.rule_path.with_extension("test.tsx")
         } else {
             self.rule_path.clone()
         };
 
         let cwd = self.current_working_directory.clone();
         let paths = vec![path_to_lint.into_boxed_path()];
-        let options = LintServiceOptions { cwd, paths, tsconfig: None };
+        let options =
+            LintServiceOptions::new(cwd, paths).with_cross_module(self.plugins.has_import());
         let lint_service = LintService::from_linter(linter, options);
         let diagnostic_service = DiagnosticService::default();
         let tx_error = diagnostic_service.sender();
@@ -389,14 +384,16 @@ impl Tester {
             return TestResult::Fixed(fix_result.fixed_code.to_string());
         }
 
-        let diagnostic_path = if self.import_plugin {
+        let diagnostic_path = if self.plugins.has_import() {
             self.rule_path.strip_prefix(&self.current_working_directory).unwrap()
         } else {
             &self.rule_path
         }
         .to_string_lossy();
 
-        let handler = GraphicalReportHandler::new().with_theme(GraphicalTheme::unicode_nocolor());
+        let handler = GraphicalReportHandler::new()
+            .with_links(false)
+            .with_theme(GraphicalTheme::unicode_nocolor());
         for diagnostic in result {
             let diagnostic = diagnostic.error.with_source_code(NamedSource::new(
                 diagnostic_path.clone(),

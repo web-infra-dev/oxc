@@ -1,10 +1,59 @@
+#![allow(rustdoc::bare_urls)]
+
 use std::path::PathBuf;
 
+use napi::Either;
 use napi_derive::napi;
-
 use oxc_transformer::{
-    ArrowFunctionsOptions, ES2015Options, ReactJsxRuntime, ReactOptions, TypeScriptOptions,
+    ArrowFunctionsOptions, ES2015Options, ReactJsxRuntime, ReactOptions, ReactRefreshOptions,
+    RewriteExtensionsMode, TypeScriptOptions,
 };
+
+use crate::IsolatedDeclarationsOptions;
+
+/// Options for transforming a JavaScript or TypeScript file.
+///
+/// @see {@link transform}
+#[napi(object)]
+#[derive(Default)]
+pub struct TransformOptions {
+    #[napi(ts_type = "'script' | 'module' | 'unambiguous' | undefined")]
+    pub source_type: Option<String>,
+
+    /// The current working directory. Used to resolve relative paths in other
+    /// options.
+    pub cwd: Option<String>,
+
+    /// Configure how TypeScript is transformed.
+    pub typescript: Option<TypeScriptBindingOptions>,
+
+    /// Configure how TSX and JSX are transformed.
+    pub react: Option<ReactBindingOptions>,
+
+    /// Enable ES2015 transformations.
+    pub es2015: Option<ES2015BindingOptions>,
+
+    /// Enable source map generation.
+    ///
+    /// When `true`, the `sourceMap` field of transform result objects will be populated.
+    ///
+    /// @default false
+    ///
+    /// @see {@link SourceMap}
+    pub sourcemap: Option<bool>,
+}
+
+impl From<TransformOptions> for oxc_transformer::TransformOptions {
+    fn from(options: TransformOptions) -> Self {
+        Self {
+            cwd: options.cwd.map(PathBuf::from).unwrap_or_default(),
+            typescript: options.typescript.map(Into::into).unwrap_or_default(),
+            react: options.react.map(Into::into).unwrap_or_default(),
+            es2015: options.es2015.map(Into::into).unwrap_or_default(),
+            ..Self::default()
+        }
+    }
+}
 
 #[napi(object)]
 #[derive(Default)]
@@ -21,7 +70,17 @@ pub struct TypeScriptBindingOptions {
     /// requirements.
     ///
     /// @default false
-    pub declaration: Option<bool>,
+    pub declaration: Option<IsolatedDeclarationsOptions>,
+    /// Rewrite or remove TypeScript import/export declaration extensions.
+    ///
+    /// - When set to `rewrite`, it will change `.ts`, `.mts`, `.cts` extensions to `.js`, `.mjs`, `.cjs` respectively.
+    /// - When set to `remove`, it will remove `.ts`/`.mts`/`.cts`/`.tsx` extension entirely.
+    /// - When set to `true`, it's equivalent to `rewrite`.
+    /// - When set to `false` or omitted, no changes will be made to the extensions.
+    ///
+    /// @default false
+    #[napi(ts_type = "'rewrite' | 'remove' | boolean")]
+    pub rewrite_import_extensions: Option<Either<bool, String>>,
 }
 
 impl From<TypeScriptBindingOptions> for TypeScriptOptions {
@@ -35,13 +94,30 @@ impl From<TypeScriptBindingOptions> for TypeScriptOptions {
                 .unwrap_or(ops.only_remove_type_imports),
             allow_namespaces: options.allow_namespaces.unwrap_or(ops.allow_namespaces),
             allow_declare_fields: options.allow_declare_fields.unwrap_or(ops.allow_declare_fields),
+            optimize_const_enums: false,
+            rewrite_import_extensions: options.rewrite_import_extensions.and_then(|value| {
+                match value {
+                    Either::A(v) => {
+                        if v {
+                            Some(RewriteExtensionsMode::Rewrite)
+                        } else {
+                            None
+                        }
+                    }
+                    Either::B(v) => match v.as_str() {
+                        "rewrite" => Some(RewriteExtensionsMode::Rewrite),
+                        "remove" => Some(RewriteExtensionsMode::Remove),
+                        _ => None,
+                    },
+                }
+            }),
         }
     }
 }
 
 /// Configure how TSX and JSX are transformed.
 ///
-/// @see [@babel/plugin-transform-react-jsx](https://babeljs.io/docs/babel-plugin-transform-react-jsx#options)
+/// @see {@link https://babeljs.io/docs/babel-plugin-transform-react-jsx#options}
 #[napi(object)]
 pub struct ReactBindingOptions {
     /// Decides which runtime to use.
@@ -57,7 +133,7 @@ pub struct ReactBindingOptions {
     ///
     /// @default false
     ///
-    /// @see [@babel/plugin-transform-react-jsx-development](https://babeljs.io/docs/babel-plugin-transform-react-jsx-development)
+    /// @see {@link https://babeljs.io/docs/babel-plugin-transform-react-jsx-development}
     pub development: Option<bool>,
 
     /// Toggles whether or not to throw an error if an XML namespaced tag name
@@ -69,9 +145,11 @@ pub struct ReactBindingOptions {
     /// @default true
     pub throw_if_namespace: Option<bool>,
 
-    /// Enables [@babel/plugin-transform-react-pure-annotations](https://babeljs.io/docs/en/babel-plugin-transform-react-pure-annotations).
+    /// Enables `@babel/plugin-transform-react-pure-annotations`.
     ///
     /// It will mark top-level React method calls as pure for tree shaking.
+    ///
+    /// @see {@link https://babeljs.io/docs/en/babel-plugin-transform-react-pure-annotations}
     ///
     /// @default true
     pub pure: Option<bool>,
@@ -112,6 +190,13 @@ pub struct ReactBindingOptions {
     ///
     /// @default false
     pub use_spread: Option<bool>,
+
+    /// Enable React Fast Refresh .
+    ///
+    /// Conforms to the implementation in {@link https://github.com/facebook/react/tree/main/packages/react-refresh}
+    ///
+    /// @default false
+    pub refresh: Option<Either<bool, ReactRefreshBindingOptions>>,
 }
 
 impl From<ReactBindingOptions> for ReactOptions {
@@ -130,7 +215,37 @@ impl From<ReactBindingOptions> for ReactOptions {
             pragma_frag: options.pragma_frag,
             use_built_ins: options.use_built_ins,
             use_spread: options.use_spread,
+            refresh: options.refresh.and_then(|value| match value {
+                Either::A(b) => b.then(ReactRefreshOptions::default),
+                Either::B(options) => Some(ReactRefreshOptions::from(options)),
+            }),
             ..Default::default()
+        }
+    }
+}
+
+#[napi(object)]
+pub struct ReactRefreshBindingOptions {
+    /// Specify the identifier of the refresh registration variable.
+    ///
+    /// @default `$RefreshReg$`.
+    pub refresh_reg: Option<String>,
+
+    /// Specify the identifier of the refresh signature variable.
+    ///
+    /// @default `$RefreshSig$`.
+    pub refresh_sig: Option<String>,
+
+    pub emit_full_signatures: Option<bool>,
+}
+
+impl From<ReactRefreshBindingOptions> for ReactRefreshOptions {
+    fn from(options: ReactRefreshBindingOptions) -> Self {
+        let ops = ReactRefreshOptions::default();
+        ReactRefreshOptions {
+            refresh_reg: options.refresh_reg.unwrap_or(ops.refresh_reg),
+            refresh_sig: options.refresh_sig.unwrap_or(ops.refresh_sig),
+            emit_full_signatures: options.emit_full_signatures.unwrap_or(ops.emit_full_signatures),
         }
     }
 }
@@ -161,53 +276,5 @@ pub struct ES2015BindingOptions {
 impl From<ES2015BindingOptions> for ES2015Options {
     fn from(options: ES2015BindingOptions) -> Self {
         ES2015Options { arrow_function: options.arrow_function.map(Into::into) }
-    }
-}
-
-/// Options for transforming a JavaScript or TypeScript file.
-///
-/// @see {@link transform}
-#[napi(object)]
-pub struct TransformOptions {
-    #[napi(ts_type = "'script' | 'module' | 'unambiguous' | undefined")]
-    pub source_type: Option<String>,
-
-    /// The current working directory. Used to resolve relative paths in other
-    /// options.
-    pub cwd: Option<String>,
-
-    /// Force jsx parsing,
-    ///
-    /// @default false
-    pub jsx: Option<bool>,
-
-    /// Configure how TypeScript is transformed.
-    pub typescript: Option<TypeScriptBindingOptions>,
-
-    /// Configure how TSX and JSX are transformed.
-    pub react: Option<ReactBindingOptions>,
-
-    /// Enable ES2015 transformations.
-    pub es2015: Option<ES2015BindingOptions>,
-
-    /// Enable source map generation.
-    ///
-    /// When `true`, the `sourceMap` field of transform result objects will be populated.
-    ///
-    /// @default false
-    ///
-    /// @see {@link SourceMap}
-    pub sourcemap: Option<bool>,
-}
-
-impl From<TransformOptions> for oxc_transformer::TransformOptions {
-    fn from(options: TransformOptions) -> Self {
-        Self {
-            cwd: options.cwd.map(PathBuf::from).unwrap_or_default(),
-            typescript: options.typescript.map(Into::into).unwrap_or_default(),
-            react: options.react.map(Into::into).unwrap_or_default(),
-            es2015: options.es2015.map(Into::into).unwrap_or_default(),
-            ..Self::default()
-        }
     }
 }

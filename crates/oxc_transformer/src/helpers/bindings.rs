@@ -1,9 +1,7 @@
-use std::cell::Cell;
-
 use oxc_ast::ast::{BindingIdentifier, IdentifierReference};
 use oxc_span::{Atom, Span, SPAN};
 use oxc_syntax::{
-    reference::ReferenceFlag,
+    reference::ReferenceFlags,
     scope::ScopeId,
     symbol::{SymbolFlags, SymbolId},
 };
@@ -66,6 +64,7 @@ impl<'a> BoundIdentifier<'a> {
     }
 
     /// Create `BoundIdentifier` for new binding in current scope
+    #[allow(unused)]
     pub fn new_uid_in_current_scope(
         name: &str,
         flags: SymbolFlags,
@@ -77,11 +76,7 @@ impl<'a> BoundIdentifier<'a> {
 
     /// Create `BindingIdentifier` for this binding
     pub fn create_binding_identifier(&self) -> BindingIdentifier<'a> {
-        BindingIdentifier {
-            span: SPAN,
-            name: self.name.clone(),
-            symbol_id: Cell::new(Some(self.symbol_id)),
-        }
+        BindingIdentifier::new_with_symbol_id(SPAN, self.name.clone(), self.symbol_id)
     }
 
     /// Create `IdentifierReference` referencing this binding, which is read from, with dummy `Span`
@@ -95,10 +90,11 @@ impl<'a> BoundIdentifier<'a> {
         span: Span,
         ctx: &mut TraverseCtx<'a>,
     ) -> IdentifierReference<'a> {
-        self.create_spanned_reference(span, ReferenceFlag::Read, ctx)
+        self.create_spanned_reference(span, ReferenceFlags::Read, ctx)
     }
 
     /// Create `IdentifierReference` referencing this binding, which is written to, with dummy `Span`
+    #[allow(unused)]
     pub fn create_write_reference(&self, ctx: &mut TraverseCtx<'a>) -> IdentifierReference<'a> {
         self.create_spanned_write_reference(SPAN, ctx)
     }
@@ -109,11 +105,12 @@ impl<'a> BoundIdentifier<'a> {
         span: Span,
         ctx: &mut TraverseCtx<'a>,
     ) -> IdentifierReference<'a> {
-        self.create_spanned_reference(span, ReferenceFlag::Write, ctx)
+        self.create_spanned_reference(span, ReferenceFlags::Write, ctx)
     }
 
     /// Create `IdentifierReference` referencing this binding, which is read from + written to,
     /// with dummy `Span`
+    #[allow(unused)]
     pub fn create_read_write_reference(
         &self,
         ctx: &mut TraverseCtx<'a>,
@@ -128,16 +125,16 @@ impl<'a> BoundIdentifier<'a> {
         span: Span,
         ctx: &mut TraverseCtx<'a>,
     ) -> IdentifierReference<'a> {
-        self.create_spanned_reference(span, ReferenceFlag::Read | ReferenceFlag::Write, ctx)
+        self.create_spanned_reference(span, ReferenceFlags::Read | ReferenceFlags::Write, ctx)
     }
 
-    /// Create `IdentifierReference` referencing this binding, with specified `Span` and `ReferenceFlag`
+    /// Create `IdentifierReference` referencing this binding, with specified `Span` and `ReferenceFlags`
     pub fn create_spanned_reference(
         &self,
         span: Span,
-        flag: ReferenceFlag,
+        flags: ReferenceFlags,
         ctx: &mut TraverseCtx<'a>,
     ) -> IdentifierReference<'a> {
-        ctx.create_bound_reference_id(span, self.name.clone(), self.symbol_id, flag)
+        ctx.create_bound_reference_id(span, self.name.clone(), self.symbol_id, flags)
     }
 }

@@ -5,7 +5,9 @@ use oxc_traverse::TraverseCtx;
 
 use crate::{
     ast_passes::{
-        Collapse, FoldConstants, RemoveDeadCode, RemoveSyntax, SubstituteAlternateSyntax,
+        CollapseVariableDeclarations, ExploitAssigns, PeepholeFoldConstants,
+        PeepholeMinimizeConditions, PeepholeRemoveDeadCode, PeepholeSubstituteAlternateSyntax,
+        RemoveSyntax, StatementFusion,
     },
     CompressOptions, CompressorPass,
 };
@@ -21,10 +23,8 @@ impl<'a> Compressor<'a> {
     }
 
     pub fn build(self, program: &mut Program<'a>) {
-        let (symbols, scopes) = SemanticBuilder::new("", program.source_type)
-            .build(program)
-            .semantic
-            .into_symbol_table_and_scope_tree();
+        let (symbols, scopes) =
+            SemanticBuilder::new("").build(program).semantic.into_symbol_table_and_scope_tree();
         self.build_with_symbols_and_scopes(symbols, scopes, program);
     }
 
@@ -35,43 +35,50 @@ impl<'a> Compressor<'a> {
         program: &mut Program<'a>,
     ) {
         let mut ctx = TraverseCtx::new(scopes, symbols, self.allocator);
-        // Run separate AST passes
-        // TODO: inline variables
-        self.remove_syntax(program, &mut ctx);
-        self.fold_constants(program, &mut ctx);
-        self.remove_dead_code(program, &mut ctx);
-        // TODO: StatementFusion
-        self.substitute_alternate_syntax(program, &mut ctx);
-        self.collapse(program, &mut ctx);
-    }
+        RemoveSyntax::new(self.options).build(program, &mut ctx);
 
-    fn remove_syntax(&self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.options.remove_syntax {
-            RemoveSyntax::new(ctx.ast, self.options).build(program, ctx);
+        if self.options.dead_code_elimination {
+            self.dead_code_elimination(program, &mut ctx);
+            return;
+        }
+
+        ExploitAssigns::new().build(program, &mut ctx);
+        CollapseVariableDeclarations::new(self.options).build(program, &mut ctx);
+
+        // See `latePeepholeOptimizations`
+        let mut passes: [&mut dyn CompressorPass; 5] = [
+            &mut StatementFusion::new(),
+            &mut PeepholeRemoveDeadCode::new(),
+            // TODO: MinimizeExitPoints
+            &mut PeepholeMinimizeConditions::new(),
+            &mut PeepholeSubstituteAlternateSyntax::new(self.options),
+            // TODO: PeepholeReplaceKnownMethods
+            &mut PeepholeFoldConstants::new(),
+        ];
+
+        let mut i = 0;
+        loop {
+            let mut changed = false;
+            for pass in &mut passes {
+                pass.build(program, &mut ctx);
+                if pass.changed() {
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+            if i > 50 {
+                debug_assert!(false, "Ran in a infinite loop.");
+                break;
+            }
+            i += 1;
         }
     }
 
-    fn fold_constants(&self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.options.fold_constants {
-            FoldConstants::new(ctx.ast).with_evaluate(self.options.evaluate).build(program, ctx);
-        }
-    }
-
-    fn substitute_alternate_syntax(&self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.options.substitute_alternate_syntax {
-            SubstituteAlternateSyntax::new(ctx.ast, self.options).build(program, ctx);
-        }
-    }
-
-    fn remove_dead_code(&self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.options.remove_dead_code {
-            RemoveDeadCode::new(ctx.ast).build(program, ctx);
-        }
-    }
-
-    fn collapse(&self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.options.collapse {
-            Collapse::new(ctx.ast, self.options).build(program, ctx);
-        }
+    fn dead_code_elimination(self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
+        PeepholeFoldConstants::new().build(program, ctx);
+        PeepholeMinimizeConditions::new().build(program, ctx);
+        PeepholeRemoveDeadCode::new().build(program, ctx);
     }
 }

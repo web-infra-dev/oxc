@@ -1,39 +1,85 @@
-use oxc_ast::ast::*;
+//! React JSX Source
+//!
+//! This plugin adds `__source` attribute to JSX elements.
+//!
+//! > This plugin is included in `preset-react`.
+//!
+//! ## Example
+//!
+//! Input:
+//! ```js
+//! <div>foo</div>;
+//! <Bar>foo</Bar>;
+//! <>foo</>;
+//! ```
+//!
+//! Output:
+//! ```js
+//! var _jsxFileName = "<CWD>/test.js";
+//! <div __source={
+//!     { fileName: _jsxFileName, lineNumber: 1, columnNumber: 1 }
+//! }>foo</div>;
+//! <Bar __source={
+//!     { fileName: _jsxFileName, lineNumber: 2, columnNumber: 1 }
+//! }>foo</Bar>;
+//! <>foo</>;
+//! ```
+//!
+//! ## Implementation
+//!
+//! Implementation based on [@babel/plugin-transform-react-jsx-source](https://babeljs.io/docs/babel-plugin-transform-react-jsx-source).
+//!
+//! ## References:
+//!
+//! * Babel plugin implementation: <https://github.com/babel/babel/blob/main/packages/babel-plugin-transform-react-jsx-source/src/index.ts>
+
+use oxc_ast::{ast::*, NONE};
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_span::{Span, SPAN};
 use oxc_syntax::{number::NumberBase, symbol::SymbolFlags};
-use oxc_traverse::TraverseCtx;
+use oxc_traverse::{Traverse, TraverseCtx};
+use ropey::Rope;
 
 use super::utils::get_line_column;
-use crate::{context::Ctx, helpers::bindings::BoundIdentifier};
+use crate::{helpers::bindings::BoundIdentifier, TransformCtx};
 
 const SOURCE: &str = "__source";
 const FILE_NAME_VAR: &str = "jsxFileName";
 
-/// [plugin-transform-react-jsx-source](https://babeljs.io/docs/babel-plugin-transform-react-jsx-source)
-///
-/// This plugin is included in `preset-react` and only enabled in development mode.
-///
-/// ## Example
-///
-/// In: `<sometag />`
-/// Out: `<sometag __source={ { fileName: 'this/file.js', lineNumber: 10, columnNumber: 1 } } />`
-pub struct ReactJsxSource<'a> {
-    ctx: Ctx<'a>,
+pub struct ReactJsxSource<'a, 'ctx> {
     filename_var: Option<BoundIdentifier<'a>>,
+    source_rope: Option<Rope>,
+    ctx: &'ctx TransformCtx<'a>,
 }
 
-impl<'a> ReactJsxSource<'a> {
-    pub fn new(ctx: Ctx<'a>) -> Self {
-        Self { ctx, filename_var: None }
+impl<'a, 'ctx> ReactJsxSource<'a, 'ctx> {
+    pub fn new(ctx: &'ctx TransformCtx<'a>) -> Self {
+        Self { filename_var: None, source_rope: None, ctx }
+    }
+}
+
+impl<'a, 'ctx> Traverse<'a> for ReactJsxSource<'a, 'ctx> {
+    fn exit_program(&mut self, program: &mut Program<'a>, _ctx: &mut TraverseCtx<'a>) {
+        if let Some(stmt) = self.get_var_file_name_statement() {
+            program.body.insert(0, stmt);
+        }
     }
 
-    pub fn transform_jsx_opening_element(
+    fn enter_jsx_opening_element(
         &mut self,
         elem: &mut JSXOpeningElement<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) {
         self.add_source_attribute(elem, ctx);
+    }
+}
+
+impl<'a, 'ctx> ReactJsxSource<'a, 'ctx> {
+    pub fn get_line_column(&mut self, offset: u32) -> (usize, usize) {
+        if self.source_rope.is_none() {
+            self.source_rope = Some(Rope::from_str(self.ctx.source_text));
+        }
+        get_line_column(self.source_rope.as_ref().unwrap(), offset, self.ctx.source_text)
     }
 
     pub fn get_object_property_kind_for_jsx_plugin(
@@ -54,9 +100,7 @@ impl<'a> ReactJsxSource<'a> {
         let error = OxcDiagnostic::warn("Duplicate __source prop found.").with_label(span);
         self.ctx.error(error);
     }
-}
 
-impl<'a> ReactJsxSource<'a> {
     /// `<sometag __source={ { fileName: 'this/file.js', lineNumber: 10, columnNumber: 1 } } />`
     ///           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     fn add_source_attribute(
@@ -85,7 +129,7 @@ impl<'a> ReactJsxSource<'a> {
         // TODO: We shouldn't calculate line + column from scratch each time as it's expensive.
         // Build a table of byte indexes of each line's start on first usage, and save it.
         // Then calculate line and column from that.
-        let (line, column) = get_line_column(elem.span.start, self.ctx.source_text);
+        let (line, column) = self.get_line_column(elem.span.start);
         let object = self.get_source_object(line, column, ctx);
         let value = self
             .ctx
@@ -153,7 +197,7 @@ impl<'a> ReactJsxSource<'a> {
         let id = {
             let ident = filename_var.create_binding_identifier();
             let ident = self.ctx.ast.binding_pattern_kind_from_binding_identifier(ident);
-            self.ctx.ast.binding_pattern(ident, Option::<TSTypeAnnotation>::None, false)
+            self.ctx.ast.binding_pattern(ident, NONE, false)
         };
         let decl = {
             let init = self

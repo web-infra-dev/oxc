@@ -7,7 +7,7 @@ _default:
   @just --list -u
 
 alias r := ready
-alias c := coverage
+alias c := conformance
 alias f := fix
 alias new-typescript-rule := new-ts-rule
 
@@ -16,7 +16,7 @@ alias new-typescript-rule := new-ts-rule
 # or install via `cargo install cargo-binstall`
 # Initialize the project by installing all the necessary tools.
 init:
-  cargo binstall cargo-watch cargo-insta typos-cli taplo-cli wasm-pack cargo-llvm-cov cargo-shear -y
+  cargo binstall cargo-watch cargo-insta typos-cli cargo-shear dprint -y
 
 # When ready, run the same CI commands
 ready:
@@ -28,19 +28,18 @@ ready:
   just lint
   just doc
   just ast
-  cargo shear
   git status
 
 # Clone or update submodules
 submodules:
-  just clone-submodule tasks/coverage/test262 git@github.com:tc39/test262.git a15874163e6a4f19ee7cd3e47592af382af0f5fd
-  just clone-submodule tasks/coverage/babel git@github.com:babel/babel.git 12619ffe5b0777edb0223304da1fdf8770d93e7c
-  just clone-submodule tasks/coverage/typescript git@github.com:microsoft/TypeScript.git d8086f14b6b97c0df34a0cc2f56d4b5926a0c299
-  just clone-submodule tasks/prettier_conformance/prettier git@github.com:prettier/prettier.git 7142cf354cce2558f41574f44b967baf11d5b603
+  just clone-submodule tasks/coverage/test262 git@github.com:tc39/test262.git d62fa93c8f9ce5e687c0bbaa5d2b59670ab2ff60
+  just clone-submodule tasks/coverage/babel git@github.com:babel/babel.git 3bcfee232506a4cebe410f02042fb0f0adeeb0b1
+  just clone-submodule tasks/coverage/typescript git@github.com:microsoft/TypeScript.git a709f9899c2a544b6de65a0f2623ecbbe1394eab
+  just clone-submodule tasks/prettier_conformance/prettier git@github.com:prettier/prettier.git 52829385bcc4d785e58ae2602c0b098a643523c9
 
 # Install git pre-commit to format files
 install-hook:
-  echo "#!/bin/sh\njust fmt" > .git/hooks/pre-commit
+  echo -e "#!/bin/sh\njust fmt" > .git/hooks/pre-commit
   chmod +x .git/hooks/pre-commit
 
 # --no-vcs-ignores: cargo-watch has a bug loading all .gitignores, including the ones listed in .gitignore
@@ -53,10 +52,17 @@ watch command:
 example tool *args='':
   just watch 'run -p oxc_{{tool}} --example {{tool}} -- {{args}}'
 
+# Generate AST related boilerplate code.
+# Run this when AST definition is changed.
+ast:
+  cargo run -p oxc_ast_tools
+  just check
+
 # Format all files
 fmt:
-  cargo fmt
-  taplo format
+  cargo shear --fix # remove all unused dependencies
+  cargo fmt --all
+  dprint fmt
 
 # Run cargo check
 check:
@@ -70,8 +76,13 @@ test:
 lint:
   cargo lint -- --deny warnings
 
+[unix]
 doc:
   RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --document-private-items
+
+[windows]
+doc:
+  $Env:RUSTDOCFLAGS='-D warnings'; cargo doc --no-deps --document-private-items
 
 # Fix all auto-fixable format and lint issues. Make sure your working tree is clean first.
 fix:
@@ -85,10 +96,18 @@ coverage:
   cargo coverage
   cargo run -p oxc_transform_conformance -- --exec
   cargo run -p oxc_prettier_conformance
-  # cargo minsize
+  cargo minsize
 
 conformance *args='':
   cargo coverage -- {{args}}
+
+# Watch oxlint
+watch-oxlint *args='':
+  just watch 'run -p oxlint -- {{args}}'
+
+# Build oxlint in release build
+oxlint:
+  cargo oxlint
 
 # Get code coverage
 codecov:
@@ -97,10 +116,6 @@ codecov:
 # Run the benchmarks. See `tasks/benchmark`
 benchmark:
   cargo benchmark
-
-# Removed Unused Dependencies
-shear:
-  cargo shear --fix
 
 # Automatically DRY up Cargo.toml manifests in a workspace.
 autoinherit:
@@ -112,15 +127,15 @@ test-transform *args='':
   cargo run -p oxc_transform_conformance -- {{args}}
   cargo run -p oxc_transform_conformance -- --exec  {{args}}
 
-# Build oxlint in release build
-oxlint:
-  cargo oxlint
+# Install wasm-pack
+install-wasm:
+  cargo binstall wasm-pack
 
 watch-wasm:
-  cargo watch --no-vcs-ignores -i 'npm/oxc-wasm/**' -- just build-wasm
+  cargo watch --no-vcs-ignores -i 'npm/oxc-wasm/**' -- just build-wasm dev
 
-build-wasm:
-  wasm-pack build --out-dir ../../npm/oxc-wasm --target web --dev --scope oxc crates/oxc_wasm
+build-wasm mode="release":
+  wasm-pack build --out-dir ../../npm/oxc-wasm --target web --{{mode}} --scope oxc crates/oxc_wasm
 
 # Generate the JavaScript global variables. See `tasks/javascript_globals`
 javascript-globals:
@@ -166,6 +181,9 @@ new-promise-rule name:
 new-vitest-rule name:
     cargo run -p rulegen {{name}} vitest
 
+new-security-rule name:
+    cargo run -p rulegen {{name}} security
+
 clone-submodule dir url sha:
   git clone --depth=1 {{url}} {{dir}} || true
   cd {{dir}} && git fetch origin {{sha}} && git reset --hard {{sha}}
@@ -174,8 +192,3 @@ website path:
   cargo run -p website -- linter-rules --table {{path}}/src/docs/guide/usage/linter/generated-rules.md --rule-docs {{path}}/src/docs/guide/usage/linter/rules
   cargo run -p website -- linter-cli > {{path}}/src/docs/guide/usage/linter/generated-cli.md
   cargo run -p website -- linter-schema-markdown > {{path}}/src/docs/guide/usage/linter/generated-config.md
-
-# sync ast changes
-ast:
-  cargo run -p oxc_ast_tools
-  just check

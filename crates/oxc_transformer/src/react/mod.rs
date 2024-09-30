@@ -1,3 +1,4 @@
+mod comments;
 mod diagnostics;
 mod display_name;
 mod jsx;
@@ -7,11 +8,9 @@ mod options;
 mod refresh;
 mod utils;
 
-use std::rc::Rc;
-
 use oxc_allocator::Vec;
 use oxc_ast::ast::*;
-use oxc_traverse::TraverseCtx;
+use oxc_traverse::{Traverse, TraverseCtx};
 use refresh::ReactRefresh;
 
 pub use self::{
@@ -19,7 +18,9 @@ pub use self::{
     jsx::ReactJsx,
     options::{ReactJsxRuntime, ReactOptions, ReactRefreshOptions},
 };
-use crate::context::Ctx;
+use crate::TransformCtx;
+
+use comments::update_options_with_comments;
 
 /// [Preset React](https://babel.dev/docs/babel-preset-react)
 ///
@@ -29,10 +30,10 @@ use crate::context::Ctx;
 /// * [plugin-transform-react-jsx-self](https://babeljs.io/docs/babel-plugin-transform-react-jsx-self)
 /// * [plugin-transform-react-jsx-source](https://babel.dev/docs/babel-plugin-transform-react-jsx-source)
 /// * [plugin-transform-react-display-name](https://babeljs.io/docs/babel-plugin-transform-react-display-name)
-pub struct React<'a> {
-    jsx: ReactJsx<'a>,
-    display_name: ReactDisplayName<'a>,
-    refresh: ReactRefresh<'a>,
+pub struct React<'a, 'ctx> {
+    jsx: ReactJsx<'a, 'ctx>,
+    display_name: ReactDisplayName<'a, 'ctx>,
+    refresh: ReactRefresh<'a, 'ctx>,
     jsx_plugin: bool,
     display_name_plugin: bool,
     jsx_self_plugin: bool,
@@ -41,10 +42,10 @@ pub struct React<'a> {
 }
 
 // Constructors
-impl<'a> React<'a> {
-    pub fn new(mut options: ReactOptions, ctx: Ctx<'a>) -> Self {
+impl<'a, 'ctx> React<'a, 'ctx> {
+    pub fn new(mut options: ReactOptions, ctx: &'ctx TransformCtx<'a>) -> Self {
         if options.jsx_plugin || options.development {
-            options.update_with_comments(&ctx);
+            update_options_with_comments(&mut options, ctx);
             options.conform();
         }
         let ReactOptions {
@@ -56,8 +57,8 @@ impl<'a> React<'a> {
         } = options;
         let refresh = options.refresh.clone();
         Self {
-            jsx: ReactJsx::new(options, Rc::clone(&ctx)),
-            display_name: ReactDisplayName::new(Rc::clone(&ctx)),
+            jsx: ReactJsx::new(options, ctx),
+            display_name: ReactDisplayName::new(ctx),
             jsx_plugin,
             display_name_plugin,
             jsx_self_plugin,
@@ -68,91 +69,80 @@ impl<'a> React<'a> {
     }
 }
 
-// Transforms
-impl<'a> React<'a> {
-    pub fn transform_program(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
+impl<'a, 'ctx> Traverse<'a> for React<'a, 'ctx> {
+    fn enter_program(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
+        if self.jsx_plugin {
+            program.source_type = program.source_type.with_standard(true);
+        }
         if self.refresh_plugin {
-            self.refresh.transform_program(program, ctx);
+            self.refresh.enter_program(program, ctx);
         }
     }
 
-    pub fn transform_program_on_exit(
-        &mut self,
-        program: &mut Program<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
+    fn exit_program(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
         if self.refresh_plugin {
-            self.refresh.transform_program_on_exit(program, ctx);
+            self.refresh.exit_program(program, ctx);
         }
         if self.jsx_plugin {
-            self.jsx.transform_program_on_exit(program, ctx);
+            self.jsx.exit_program(program, ctx);
+        } else if self.jsx_source_plugin {
+            self.jsx.jsx_source.exit_program(program, ctx);
         }
     }
 
-    pub fn transform_statements(
-        &mut self,
-        stmts: &mut Vec<'a, Statement<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
+    fn enter_statements(&mut self, stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut TraverseCtx<'a>) {
         if self.refresh_plugin {
-            self.refresh.transform_statements(stmts, ctx);
+            self.refresh.enter_statements(stmts, ctx);
         }
     }
 
-    pub fn transform_statements_on_exit(
-        &mut self,
-        stmts: &mut Vec<'a, Statement<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
+    fn exit_statements(&mut self, stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut TraverseCtx<'a>) {
         if self.refresh_plugin {
-            self.refresh.transform_statements_on_exit(stmts, ctx);
+            self.refresh.exit_statements(stmts, ctx);
         }
     }
 
-    pub fn transform_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
-        if self.jsx_plugin {
-            match expr {
-                Expression::JSXElement(e) => {
-                    *expr = self.jsx.transform_jsx_element(e, ctx);
-                }
-                Expression::JSXFragment(e) => {
-                    *expr = self.jsx.transform_jsx_fragment(e, ctx);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    pub fn transform_call_expression(
+    fn enter_call_expression(
         &mut self,
         call_expr: &mut CallExpression<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) {
         if self.display_name_plugin {
-            self.display_name.transform_call_expression(call_expr, ctx);
+            self.display_name.enter_call_expression(call_expr, ctx);
+        }
+
+        if self.refresh_plugin {
+            self.refresh.enter_call_expression(call_expr, ctx);
         }
     }
 
-    pub fn transform_jsx_opening_element(
+    fn enter_jsx_opening_element(
         &mut self,
         elem: &mut JSXOpeningElement<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) {
-        if self.jsx_self_plugin && self.jsx.jsx_self.can_add_self_attribute(ctx) {
-            self.jsx.jsx_self.transform_jsx_opening_element(elem);
-        }
-        if self.jsx_source_plugin {
-            self.jsx.jsx_source.transform_jsx_opening_element(elem, ctx);
+        if !self.jsx_plugin {
+            if self.jsx_self_plugin && self.jsx.jsx_self.can_add_self_attribute(ctx) {
+                self.jsx.jsx_self.enter_jsx_opening_element(elem, ctx);
+            }
+            if self.jsx_source_plugin {
+                self.jsx.jsx_source.enter_jsx_opening_element(elem, ctx);
+            }
         }
     }
 
-    pub fn transform_expression_on_exit(
-        &mut self,
-        expr: &mut Expression<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
+    fn exit_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
+        if self.jsx_plugin {
+            self.jsx.exit_expression(expr, ctx);
+        }
         if self.refresh_plugin {
-            self.refresh.transform_expression_on_exit(expr, ctx);
+            self.refresh.exit_expression(expr, ctx);
+        }
+    }
+
+    fn exit_function(&mut self, func: &mut Function<'a>, ctx: &mut TraverseCtx<'a>) {
+        if self.refresh_plugin {
+            self.refresh.exit_function(func, ctx);
         }
     }
 }

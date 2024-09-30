@@ -4,6 +4,41 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project does not adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) until v1.0.0.
 
+## [0.9.9] - 2024-09-27
+
+### Bug Fixes
+
+- 01b9c4b npm/oxlint: Make bin/oxc_language_server an executable (#6066) (Boshen)
+
+## [0.9.7] - 2024-09-23
+
+### Refactor
+
+- ba7b01f linter: Add `LinterBuilder` (#5714) (DonIsaac)
+
+## [0.9.6] - 2024-09-18
+
+### Refactor
+
+- a438743 linter: Move `OxlintConfig` to `Oxlintrc` (#5707) (DonIsaac)
+
+## [0.9.4] - 2024-09-12
+
+### Features
+
+- 023c160 linter: Impl `Serialize` for `OxlintConfig` (#5594) (DonIsaac)
+
+## [0.9.3] - 2024-09-07
+
+### Styling
+- 694f032 Add trailing line breaks to `package.json` files (#5542) (overlookmotel)
+
+## [0.8.0] - 2024-08-23
+
+### Features
+
+- a0effab linter: Support more flexible config.globals values (#4990) (Don Isaac)
+
 ## [0.7.2] - 2024-08-15
 
 ### Features

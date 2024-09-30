@@ -1,16 +1,16 @@
-use std::stringify;
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, stringify};
 
 use convert_case::{Case, Casing};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
+use rustc_hash::FxHashMap;
 use syn::{parse_quote, Ident, Type};
 
+use super::define_generator;
 use crate::{
-    codegen::LateCtx,
-    generators::generated_header,
+    codegen::{generated_header, LateCtx},
     output,
     schema::{
         EnumDef, FieldDef, GetIdent, InheritDef, StructDef, ToType, TypeDef, TypeName, VariantDef,
@@ -18,8 +18,6 @@ use crate::{
     util::{TypeAnalysis, TypeWrapper},
     Generator, GeneratorOutput,
 };
-
-use super::define_generator;
 
 define_generator! {
     pub struct AstBuilderGenerator;
@@ -36,7 +34,7 @@ impl Generator for AstBuilderGenerator {
 
         let header = generated_header!();
 
-        GeneratorOutput::Stream((
+        GeneratorOutput(
             output(crate::AST_CRATE, "ast_builder.rs"),
             quote! {
                 #header
@@ -66,7 +64,7 @@ impl Generator for AstBuilderGenerator {
                     #(#fns)*
                 }
             },
-        ))
+        )
     }
 }
 
@@ -150,7 +148,6 @@ fn generate_enum_variant_builder_fn(
         .or_else(|| var_type.transparent_type_id())
         .and_then(|id| ctx.type_def(id))
         .expect("type not found!");
-    #[allow(clippy::single_match_else)]
     let (params, inner_builder) = match ty {
         TypeDef::Struct(it) => (get_struct_params(it, ctx), struct_builder_name(it)),
         TypeDef::Enum(_) => panic!("Unsupported!"),
@@ -230,11 +227,11 @@ fn default_init_field(field: &FieldDef) -> bool {
         };
     }
     lazy_static! {
-        static ref DEFAULT_FIELDS: HashMap<&'static str, &'static str> = HashMap::from([
+        static ref DEFAULT_FIELDS: FxHashMap<&'static str, &'static str> = FxHashMap::from_iter([
             field!(scope_id: Cell<Option<ScopeId>>),
             field!(symbol_id: Cell<Option<SymbolId>>),
             field!(reference_id: Cell<Option<ReferenceId>>),
-            field!(reference_flag: ReferenceFlag),
+            field!(reference_flags: ReferenceFlags),
         ]);
     }
 
@@ -306,7 +303,7 @@ fn generate_struct_builder_fn(ty: &StructDef, ctx: &LateCtx) -> TokenStream {
 }
 
 // TODO: remove me
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(Debug)]
 struct Param {
     is_default: bool,
@@ -415,7 +412,7 @@ impl<'p> DocComment<'p> {
     ///
     /// Each line will be turned into its own paragraph.
     // TODO: remove me
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn with_description_lines<L, S>(mut self, description: L) -> Self
     where
         S: Into<Cow<'static, str>>,

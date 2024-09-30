@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use quote::ToTokens;
+use rustc_hash::FxHashMap;
 use syn::Type;
 
+use super::{define_pass, Pass};
 use crate::{
     codegen::EarlyCtx,
     layout::{KnownLayout, Layout},
@@ -13,13 +13,11 @@ use crate::{
     Result,
 };
 
-use super::{define_pass, Pass};
-
 /// We use compiler to infer 64bit type layouts.
 #[cfg(not(target_pointer_width = "64"))]
 compile_error!("This module only supports 64bit architectures.");
 
-type WellKnown = HashMap<&'static str, PlatformLayout>;
+type WellKnown = FxHashMap<&'static str, PlatformLayout>;
 
 define_pass! {
     pub struct CalcLayout;
@@ -104,7 +102,7 @@ fn calc_enum_layout(ty: &mut Enum, ctx: &EarlyCtx) -> Result<PlatformLayout> {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
+    #[expect(clippy::needless_pass_by_value)]
     fn fold_layout(mut acc: KnownLayout, layout: KnownLayout) -> KnownLayout {
         // SAFETY: we are folding valid layouts so it is safe.
         unsafe {
@@ -280,7 +278,7 @@ fn calc_type_layout(ty: &TypeAnalysis, ctx: &EarlyCtx) -> Result<PlatformLayout>
 
 macro_rules! well_known {
     ($($typ:ty: { $($platform:tt => $layout:expr,)*},)*) => {
-        WellKnown::from([
+        FxHashMap::from_iter([
             $((
                 stringify!($typ),
                 well_known!(@ $( $platform => $layout,)*)
@@ -358,7 +356,7 @@ lazy_static! {
         Cell<Option<SymbolId>>: { _ => Layout::known(4, 4, 0), },
         Cell<Option<ReferenceId>>: { _ => Layout::known(4, 4, 0), },
         // Unsupported: this is a `bitflags` generated type, we don't expand macros
-        ReferenceFlag: { _ => Layout::known(1, 1, 0), },
+        ReferenceFlags: { _ => Layout::known(1, 1, 0), },
         // Unsupported: this is a `bitflags` generated type, we don't expand macros
         RegExpFlags: { _ => Layout::known(1, 1, 0), },
     };

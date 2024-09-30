@@ -1,5 +1,6 @@
 use oxc_allocator::Vec;
-use oxc_ast::{ast::*, AstBuilder};
+use oxc_ast::ast::*;
+use oxc_span::GetSpan;
 use oxc_traverse::{Traverse, TraverseCtx};
 
 use crate::{CompressOptions, CompressorPass};
@@ -9,14 +10,21 @@ use crate::{CompressOptions, CompressorPass};
 /// * Parenthesized Expression
 /// * `debugger`
 /// * `console.log`
-pub struct RemoveSyntax<'a> {
-    ast: AstBuilder<'a>,
+pub struct RemoveSyntax {
     options: CompressOptions,
 }
 
-impl<'a> CompressorPass<'a> for RemoveSyntax<'a> {}
+impl<'a> CompressorPass<'a> for RemoveSyntax {
+    fn changed(&self) -> bool {
+        false
+    }
 
-impl<'a> Traverse<'a> for RemoveSyntax<'a> {
+    fn build(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
+        oxc_traverse::walk_program(self, program, ctx);
+    }
+}
+
+impl<'a> Traverse<'a> for RemoveSyntax {
     fn enter_statements(&mut self, stmts: &mut Vec<'a, Statement<'a>>, _ctx: &mut TraverseCtx<'a>) {
         stmts.retain(|stmt| {
             !(matches!(stmt, Statement::EmptyStatement(_))
@@ -25,9 +33,12 @@ impl<'a> Traverse<'a> for RemoveSyntax<'a> {
         });
     }
 
-    fn enter_expression(&mut self, expr: &mut Expression<'a>, _ctx: &mut TraverseCtx<'a>) {
-        self.strip_parenthesized_expression(expr);
-        self.compress_console(expr);
+    fn enter_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
+        self.compress_console(expr, ctx);
+    }
+
+    fn exit_expression(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
+        Self::strip_parenthesized_expression(expr, ctx);
     }
 
     fn exit_arrow_function_expression(
@@ -39,15 +50,14 @@ impl<'a> Traverse<'a> for RemoveSyntax<'a> {
     }
 }
 
-impl<'a> RemoveSyntax<'a> {
-    pub fn new(ast: AstBuilder<'a>, options: CompressOptions) -> Self {
-        Self { ast, options }
+impl<'a> RemoveSyntax {
+    pub fn new(options: CompressOptions) -> Self {
+        Self { options }
     }
 
-    fn strip_parenthesized_expression(&self, expr: &mut Expression<'a>) {
+    fn strip_parenthesized_expression(expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
         if let Expression::ParenthesizedExpression(paren_expr) = expr {
-            *expr = self.ast.move_expression(&mut paren_expr.expression);
-            self.strip_parenthesized_expression(expr);
+            *expr = ctx.ast.move_expression(&mut paren_expr.expression);
         }
     }
 
@@ -66,9 +76,9 @@ impl<'a> RemoveSyntax<'a> {
             && matches!(stmt, Statement::ExpressionStatement(expr) if Self::is_console(&expr.expression))
     }
 
-    fn compress_console(&mut self, expr: &mut Expression<'a>) {
+    fn compress_console(&mut self, expr: &mut Expression<'a>, ctx: &mut TraverseCtx<'a>) {
         if self.options.drop_console && Self::is_console(expr) {
-            *expr = self.ast.void_0();
+            *expr = ctx.ast.void_0(expr.span());
         }
     }
 
@@ -85,5 +95,34 @@ impl<'a> RemoveSyntax<'a> {
         let obj = member_expr.object();
         let Some(ident) = obj.get_identifier_reference() else { return false };
         ident.name == "console"
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use oxc_allocator::Allocator;
+
+    use crate::{tester, CompressOptions};
+
+    fn test(source_text: &str, expected: &str) {
+        let allocator = Allocator::default();
+        let mut pass = super::RemoveSyntax::new(CompressOptions::all_true());
+        tester::test(&allocator, source_text, expected, &mut pass);
+    }
+
+    #[test]
+    fn parens() {
+        test("(((x)))", "x");
+        test("(((a + b))) * c", "(a + b) * c");
+    }
+
+    #[test]
+    fn drop_console() {
+        test("console.log()", "");
+    }
+
+    #[test]
+    fn drop_debugger() {
+        test("debugger", "");
     }
 }

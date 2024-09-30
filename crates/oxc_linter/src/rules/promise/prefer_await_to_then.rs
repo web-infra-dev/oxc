@@ -3,8 +3,8 @@ use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::Span;
 
-fn prefer_wait_to_then_diagnostic(span0: Span) -> OxcDiagnostic {
-    OxcDiagnostic::warn("Prefer await to then()/catch()/finally()").with_label(span0)
+fn prefer_wait_to_then_diagnostic(span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn("Prefer await to then()/catch()/finally()").with_label(span)
 }
 
 use crate::{context::LintContext, rule::Rule, utils::is_promise, AstNode};
@@ -21,9 +21,16 @@ declare_oxc_lint!(
     ///
     /// Async/await syntax can be seen as more readable.
     ///
-    /// ### Example
+    /// ### Examples
+    ///
+    /// Examples of **incorrect** code for this rule:
     /// ```javascript
-    /// myPromise.then(doSomething)
+    /// function foo() { hey.then(x => {}) }
+    /// ```
+    ///
+    /// Examples of **correct** code for this rule:
+    /// ```javascript
+    /// async function hi() { await thing() }
     /// ```
     PreferAwaitToThen,
     style,

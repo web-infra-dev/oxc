@@ -7,13 +7,24 @@
 
 use std::mem;
 
-use oxc_allocator::{Allocator, Box, String, Vec};
+use oxc_allocator::{Allocator, Box, FromIn, String, Vec};
 use oxc_span::{Atom, GetSpan, Span};
 use oxc_syntax::{number::NumberBase, operator::UnaryOperator};
 
 #[allow(clippy::wildcard_imports)]
 use crate::ast::*;
 use crate::AstBuilder;
+
+/// Type that can be used in any AST builder method call which requires an `IntoIn<'a, Anything<'a>>`.
+/// Pass `NONE` instead of `None::<Anything<'a>>`.
+#[allow(clippy::upper_case_acronyms)]
+pub struct NONE;
+
+impl<'a, T> FromIn<'a, NONE> for Option<Box<'a, T>> {
+    fn from_in(_: NONE, _: &'a Allocator) -> Self {
+        None
+    }
+}
 
 impl<'a> AstBuilder<'a> {
     #[inline]
@@ -69,33 +80,11 @@ impl<'a> AstBuilder<'a> {
         unsafe { std::mem::transmute_copy(src) }
     }
 
-    /// Moves the identifier reference out by replacing it with a dummy identifier reference.
-    #[inline]
-    pub fn move_identifier_reference(
-        self,
-        expr: &mut IdentifierReference<'a>,
-    ) -> IdentifierReference<'a> {
-        let dummy = self.identifier_reference(expr.span(), "");
-        mem::replace(expr, dummy)
-    }
-
     /// Moves the expression out by replacing it with a null expression.
     #[inline]
     pub fn move_expression(self, expr: &mut Expression<'a>) -> Expression<'a> {
         let null_expr = self.expression_null_literal(expr.span());
         mem::replace(expr, null_expr)
-    }
-
-    /// Moves the member expression out by replacing it with a dummy expression.
-    #[inline]
-    pub fn move_member_expression(self, expr: &mut MemberExpression<'a>) -> MemberExpression<'a> {
-        let dummy = self.member_expression_computed(
-            expr.span(),
-            self.expression_null_literal(expr.span()),
-            self.expression_null_literal(expr.span()),
-            false,
-        );
-        mem::replace(expr, dummy)
     }
 
     #[inline]
@@ -105,13 +94,9 @@ impl<'a> AstBuilder<'a> {
     }
 
     #[inline]
-    pub fn move_statement_vec(self, stmts: &mut Vec<'a, Statement<'a>>) -> Vec<'a, Statement<'a>> {
-        mem::replace(stmts, self.vec())
-    }
-
-    #[inline]
     pub fn move_assignment_target(self, target: &mut AssignmentTarget<'a>) -> AssignmentTarget<'a> {
-        let dummy = self.simple_assignment_target_identifier_reference(Span::default(), "");
+        let dummy =
+            self.simple_assignment_target_identifier_reference(Span::default(), Atom::from(""));
         mem::replace(target, dummy.into())
     }
 
@@ -127,14 +112,25 @@ impl<'a> AstBuilder<'a> {
         mem::replace(decl, empty_decl)
     }
 
+    #[inline]
+    pub fn move_vec<T>(self, vec: &mut Vec<'a, T>) -> Vec<'a, T> {
+        mem::replace(vec, self.vec())
+    }
+
     /* ---------- Constructors ---------- */
+
+    /// `0`
+    #[inline]
+    pub fn number_0(self) -> Expression<'a> {
+        self.expression_numeric_literal(Span::default(), 0.0, "0", NumberBase::Decimal)
+    }
 
     /// `void 0`
     #[inline]
-    pub fn void_0(self) -> Expression<'a> {
-        let num = self.expression_numeric_literal(Span::default(), 0.0, "0", NumberBase::Decimal);
+    pub fn void_0(self, span: Span) -> Expression<'a> {
+        let num = self.number_0();
         Expression::UnaryExpression(self.alloc(self.unary_expression(
-            Span::default(),
+            span,
             UnaryOperator::Void,
             num,
         )))
@@ -160,19 +156,9 @@ impl<'a> AstBuilder<'a> {
         params: FormalParameters<'a>,
         body: Option<FunctionBody<'a>>,
     ) -> Box<'a, Function<'a>> {
-        self.alloc(self.function(
-            r#type,
-            span,
-            id,
-            false,
-            false,
-            false,
-            Option::<TSTypeParameterDeclaration>::None,
-            None,
-            params,
-            Option::<TSTypeAnnotation>::None,
-            body,
-        ))
+        self.alloc(
+            self.function(r#type, span, id, false, false, false, NONE, NONE, params, NONE, body),
+        )
     }
 
     /* ---------- Modules ---------- */
@@ -189,7 +175,7 @@ impl<'a> AstBuilder<'a> {
             self.vec(),
             None,
             ImportOrExportKind::Value,
-            None,
+            NONE,
         ))
     }
 
@@ -206,7 +192,7 @@ impl<'a> AstBuilder<'a> {
             specifiers,
             source,
             ImportOrExportKind::Value,
-            None,
+            NONE,
         ))
     }
 

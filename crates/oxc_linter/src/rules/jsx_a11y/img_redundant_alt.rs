@@ -1,3 +1,4 @@
+use aho_corasick::AhoCorasick;
 use oxc_ast::{
     ast::{JSXAttributeItem, JSXAttributeName, JSXAttributeValue, JSXExpression},
     AstKind,
@@ -5,7 +6,6 @@ use oxc_ast::{
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::{CompactStr, Span};
-use regex::{Regex, RegexBuilder};
 use serde_json::Value;
 
 use crate::{
@@ -17,9 +17,9 @@ use crate::{
     AstNode,
 };
 
-fn img_redundant_alt_diagnostic(span0: Span) -> OxcDiagnostic {
+fn img_redundant_alt_diagnostic(span: Span) -> OxcDiagnostic {
     OxcDiagnostic::warn("Redundant alt attribute.")
-        .with_help("Provide no redundant alt text for image. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop.").with_label(span0)
+        .with_help("Provide no redundant alt text for image. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop.").with_label(span)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -28,7 +28,7 @@ pub struct ImgRedundantAlt(Box<ImgRedundantAltConfig>);
 #[derive(Debug, Clone)]
 pub struct ImgRedundantAltConfig {
     types_to_validate: Vec<CompactStr>,
-    redundant_words: Regex,
+    redundant_words: AhoCorasick,
 }
 
 impl std::ops::Deref for ImgRedundantAlt {
@@ -45,20 +45,24 @@ impl Default for ImgRedundantAltConfig {
     fn default() -> Self {
         Self {
             types_to_validate: vec![CompactStr::new("img")],
-            redundant_words: Self::union(&REDUNDANT_WORDS).unwrap(),
+            redundant_words: AhoCorasick::builder()
+                .ascii_case_insensitive(true)
+                .build(REDUNDANT_WORDS)
+                .expect("Could not build AhoCorasick"),
         }
     }
 }
 impl ImgRedundantAltConfig {
-    fn new(types_to_validate: Vec<&str>, redundant_words: &[&str]) -> Result<Self, regex::Error> {
+    fn new(
+        types_to_validate: Vec<&str>,
+        redundant_words: &[&str],
+    ) -> Result<Self, aho_corasick::BuildError> {
         Ok(Self {
             types_to_validate: types_to_validate.into_iter().map(Into::into).collect(),
-            redundant_words: Self::union(redundant_words)?,
+            redundant_words: AhoCorasick::builder()
+                .ascii_case_insensitive(true)
+                .build(redundant_words)?,
         })
-    }
-
-    fn union(strs: &[&str]) -> Result<Regex, regex::Error> {
-        RegexBuilder::new(&format!(r"(?i)\b({})\b", strs.join("|"))).case_insensitive(true).build()
     }
 }
 
@@ -80,13 +84,16 @@ declare_oxc_lint!(
     /// `<img>` and the components which you define in options.components with the exception of components which is hidden from screen reader.
     ///
     /// ### Example
+    ///
+    /// Examples of **incorrect** code for this rule:
     /// ```jsx
-    /// // Bad
     /// <img src="foo" alt="Photo of foo being weird." />
     /// <img src="bar" alt="Image of me at a bar!" />
     /// <img src="baz" alt="Picture of baz fixing a bug." />
+    /// ```
     ///
-    /// // Good
+    /// Examples of **correct** code for this rule:
+    /// ```jsx
     /// <img src="foo" alt="Foo eating a sandwich." />
     /// <img src="bar" aria-hidden alt="Picture of me taking a photo of an image" /> // Will pass because it is hidden.
     /// <img src="baz" alt={`Baz taking a ${photo}`} /> // This is valid since photo is a variable name.
@@ -188,7 +195,13 @@ impl Rule for ImgRedundantAlt {
 impl ImgRedundantAlt {
     #[inline]
     fn is_redundant_alt_text(&self, alt_text: &str) -> bool {
-        self.redundant_words.is_match(alt_text)
+        for mat in self.redundant_words.find_iter(alt_text) {
+            // check if followed by space or is whole text
+            if mat.end() == alt_text.len() || alt_text.as_bytes()[mat.end()] == b' ' {
+                return true;
+            }
+        }
+        false
     }
 }
 

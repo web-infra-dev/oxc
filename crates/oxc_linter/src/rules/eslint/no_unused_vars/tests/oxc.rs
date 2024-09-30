@@ -1,8 +1,9 @@
 //! Test cases created by oxc maintainers
 
+use serde_json::json;
+
 use super::NoUnusedVars;
 use crate::{tester::Tester, FixKind, RuleMeta as _};
-use serde_json::json;
 
 #[test]
 fn test_vars_simple() {
@@ -13,6 +14,46 @@ fn test_vars_simple() {
         ("let a = 1; if (true) { console.log(a) }", None),
         ("let _a = 1", Some(json!([{ "varsIgnorePattern": "^_" }]))),
         ("const { foo: _foo, baz } = obj; f(baz);", Some(json!([{ "varsIgnorePattern": "^_" }]))),
+        (
+            r"export const rendered = marked(markdown, {
+                  renderer: new (class CustomRenderer extends Renderer {})(),
+              });",
+            None,
+        ),
+        // https://github.com/oxc-project/oxc/issues/5391
+        (
+            "
+            import styled from 'styled-components';
+
+            import { Prose, ProseProps } from './prose';
+
+            interface Props extends ProseProps {
+              density?: number;
+            }
+
+            export const HandMarkedPaperBallotProse = styled(Prose)<Props>`
+            line-height: ${({ density }) => (density !== 0 ? '1.1' : '1.3')};
+            `;
+            ",
+            None,
+        ),
+        (
+            "
+                const a = 0
+                obj[a]++;
+                obj[a] += 1;
+            ",
+            None,
+        ),
+        (
+            "
+                const obj = 0
+                obj.a++;
+                obj.a += 1;
+                obj.b.c++;
+            ",
+            None,
+        ),
     ];
     let fail = vec![
         ("let a = 1", None),
@@ -67,17 +108,11 @@ fn test_vars_simple() {
             None,
             FixKind::DangerousSuggestion,
         ),
-        // function expressions do not get changed
-        (r"const foo = () => {}", r"const foo = () => {}", None, FixKind::DangerousSuggestion),
+        // vars initialized to `await` are not removed
+        ("const x = await foo();", "const x = await foo();", None, FixKind::DangerousSuggestion),
         (
-            r"const foo = function() {}",
-            r"const foo = function() {}",
-            None,
-            FixKind::DangerousSuggestion,
-        ),
-        (
-            r"const foo = function foo() {}",
-            r"const foo = function foo() {}",
+            "const x = (await foo()) as unknown as MyType",
+            "const x = (await foo()) as unknown as MyType",
             None,
             FixKind::DangerousSuggestion,
         ),
@@ -92,6 +127,7 @@ fn test_vars_simple() {
         // type annotations do not get clobbered
         ("let x: number = 1; x = 2;", "let _x: number = 1; _x = 2;", None, FixKind::DangerousFix),
         ("const { a } = obj;", "", None, FixKind::DangerousSuggestion),
+        ("let [f,\u{a0}a]=p", "let [,a]=p", None, FixKind::DangerousSuggestion),
     ];
 
     Tester::new(NoUnusedVars::NAME, pass, fail)
@@ -279,8 +315,8 @@ fn test_vars_destructure() {
                 "caughtErrors": "none",
                 "ignoreRestSiblings": true,
                 "vars": "all"
-            }]))
-        )
+            }])),
+        ),
     ];
     let fail = vec![
         ("const { a, ...rest } = obj", Some(json!( [{ "ignoreRestSiblings": true }] ))),
@@ -377,6 +413,16 @@ fn test_vars_catch() {
 }
 
 #[test]
+fn test_vars_using() {
+    let pass = vec![("using a = 1; console.log(a)", None)];
+
+    let fail = vec![("using a = 1;", None)];
+
+    Tester::new(NoUnusedVars::NAME, pass, fail)
+        .with_snapshot_suffix("oxc-vars-using")
+        .test_and_snapshot();
+}
+#[test]
 fn test_functions() {
     let pass = vec![
         "function foo() {}\nfoo()",
@@ -441,7 +487,7 @@ fn test_functions() {
         "
         function foo(a: number): number;
         function foo(a: number | string): number {
-            return Number(a) 
+            return Number(a)
         }
         foo();
         ",
@@ -465,12 +511,90 @@ fn test_functions() {
                 };
             });
         ",
+        "const foo = () => function bar() { }\nfoo()",
+        "module.exports.foo = () => function bar() { }",
+        // https://github.com/oxc-project/oxc/issues/5406
+        "
+        export function log(message: string, ...interpolations: unknown[]): void;
+        export function log(message: string, ...interpolations: unknown[]): void {
+            console.log(message, interpolations);
+        }
+        ",
+        "declare function func(strings: any, ...values: any[]): object"
     ];
 
-    let fail = vec!["function foo() {}", "function foo() { foo() }"];
+    let fail = vec![
+        "function foo() {}",
+        "function foo() { foo() }",
+        "const foo = () => { function bar() { } }\nfoo()",
+        "
+        export function log(message: string, ...interpolations: unknown[]): void;
+        export function log(message: string, ...interpolations: unknown[]): void {
+            console.log(message);
+        }
+        ",
+        "
+        export function log(...messages: unknown[]): void {
+            return;
+        }
+        ",
+    ];
+
+    let fix = vec![
+        // function declarations are never removed
+        ("function foo() {}", "function foo() {}", None, FixKind::DangerousSuggestion),
+        (
+            "function foo() { function bar() {} }",
+            "function foo() { function bar() {} }",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "function foo() { function bar() {} }\nfoo()",
+            "function foo() { function bar() {} }\nfoo()",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        // function expressions + arrow functions are not removed if declared in
+        // the root scope
+        (
+            "const foo = function foo() {}",
+            "const foo = function foo() {}",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (r"const foo = () => {}", r"const foo = () => {}", None, FixKind::DangerousSuggestion),
+        // function expressions + arrow functions are removed if not declared in
+        // root scope
+        (
+            "
+                function foo() { const bar = function bar() {} }
+                foo();
+            ",
+            "
+                function foo() {  }
+                foo();
+            ",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "
+                function foo() { const bar = x => x }
+                foo();
+            ",
+            "
+                function foo() {  }
+                foo();
+            ",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+    ];
 
     Tester::new(NoUnusedVars::NAME, pass, fail)
         .with_snapshot_suffix("oxc-functions")
+        .expect_fix(fix)
         .test_and_snapshot();
 }
 
@@ -496,7 +620,66 @@ fn test_imports() {
         ("import { a as b } from 'a'; console.log(a)", None),
     ];
 
+    let fix = vec![
+        // None used
+        ("import foo from './foo';", "", None, FixKind::DangerousSuggestion),
+        ("import * as foo from './foo';", "", None, FixKind::DangerousSuggestion),
+        ("import { Foo } from './foo';", "", None, FixKind::DangerousSuggestion),
+        ("import { Foo as Bar } from './foo';", "", None, FixKind::DangerousSuggestion),
+        // Some used
+        (
+            "import foo, { bar } from './foo'; bar();",
+            "import { bar } from './foo'; bar();",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import foo, { bar } from './foo'; foo();",
+            "import foo, { } from './foo'; foo();",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import { foo, bar, baz } from './foo'; foo(bar);",
+            "import { foo, bar, } from './foo'; foo(bar);",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import { foo, bar, baz } from './foo'; foo(baz);",
+            "import { foo, baz } from './foo'; foo(baz);",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import { foo, bar, baz } from './foo'; bar(baz);",
+            "import { bar, baz } from './foo'; bar(baz);",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        // type imports
+        (
+            "import { type foo, bar } from './foo'; bar();",
+            "import { bar } from './foo'; bar();",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import { foo, type bar, baz } from './foo'; foo(baz);",
+            "import { foo, baz } from './foo'; foo(baz);",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+        (
+            "import foo, { type bar } from './foo'; foo();",
+            "import foo, { } from './foo'; foo();",
+            None,
+            FixKind::DangerousSuggestion,
+        ),
+    ];
+
     Tester::new(NoUnusedVars::NAME, pass, fail)
+        .expect_fix(fix)
         .with_snapshot_suffix("oxc-imports")
         .test_and_snapshot();
 }
@@ -787,10 +970,17 @@ fn test_type_references() {
         type PermissionValues<T> = {
             [K in keyof T]: T[K] extends object ? PermissionValues<T[K]> : T[K];
         }[keyof T];
-        
+
         export type ApiPermission = PermissionValues<typeof API_PERMISSIONS>;
-        
+
         export const API_PERMISSIONS = {} as const;
+        ",
+        "
+        type Foo = 'foo' | 'bar';
+        export class Bar {
+            accessor x: Foo
+            accessor y!: Foo
+        }
         ",
     ];
 

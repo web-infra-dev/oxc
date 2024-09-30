@@ -1,13 +1,18 @@
 use std::{
-    borrow::Cow,
+    borrow::{Borrow, Cow},
     fmt,
     hash::{Hash, Hasher},
     ops::Deref,
 };
 
 use oxc_semantic::SymbolId;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-use crate::{context::LintContext, AllowWarnDeny, AstNode, FixKind, RuleEnum};
+use crate::{
+    context::{ContextHost, LintContext},
+    AllowWarnDeny, AstNode, FixKind, RuleEnum,
+};
 
 pub trait Rule: Sized + Default + fmt::Debug {
     /// Initialize from eslint json configuration
@@ -16,13 +21,19 @@ pub trait Rule: Sized + Default + fmt::Debug {
     }
 
     /// Visit each AST Node
-    fn run<'a>(&self, _node: &AstNode<'a>, _ctx: &LintContext<'a>) {}
+    #[expect(unused_variables)]
+    #[inline]
+    fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {}
 
     /// Visit each symbol
-    fn run_on_symbol(&self, _symbol_id: SymbolId, _ctx: &LintContext<'_>) {}
+    #[expect(unused_variables)]
+    #[inline]
+    fn run_on_symbol(&self, symbol_id: SymbolId, ctx: &LintContext<'_>) {}
 
     /// Run only once. Useful for inspecting scopes and trivias etc.
-    fn run_once(&self, _ctx: &LintContext) {}
+    #[expect(unused_variables)]
+    #[inline]
+    fn run_once(&self, ctx: &LintContext) {}
 
     /// Check if a rule should be run at all.
     ///
@@ -31,7 +42,9 @@ pub trait Rule: Sized + Default + fmt::Debug {
     /// enabled/disabled; this is handled by the [`linter`].
     ///
     /// [`linter`]: crate::Linter
-    fn should_run(&self, _ctx: &LintContext) -> bool {
+    #[expect(unused_variables)]
+    #[inline]
+    fn should_run(&self, ctx: &ContextHost) -> bool {
         true
     }
 }
@@ -50,7 +63,8 @@ pub trait RuleMeta {
 }
 
 /// Rule categories defined by rust-clippy
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
 pub enum RuleCategory {
     /// Code that is outright wrong or useless
     Correctness,
@@ -73,19 +87,6 @@ pub enum RuleCategory {
 }
 
 impl RuleCategory {
-    pub fn from(input: &str) -> Option<Self> {
-        match input {
-            "correctness" => Some(Self::Correctness),
-            "suspicious" => Some(Self::Suspicious),
-            "pedantic" => Some(Self::Pedantic),
-            "perf" => Some(Self::Perf),
-            "style" => Some(Self::Style),
-            "restriction" => Some(Self::Restriction),
-            "nursery" => Some(Self::Nursery),
-            _ => None,
-        }
-    }
-
     pub fn description(self) -> &'static str {
         match self {
             Self::Correctness => "Code that is outright wrong or useless.",
@@ -97,6 +98,22 @@ impl RuleCategory {
                 "Lints which prevent the use of language and library features. Must not be enabled as a whole, should be considered on a case-by-case basis before enabling."
             }
             Self::Nursery => "New lints that are still under development.",
+        }
+    }
+}
+
+impl TryFrom<&str> for RuleCategory {
+    type Error = ();
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "correctness" => Ok(Self::Correctness),
+            "suspicious" => Ok(Self::Suspicious),
+            "pedantic" => Ok(Self::Pedantic),
+            "perf" => Ok(Self::Perf),
+            "style" => Ok(Self::Style),
+            "restriction" => Ok(Self::Restriction),
+            "nursery" => Ok(Self::Nursery),
+            _ => Err(()),
         }
     }
 }
@@ -203,6 +220,7 @@ impl RuleFixMeta {
             }
         }
     }
+
     pub fn emoji(self) -> Option<&'static str> {
         match self {
             Self::None => None,
@@ -246,6 +264,12 @@ impl Deref for RuleWithSeverity {
     }
 }
 
+impl Borrow<RuleEnum> for RuleWithSeverity {
+    fn borrow(&self) -> &RuleEnum {
+        &self.rule
+    }
+}
+
 impl RuleWithSeverity {
     pub fn new(rule: RuleEnum, severity: AllowWarnDeny) -> Self {
         Self { rule, severity }
@@ -254,8 +278,10 @@ impl RuleWithSeverity {
 
 #[cfg(test)]
 mod test {
-    use crate::rules::RULES;
     use markdown::{to_html_with_options, Options};
+
+    use super::RuleCategory;
+    use crate::rules::RULES;
 
     #[test]
     fn ensure_documentation() {
@@ -271,6 +297,27 @@ mod test {
             // will panic if provided invalid markdown
             let html = to_html_with_options(rule.documentation().unwrap(), &options).unwrap();
             assert!(!html.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_deserialize_rule_category() {
+        let tests = [
+            ("correctness", RuleCategory::Correctness),
+            ("suspicious", RuleCategory::Suspicious),
+            ("restriction", RuleCategory::Restriction),
+            ("perf", RuleCategory::Perf),
+            ("pedantic", RuleCategory::Pedantic),
+            ("style", RuleCategory::Style),
+            ("nursery", RuleCategory::Nursery),
+        ];
+
+        for (input, expected) in tests {
+            let de: RuleCategory = serde_json::from_str(&format!("{input:?}")).unwrap();
+            // deserializes to expected value
+            assert_eq!(de, expected, "{input}");
+            // try_from on a str produces the same value as deserializing
+            assert_eq!(de, RuleCategory::try_from(input).unwrap(), "{input}");
         }
     }
 }

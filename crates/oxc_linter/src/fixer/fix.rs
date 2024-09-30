@@ -10,7 +10,7 @@ bitflags! {
     /// These are also used by the `LintService` to decide which kinds of
     /// changes to apply.
     ///
-    /// [`FixKind`] is designed to be interopable with [`bool`]. `true` turns
+    /// [`FixKind`] is designed to be interoperable with [`bool`]. `true` turns
     /// into [`FixKind::Fix`] (applies only safe fixes) and `false` turns into
     /// [`FixKind::None`] (do not apply any fixes or suggestions).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -201,7 +201,7 @@ impl<'a> RuleFix<'a> {
     ///   fixer.delete(bad_node).dangerously()
     /// }
     ///
-    /// is_dangerous(bad_node: &Expression<'_>) -> bool {
+    /// fn is_dangerous(bad_node: &Expression<'_>) -> bool {
     ///   // some check on bad_node
     /// #  true
     /// }
@@ -261,6 +261,7 @@ impl GetSpan for RuleFix<'_> {
 
 impl<'a> Deref for RuleFix<'a> {
     type Target = CompositeFix<'a>;
+
     fn deref(&self) -> &Self::Target {
         &self.fix
     }
@@ -407,7 +408,10 @@ impl<'a> CompositeFix<'a> {
             Self::None => 0,
             Self::Single(_) => 1,
             Self::Multiple(fs) => {
-                debug_assert!(fs.len() > 1, "Single-element or empty composite fix vecs should have been turned into CompositeFix::None or CompositeFix::Single");
+                debug_assert!(
+                    fs.len() > 1,
+                    "Single-element or empty composite fix vecs should have been turned into CompositeFix::None or CompositeFix::Single"
+                );
                 fs.len()
             }
         }
@@ -427,6 +431,7 @@ impl<'a> CompositeFix<'a> {
             }
         }
     }
+
     // TODO: do we want this?
     // pub fn extend(&mut self, fix: CompositeFix<'a>) {
     //     match self {
@@ -460,6 +465,7 @@ impl<'a> CompositeFix<'a> {
             CompositeFix::None => Fix::empty(),
         }
     }
+
     /// Merges multiple fixes to one, returns an [`Fix::empty`] (which will not fix anything) if:
     ///
     /// 1. `fixes` is empty
@@ -472,12 +478,11 @@ impl<'a> CompositeFix<'a> {
         if fixes.is_empty() {
             // Do nothing
             return Fix::empty();
-        }
-        if fixes.len() == 1 {
+        } else if fixes.len() == 1 {
             return fixes.pop().unwrap();
         }
 
-        fixes.sort_by(|a, b| a.span.cmp(&b.span));
+        fixes.sort_unstable_by(|a, b| a.span.cmp(&b.span));
 
         // safe, as fixes.len() > 1
         let start = fixes[0].span.start;
