@@ -10,8 +10,9 @@ use oxc_allocator::{Allocator, Box, String, Vec};
 use oxc_semantic::SymbolId;
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
-use crate::TypeTable;
+use super::TypeTable;
 
+/// Creates new types and manages the memory arena.
 #[derive(Clone)]
 pub(crate) struct TypeBuilder<'a> {
     alloc: &'a Allocator,

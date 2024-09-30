@@ -1,8 +1,8 @@
-/// Basically compilerSettings in tsconfig.json
+/// Basically `compilerSettings` in tsconfig.json
 ///
 /// ## References
 /// - [TSConfig Reference](https://www.typescriptlang.org/tsconfig/)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CheckerSettings {
     /// In some cases where no type annotations are present, TypeScript will
     /// fall back to a type of `any` for a variable when it cannot infer the
@@ -11,6 +11,9 @@ pub struct CheckerSettings {
     /// Turning on `noImplicitAny` however TypeScript will issue an error
     /// whenever it would have inferred `any`
     ///
+    /// Default: `false`
+    ///
+    /// ## References
     /// <https://www.typescriptlang.org/tsconfig/#noImplicitAny>
     pub no_implicit_any: bool,
 
@@ -18,6 +21,9 @@ pub struct CheckerSettings {
     /// rules around how it handles properties on `type` or `interfaces` which have
     /// a `?` prefix.
     ///
+    /// Default: `false`
+    ///
+    /// ## References
     /// <https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes>
     pub exact_optional_property_types: bool,
 
@@ -29,10 +35,13 @@ pub struct CheckerSettings {
     /// distinct types and you’ll get a type error if you try to use them where
     /// a concrete value is expected.
     ///
-    /// <https://www.typescriptlang.org/tsconfig/#strictNullChecks>
+    /// **WARNING:** disabling strict null checks is not currently supported.
+    /// Checking will panic if this is set to `false`.
     ///
-    /// NOTE: disabling strict null checks is not currently supported. Checking
-    /// will panic if this is set to `false`.
+    /// Default: `true`
+    ///
+    /// ## References
+    /// <https://www.typescriptlang.org/tsconfig/#strictNullChecks>
     pub(crate) strict_null_checks: bool,
 }
 

@@ -1,10 +1,11 @@
 //! Type caches portion of `checker.ts`
 
 use oxc_syntax::types::TypeId;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
+#[allow(dead_code)]
 #[derive(Debug, Default)]
-pub struct TypeCache {
+pub(crate) struct TypeCache {
     /// Tuple types
     ///
     /// ```typescript

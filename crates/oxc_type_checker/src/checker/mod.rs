@@ -1,8 +1,5 @@
 mod composite;
 mod get_type;
-mod intrinsics;
-mod settings;
-mod type_cache;
 mod type_factory;
 mod type_inquisition;
 
@@ -15,8 +12,11 @@ use oxc_ast::Visit;
 use oxc_semantic::Semantic;
 use oxc_syntax::types::{TypeFlags, TypeId};
 
-use self::{intrinsics::Intrinsics, settings::CheckerSettings, type_cache::TypeCache};
-use crate::{ast::Type, TypeBuilder};
+use crate::{
+    ast::Type,
+    subsystem::{Intrinsics, TypeBuilder, TypeCache},
+    CheckerSettings,
+};
 
 /// ## References
 /// - <https://gist.github.com/Boshen/d189de0fe0720a30c5182cb666e3e9a5>

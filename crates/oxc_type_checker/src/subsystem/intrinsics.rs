@@ -1,9 +1,9 @@
 //! Intrinsic type constants. Near the top of `checker.ts`
 use oxc_syntax::types::{TypeFlags, TypeId};
 
-use crate::TypeBuilder;
+use super::TypeBuilder;
 
-use super::settings::CheckerSettings;
+use crate::CheckerSettings;
 
 /// Intrinsics that checker.ts creates in createTypeChecker lol
 ///
