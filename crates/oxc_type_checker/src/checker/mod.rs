@@ -25,7 +25,7 @@ pub struct Checker<'a> {
     builder: TypeBuilder<'a>,
     intrinsics: Intrinsics,
     semantic: Rc<Semantic<'a>>,
-    cache: TypeCache,
+    cache: TypeCache<'a>,
 }
 
 // public interface
@@ -34,8 +34,9 @@ impl<'a> Checker<'a> {
         let settings = CheckerSettings::default();
         let builder = TypeBuilder::new(alloc);
         let intrinsics = Intrinsics::new(&builder, &settings);
+        let cache = TypeCache::new(alloc);
 
-        Self { settings, builder, intrinsics, semantic, cache: TypeCache::default() }
+        Self { settings, builder, intrinsics, semantic, cache }
     }
 }
 

@@ -8,5 +8,5 @@ mod type_table;
 
 pub(crate) use intrinsics::Intrinsics;
 pub(crate) use type_builder::TypeBuilder;
-pub(crate) use type_cache::TypeCache;
+pub(crate) use type_cache::{TypeCache, TypeList};
 pub use type_table::TypeTable;
