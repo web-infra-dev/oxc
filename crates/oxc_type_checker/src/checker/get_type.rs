@@ -2,7 +2,7 @@
 use oxc_ast::ast::*;
 use oxc_syntax::types::TypeId;
 
-use super::Checker;
+use super::{composite::UnionReduction, Checker};
 
 /// See: checker.ts, line 19871, getTypeFromTypeNodeWorker
 pub(crate) trait GetTypeFromTypeNode<'a> {
@@ -39,6 +39,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
             Self::TSTypePredicate(pred) => pred.get_type_from_type_node(checker),
             // ExpressionWithTypeArguments
             Self::TSTypeQuery(query) => query.get_type_from_type_node(checker),
+            Self::TSUnionType(union) => union.get_type_from_type_node(checker),
             _ => todo!("get_type_from_type_node: {:?}", self),
         }
     }
@@ -71,5 +72,29 @@ impl<'a> GetTypeFromTypeNode<'a> for TSTypePredicate<'a> {
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeQuery<'a> {
     fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypeQuery): {:?}", self)
+    }
+}
+
+// function getTypeFromUnionTypeNode(node: UnionTypeNode): Type {
+//     const links = getNodeLinks(node);
+//     if (!links.resolvedType) {
+//         const aliasSymbol = getAliasSymbolForTypeNode(node);
+//         links.resolvedType = getUnionType(map(node.types, getTypeFromTypeNode), UnionReduction.Literal, aliasSymbol, getTypeArgumentsForAliasSymbol(aliasSymbol));
+//     }
+//     return links.resolvedType;
+// }
+impl<'a> GetTypeFromTypeNode<'a> for TSUnionType<'a> {
+    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+        let types =
+            self.types.iter().map(|ty| ty.get_type_from_type_node(checker)).collect::<Vec<_>>();
+        // TODO
+        // let type_alias_arguments = checker.get_type_arguments_for_alias_symbol();
+        checker.get_union_type(
+            &types,
+            UnionReduction::Literal,
+            /* todo: aliasSymbol */ None,
+            /* todo: typeAliasArguments */ None,
+            None,
+        )
     }
 }

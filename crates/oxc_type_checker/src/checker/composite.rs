@@ -80,6 +80,8 @@ impl<'a> Checker<'a> {
         types: &[TypeId],
         union_reduction: UnionReduction,
         alias_symbol: Option<SymbolId>,
+        // type arguments (generics) passed to one (maybe more?) of the types in
+        // the union. Only present when one of those types is not pre-computed.
         type_alias_arguments: Option<&[TypeId]>,
         origin: Option<TypeId>,
     ) -> TypeId {
@@ -525,6 +527,8 @@ impl<'a> Checker<'a> {
             }
         }
     }
+
+    // NOTE: This is getting moved to TypeCache
 
     /// ```typescript
     /// function getTypeListId(types: readonly Type[] | undefined) {
