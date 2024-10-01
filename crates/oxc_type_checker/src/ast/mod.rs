@@ -1,15 +1,19 @@
 mod ast_impl;
 mod literal;
+mod object;
+mod signature;
 
-pub use literal::*;
 use oxc_allocator::{Box, Vec};
 use oxc_syntax::types::{ObjectFlags, TypeId};
+
+pub use self::{literal::*, object::*};
 
 #[derive(Debug)]
 pub enum Type<'a> {
     Literal(Box<'a, LiteralType<'a>>),
     Intrinsic(Box<'a, IntrinsicType<'a>>),
     Union(Box<'a, UnionType<'a>>),
+    Object(Box<'a, ObjectType<'a>>),
 }
 
 #[derive(Debug)]

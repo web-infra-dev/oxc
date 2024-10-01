@@ -43,6 +43,7 @@ impl<'a> Type<'a> {
         match self {
             Self::Intrinsic(intrinsic) => intrinsic.object_flags,
             Self::Union(union) => union.object_flags,
+            Self::Object(object) => object.object_flags,
             _ => ObjectFlags::empty(),
         }
     }

@@ -2,7 +2,7 @@
 use oxc_ast::ast::*;
 use oxc_syntax::types::TypeId;
 
-use super::{composite::UnionReduction, Checker};
+use super::{Checker, UnionReduction};
 
 /// See: checker.ts, line 19871, getTypeFromTypeNodeWorker
 pub(crate) trait GetTypeFromTypeNode<'a> {

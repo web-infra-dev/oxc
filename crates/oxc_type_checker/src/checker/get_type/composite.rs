@@ -37,7 +37,7 @@ impl<'a> Checker<'a> {
     /// [`Checker::get_union_type`], but with default values for optional/variadic arguments.
     #[inline]
     #[must_use]
-    pub fn get_union_type_simple(&self, types: &[TypeId]) -> TypeId {
+    pub(crate) fn get_union_type_simple(&self, types: &[TypeId]) -> TypeId {
         self.get_union_type(types, UnionReduction::Literal, None, None, None)
     }
 
@@ -75,7 +75,7 @@ impl<'a> Checker<'a> {
     /// }
     /// ```
     #[must_use]
-    pub fn get_union_type(
+    pub(crate) fn get_union_type(
         &self,
         types: &[TypeId],
         union_reduction: UnionReduction,

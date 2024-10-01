@@ -269,6 +269,47 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct VarianceFlags: u16 {
+        /// Neither covariant nor contravariant
+        const Invariant = 0;
+        /// Covariant
+        const Covariant = 1 << 0;
+        /// Contravariant
+        const Contravariant = 1 << 1;
+        /// Both covariant and contravariant
+        const Bivariant = Self::Covariant.bits() | Self::Contravariant.bits();
+        /// Unwitnessed type parameter
+        const Independent = 1 << 2;
+        /// Mask containing all measured variances without the unmeasurable flag
+        const VarianceMask = Self::Invariant.bits() | Self::Covariant.bits() | Self::Contravariant.bits() | Self::Independent.bits();
+        /// Variance result is unusable - relationship relies on structural comparisons which are not reflected in generic relationships
+        const Unmeasurable = 1 << 3;
+        /// Variance result is unreliable - checking may produce false negatives, but not false positives
+        const Unreliable = 1 << 4;
+        const AllowsStructuralFallback = Self::Unmeasurable.bits() | Self::Unreliable.bits();
+    }
+}
+
+bitflags! {
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct ElementFlags: u16 {
+        /// `T`
+        const Required = 1 << 0;
+        /// `T?`
+        const Optional = 1 << 1;
+        /// `...T[]`
+        const Rest = 1 << 2;
+        /// `...T`
+        const Variadic = 1 << 3;
+        const Fixed = Self::Required.bits() | Self::Optional.bits();
+        const Variable = Self::Rest.bits() | Self::Variadic.bits();
+        const NonRequired = Self::Optional.bits() | Self::Rest.bits() | Self::Variadic.bits();
+        const NonRest = Self::Required.bits() | Self::Optional.bits() | Self::Variadic.bits();
+    }
+}
+
 impl TypeFlags {
     // =========================================================================
     // ========================== SIMPLE FLAG CHECKS ===========================

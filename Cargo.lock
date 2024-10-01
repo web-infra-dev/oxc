@@ -2036,6 +2036,7 @@ dependencies = [
 name = "oxc_type_checker"
 version = "0.24.1"
 dependencies = [
+ "bitflags 2.6.0",
  "oxc_allocator",
  "oxc_ast",
  "oxc_index",

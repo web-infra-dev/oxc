@@ -1,4 +1,3 @@
-mod composite;
 mod get_type;
 mod type_factory;
 mod type_inquisition;
