@@ -98,5 +98,6 @@ pub struct Signature<'a> {
     // type_parameters: Option<Vec<'a, TypeParameter<'a>>>,
     /// Parameters
     pub parameters: Vec<'a, SymbolId>,
+    /// Lazily set by `getReturnTypeOfSignature`.
     pub(crate) resolved_return_type: Cell<Option<TypeId>>,
 }

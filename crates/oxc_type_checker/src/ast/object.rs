@@ -29,6 +29,11 @@ pub struct IndexInfo {
 #[derive(Debug)]
 pub struct ObjectType<'a> {
     pub object_flags: ObjectFlags,
+    /// Call signatures of type
+    pub(crate) call_signatures: Option<Vec<'a, TypeId>>,
+    /// Construct signatures of type
+    pub(crate) construct_signatures: Option<Vec<'a, TypeId>>,
+    /// Index signatures
     pub(crate) index_infos: Vec<'a, IndexInfo>,
 }
 
