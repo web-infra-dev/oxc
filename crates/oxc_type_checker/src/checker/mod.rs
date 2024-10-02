@@ -32,8 +32,8 @@ impl<'a> Checker<'a> {
     pub fn new(alloc: &'a Allocator, semantic: Rc<Semantic<'a>>) -> Self {
         let settings = CheckerSettings::default();
         let builder = TypeBuilder::new(alloc);
-        let intrinsics = Intrinsics::new(&builder, &settings);
         let cache = TypeCache::new(alloc);
+        let intrinsics = Intrinsics::new(&builder, &settings, &cache);
         let links = Links::default();
 
         Self { settings, builder, intrinsics, semantic, cache, links }

@@ -14,11 +14,15 @@ pub enum Type<'a> {
     Literal(Box<'a, LiteralType<'a>>),
     // complete
     Intrinsic(Box<'a, IntrinsicType<'a>>),
+    // wip
+    FreshableIntrinsic(Box<'a, FreshableIntrinsicType<'a>>),
     // 70% done. Missing a lot of union reduction logic
     Union(Box<'a, UnionType<'a>>),
     // barely started
     Object(Box<'a, ObjectType<'a>>),
 }
+
+pub type FreshableIntrinsicType<'a> = FreshableType<IntrinsicType<'a>>;
 
 #[derive(Debug)]
 pub struct IntrinsicType<'a> {

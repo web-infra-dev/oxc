@@ -1,13 +1,16 @@
 //! Intrinsic type constants. Near the top of `checker.ts`
-use oxc_syntax::types::{TypeFlags, TypeId};
+use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
-use super::TypeBuilder;
+use super::{TypeBuilder, TypeCache, TypeList};
 
-use crate::CheckerSettings;
+use crate::{
+    ast::{FreshableType, Type},
+    CheckerSettings,
+};
 
 /// Intrinsics that checker.ts creates in createTypeChecker lol
 ///
-/// checker.ts, line 2046
+/// checker.ts, line 2046 (commit `3386e943215613c40f68ba0b108cda1ddb7faee1`)
 #[derive(Debug)]
 pub(crate) struct Intrinsics {
     /// any
@@ -56,6 +59,8 @@ pub(crate) struct Intrinsics {
     pub true_type: TypeId,
     /// true
     pub regular_true: TypeId,
+    /// boolean
+    pub boolean: TypeId,
     /// symbol
     pub es_symbol: TypeId,
     /// void
@@ -75,7 +80,11 @@ pub(crate) struct Intrinsics {
 }
 
 impl Intrinsics {
-    pub fn new(builder: &TypeBuilder<'_>, settings: &CheckerSettings) -> Self {
+    pub fn new(
+        builder: &TypeBuilder<'_>,
+        settings: &CheckerSettings,
+        cache: &TypeCache<'_>,
+    ) -> Self {
         let any = builder.create_intrinsic_type(TypeFlags::Any, "any", None);
         let auto = builder.create_intrinsic_type(TypeFlags::Any, "any", Some("auto"));
         let wildcard = builder.create_intrinsic_type(TypeFlags::Any, "any", Some("wildcard"));
@@ -115,12 +124,38 @@ impl Intrinsics {
         let string = builder.create_intrinsic_type(TypeFlags::String, "string", None);
         let number = builder.create_intrinsic_type(TypeFlags::Number, "number", None);
         let bigint = builder.create_intrinsic_type(TypeFlags::BigInt, "bigint", None);
-        let false_type =
-            builder.create_intrinsic_type(TypeFlags::BooleanLiteral, "false", Some("fresh"));
-        let regular_false = builder.create_intrinsic_type(TypeFlags::BooleanLiteral, "false", None); // freshable
-        let true_type =
-            builder.create_intrinsic_type(TypeFlags::BooleanLiteral, "true", Some("fresh"));
-        let regular_true = builder.create_intrinsic_type(TypeFlags::BooleanLiteral, "true", None); // freshable
+
+        let false_type = builder.create_fresh_freshable_intrinsic_type(
+            TypeFlags::BooleanLiteral,
+            "false",
+            Some("fresh"),
+            None,
+        );
+        let regular_false = builder.create_regular_freshable_intrinsic_type(
+            TypeFlags::BooleanLiteral,
+            "false",
+            None,
+            false_type,
+        );
+        let true_type = builder.create_fresh_freshable_intrinsic_type(
+            TypeFlags::BooleanLiteral,
+            "true",
+            Some("fresh"),
+            None,
+        );
+        let regular_true = builder.create_regular_freshable_intrinsic_type(
+            TypeFlags::BooleanLiteral,
+            "true",
+            None,
+            true_type,
+        );
+        Self::init_freshable_intrinsic(builder, true_type, regular_true);
+        Self::init_freshable_intrinsic(builder, false_type, regular_false);
+
+        let boolean_union = cache.type_list(&[regular_false, regular_true]);
+        let boolean =
+            builder.create_union_type(&boolean_union, ObjectFlags::empty(), None, None, None);
+        cache.add_union(boolean_union, boolean);
 
         let es_symbol = builder.create_intrinsic_type(TypeFlags::ESSymbol, "symbol", None);
         let void = builder.create_intrinsic_type(TypeFlags::Void, "void", None);
@@ -158,6 +193,7 @@ impl Intrinsics {
             regular_false,
             true_type,
             regular_true,
+            boolean,
             es_symbol,
             void,
             never,
@@ -166,6 +202,25 @@ impl Intrinsics {
             unreachable_never,
             non_primitive,
             unique_literal,
+        }
+    }
+
+    fn init_freshable_intrinsic(
+        builder: &TypeBuilder<'_>,
+        fresh_type_id: TypeId,
+        regular_type_id: TypeId,
+    ) {
+        let mut table = builder.table_mut();
+        let fresh_type = table.get_type_mut(fresh_type_id);
+        if let Type::FreshableIntrinsic(fresh_type) = fresh_type {
+            if let FreshableType::Fresh(fresh_type, regular_type) = fresh_type.as_mut() {
+                debug_assert!(regular_type.is_none());
+                regular_type.replace(regular_type_id);
+            } else {
+                unreachable!();
+            }
+        } else {
+            unreachable!();
         }
     }
 }

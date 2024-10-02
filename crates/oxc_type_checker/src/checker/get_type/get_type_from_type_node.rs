@@ -17,7 +17,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
             Self::TSStringKeyword(_) => checker.intrinsics.string,
             Self::TSNumberKeyword(_) => checker.intrinsics.number,
             Self::TSBigIntKeyword(_) => checker.intrinsics.bigint,
-            Self::TSBooleanKeyword(_) => todo!("get_type_from_type_node(boolean)"), //checker.intrinsics.boolean,
+            Self::TSBooleanKeyword(_) => checker.intrinsics.boolean,
             Self::TSSymbolKeyword(_) => checker.intrinsics.es_symbol,
             Self::TSVoidKeyword(_) => checker.intrinsics.void,
             Self::TSUndefinedKeyword(_) => checker.intrinsics.undefined,

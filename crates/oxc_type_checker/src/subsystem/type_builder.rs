@@ -83,7 +83,7 @@ impl<'a> TypeBuilder<'a> {
         self.table.as_ref().borrow()
     }
 
-    fn table_mut(&self) -> RefMut<'_, TypeTable<'a>> {
+    pub fn table_mut(&self) -> RefMut<'_, TypeTable<'a>> {
         self.table.as_ref().borrow_mut()
     }
 
@@ -106,6 +106,30 @@ impl<'a> TypeBuilder<'a> {
         debug_name: Option<&'a str>,
     ) -> TypeId {
         let ty = Type::Intrinsic(self.alloc(IntrinsicType { name, debug_name, object_flags }));
+        self.table_mut().create_type(ty, flags, None, None, None)
+    }
+
+    pub fn create_fresh_freshable_intrinsic_type(
+        &self,
+        flags: TypeFlags,
+        name: &'a str,
+        debug_name: Option<&'a str>,
+        regular_type: Option<TypeId>,
+    ) -> TypeId {
+        let inner = IntrinsicType { name, debug_name, object_flags: ObjectFlags::empty() };
+        let ty = Type::FreshableIntrinsic(self.alloc(FreshableType::Fresh(inner, regular_type)));
+        self.table_mut().create_type(ty, flags, None, None, None)
+    }
+
+    pub fn create_regular_freshable_intrinsic_type(
+        &self,
+        flags: TypeFlags,
+        name: &'a str,
+        debug_name: Option<&'a str>,
+        fresh_type: TypeId,
+    ) -> TypeId {
+        let inner = IntrinsicType { name, debug_name, object_flags: ObjectFlags::empty() };
+        let ty = Type::FreshableIntrinsic(self.alloc(FreshableType::Regular(inner, fresh_type)));
         self.table_mut().create_type(ty, flags, None, None, None)
     }
 

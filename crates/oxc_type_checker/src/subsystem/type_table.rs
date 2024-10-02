@@ -39,6 +39,11 @@ impl<'a> TypeTable<'a> {
     }
 
     #[inline]
+    pub fn get_type_mut(&mut self, id: TypeId) -> &mut Type<'a> {
+        &mut self.types[id]
+    }
+
+    #[inline]
     pub fn get_flags(&self, id: TypeId) -> TypeFlags {
         self.flags[id]
     }

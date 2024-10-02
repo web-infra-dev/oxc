@@ -9,8 +9,22 @@ use rustc_hash::FxHashMap;
 
 use crate::ast::Number;
 
+// TODO: ensure runtime borrow checks get optimized away. If not, use an UnsafeCell.
 type Cache<K> = RefCell<FxHashMap<K, TypeId>>;
 
+/// Stores already-created types to avoid type re-creation.
+///
+/// Corresponds to the map/set caches near the type of `createTypeChecker`
+/// (starting at line 2017 on commit `3386e943215613c40f68ba0b108cda1ddb7faee1`)
+///
+/// Beneficial for two purposes:
+/// 1. Determining and creating a type can be expensive. Storing it reduces work.
+/// 2. Many fast paths exist for types with the same ID. re-using IDs increases
+///    the odds those paths get run.
+///
+/// A type must never be re-inserted into the cache. Always check if a cache
+/// entry exists for it. Failure to do so indicates a bug in consumer logic and
+/// will trigger a panic in debug builds.
 #[allow(dead_code)]
 pub(crate) struct TypeCache<'a> {
     alloc: &'a Allocator,
@@ -77,6 +91,12 @@ impl<'a> TypeCache<'a> {
         }
     }
 
+    #[inline]
+    #[must_use]
+    pub fn type_list(&self, types: &[TypeId]) -> TypeList<'a> {
+        TypeList::new(&self.alloc, types)
+    }
+
     pub fn get_union(&self, types: &TypeList<'a>) -> Option<TypeId> {
         self.unions.borrow().get(types).copied()
     }
@@ -105,11 +125,11 @@ impl<'a> TypeCache<'a> {
     }
 
     pub fn get_big_int(&self, raw_value: &Atom<'a>) -> Option<TypeId> {
-        self.big_int_literals.borrow().get(value).copied()
+        self.big_int_literals.borrow().get(raw_value).copied()
     }
 
-    pub fn set_big_int(&self, value: Atom<'a>, type_id: TypeId) {
-        let existing = self.big_int_literals.borrow_mut().insert(value, type_id);
+    pub fn set_big_int(&self, raw_value: Atom<'a>, type_id: TypeId) {
+        let existing = self.big_int_literals.borrow_mut().insert(raw_value, type_id);
         debug_assert!(existing.is_none());
     }
 }
