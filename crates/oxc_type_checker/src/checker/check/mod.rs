@@ -1,4 +1,5 @@
 mod expression;
+mod jsx;
 
 use bitflags::bitflags;
 use oxc_ast::ast::Expression;

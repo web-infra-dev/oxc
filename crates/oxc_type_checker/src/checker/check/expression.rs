@@ -153,6 +153,7 @@ impl<'a> Checker<'a> {
     fn check_expression_worker(&mut self, expr: &Expression<'a>, ctx: &CheckContext) -> TypeId {
         // NOTE: TypeScript checks Expressions and MemberExpressions with the
         // same function. We need to split it up.
+        // NOTE: in order as it appears in TS' checkExpressionWorker
         match expr {
             Expression::Identifier(_) => todo!("checkIdentifier"),
             // todo: checkPrivateIdentifier
@@ -164,8 +165,73 @@ impl<'a> Checker<'a> {
             Expression::BigIntLiteral(lit) => lit.check(self, ctx),
 
             Expression::BooleanLiteral(lit) => lit.check(self, ctx),
+            Expression::TemplateLiteral(lit) => lit.check(self, ctx),
+            Expression::RegExpLiteral(lit) => lit.check(self, ctx),
+            Expression::ArrayExpression(lit) => lit.check(self, ctx),
+            Expression::ObjectExpression(lit) => lit.check(self, ctx),
 
-            expr => todo!("checkExpressionWorker({expr:?})"),
+            Expression::StaticMemberExpression(expr) => expr.check(self, ctx), // SyntaxKind.PropertyAccessExpression
+            Expression::ChainExpression(expr) => expr.check(self, ctx), // NOTE: I _think_ tsc coniders these as PropertyAccessExpressions
+            // TODO: SyntaxKind.QualifiedName
+            Expression::ComputedMemberExpression(expr) => expr.check(self, ctx), // SyntaxKind.ElementAccessExpression
+            Expression::CallExpression(expr) => expr.check(self, ctx),
+            // NOTE: TS treats `import()` as a CallExpression
+            Expression::ImportExpression(expr) => expr.check(self, ctx),
+            Expression::NewExpression(expr) => expr.check(self, ctx),
+            Expression::TaggedTemplateExpression(expr) => expr.check(self, ctx),
+            Expression::ParenthesizedExpression(expr) => expr.check(self, ctx),
+            Expression::ClassExpression(expr) => self.check_class_expression(expr.as_ref(), ctx),
+            Expression::FunctionExpression(expr) => {
+                self.check_function_expression(expr.as_ref(), ctx)
+            }
+            Expression::ArrowFunctionExpression(expr) => expr.check(self, ctx),
+            // TODO: SyntaxKind.TypeOfExpression. I forget what node we use for
+            // that
+            Expression::TSTypeAssertion(expr) => expr.check(self, ctx),
+            Expression::TSAsExpression(expr) => expr.check(self, ctx),
+            Expression::TSNonNullExpression(expr) => expr.check(self, ctx),
+            // TODO: SyntaxKind.ExpressionWithTypeArguments
+            Expression::TSSatisfiesExpression(expr) => expr.check(self, ctx),
+            Expression::MetaProperty(expr) => expr.check(self, ctx),
+            // TODO: SyntaxKind.DeleteExpression
+            // TODO: SyntaxKind.VoidExpression
+            Expression::AwaitExpression(expr) => expr.check(self, ctx),
+            Expression::UnaryExpression(expr) => expr.check(self, ctx), // SyntaxKind.PrefixUnaryExpression and SyntaxKind.PostfixUnaryExpression
+
+            Expression::BinaryExpression(expr) => expr.check(self, ctx),
+            Expression::LogicalExpression(expr) => expr.check(self, ctx), // NOTE: tsc consideres logical exprs to be binary exprs
+            Expression::ConditionalExpression(expr) => expr.check(self, ctx),
+            // TODO: SyntaxKind.SpreadElement
+            // TODO: SyntaxKind.OmittedExpression (???)
+            Expression::YieldExpression(expr) => expr.check(self, ctx),
+            // TODO: SyntaxKind.SyntheticExpression (???)
+            // TODO: SyntaxKind.JSXExpression
+            Expression::JSXElement(expr) => expr.check(self, ctx),
+            // NOTE: SyntaxKind.JSXSelfClosingElement is part of JSXElement
+            Expression::JSXFragment(expr) => expr.check(self, ctx),
+            // NOTE: JSXAttributes is not an Expression.
+            // NOTE: no partial parsing, so no SyntaxKind.JsxOpeningElement
+
+            // expr => todo!("checkExpressionWorker({expr:?})"),
+
+            // NOTE: I did not see these in checkExpressionWorker, but these are
+            // expressions in oxc
+            Expression::UpdateExpression(_) => todo!("check_expression_worker(UpdateExpression)"),
+            Expression::AssignmentExpression(_) => {
+                todo!("check_expression_worker(AssignmentExpression)")
+            }
+            Expression::SequenceExpression(_) => {
+                todo!("check_expression_worker(SequenceExpression)")
+            }
+            Expression::PrivateInExpression(_) => {
+                todo!("check_expression_worker(PrivateInExpression)")
+            }
+            Expression::PrivateFieldExpression(_) => {
+                todo!("check_expression_worker(PrivateFieldExpression)")
+            }
+            Expression::TSInstantiationExpression(_) => {
+                todo!("check_expression_worker(TSInstantiationExpression)")
+            }
         }
     }
     /// ```typescript
@@ -276,3 +342,209 @@ impl<'a> Check<'a> for BooleanLiteral {
         }
     }
 }
+
+impl<'a> Check<'a> for TemplateLiteral<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        // zero-sub template exprs are checked identically to strings
+        if self.is_no_substitution_template() {
+            // return hasSkipDirectInferenceFlag(node) ?
+            //     blockedStringType :
+            //     getFreshTypeOfLiteralType(getStringLiteralType((node as
+            //     StringLiteralLike).text));
+            // TODO: no-substitution template literals
+            return checker.get_fresh_type_of_literal_type(
+                checker.get_string_literal_type(&self.quasi().unwrap()),
+            );
+        }
+        todo!("checkTemplateExpression");
+        // function checkTemplateExpression(node: TemplateExpression): Type {
+        //     const texts = [node.head.text];
+        //     const types = [];
+        //     for (const span of node.templateSpans) {
+        //         const type = checkExpression(span.expression);
+        //         if (maybeTypeOfKindConsideringBaseConstraint(type, TypeFlags.ESSymbolLike)) {
+        //             error(span.expression, Diagnostics.Implicit_conversion_of_a_symbol_to_a_string_will_fail_at_runtime_Consider_wrapping_this_expression_in_String);
+        //         }
+        //         texts.push(span.literal.text);
+        //         types.push(isTypeAssignableTo(type, templateConstraintType) ? type : stringType);
+        //     }
+        //     const evaluated = node.parent.kind !== SyntaxKind.TaggedTemplateExpression && evaluate(node).value;
+        //     if (evaluated) {
+        //         return getFreshTypeOfLiteralType(getStringLiteralType(evaluated));
+        //     }
+        //     if (isConstContext(node) || isTemplateLiteralContext(node) || someType(getContextualType(node, /*contextFlags*/ undefined) || unknownType, isTemplateLiteralContextualType)) {
+        //         return getTemplateLiteralType(texts, types);
+        //     }
+        //     return stringType;
+        // }
+    }
+}
+
+impl<'a> Check<'a> for RegExpLiteral<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkRegularExpressionLiteral")
+    }
+}
+
+impl<'a> Check<'a> for ArrayExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkArrayLiteral")
+    }
+}
+
+impl<'a> Check<'a> for ObjectExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkObjectLiteral")
+    }
+}
+
+impl<'a> Check<'a> for StaticMemberExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkPropertyAccessExpression")
+    }
+}
+
+impl<'a> Check<'a> for ChainExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkPropertyAccessExpression")
+    }
+}
+
+// TODO: QualifiedName
+
+impl<'a> Check<'a> for ComputedMemberExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkIndexedAccess")
+    }
+}
+
+impl<'a> Check<'a> for CallExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkCallExpression")
+    }
+}
+
+impl<'a> Check<'a> for ImportExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkImportCallExpression")
+    }
+}
+
+impl<'a> Check<'a> for NewExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        // NOTE: NewExpression gets cast to CallExpression. We can't do that.
+        todo!("checkCallExpression")
+    }
+}
+
+impl<'a> Check<'a> for TaggedTemplateExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        // NOTE: NewExpression gets cast to CallExpression. We can't do that.
+        todo!("checkTaggedTemplateExpression")
+    }
+}
+
+impl<'a> Check<'a> for ParenthesizedExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        // NOTE: NewExpression gets cast to CallExpression. We can't do that.
+        todo!("checkParenthesizedExpression")
+    }
+}
+
+impl<'a> Checker<'a> {
+    fn check_class_expression(&mut self, expr: &Class<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkClassExpression")
+    }
+
+    fn check_function_expression(&mut self, expr: &Function<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkFunctionExpressionOrObjectLiteralMethod")
+    }
+}
+
+impl<'a> Check<'a> for ArrowFunctionExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkFunctionExpressionOrObjectLiteralMethod")
+    }
+}
+
+// TODO: TypeOfExpression
+impl<'a> Check<'a> for TSTypeAssertion<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkAssertion")
+    }
+}
+
+impl<'a> Check<'a> for TSAsExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkAssertion")
+    }
+}
+
+impl<'a> Check<'a> for TSNonNullExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkNonNullAssertion")
+    }
+}
+
+// TODO: ExpressionWithTypeArguments
+
+impl<'a> Check<'a> for TSSatisfiesExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkSatisfiesExpression")
+    }
+}
+
+impl<'a> Check<'a> for MetaProperty<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkMetaProperty")
+    }
+}
+
+impl<'a> Check<'a> for AwaitExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkAwaitExpression")
+    }
+}
+
+// TODO: DeleteExpression
+// TODO: VoidExpression
+
+impl<'a> Check<'a> for UnaryExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkPrefixUnaryExpression, checkPostfixUnaryExpression")
+    }
+}
+
+impl<'a> Check<'a> for BinaryExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkBinaryExpression")
+    }
+}
+
+impl<'a> Check<'a> for LogicalExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkBinaryExpression")
+    }
+}
+
+impl<'a> Check<'a> for ConditionalExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkConditionalExpression")
+    }
+}
+
+impl<'a> Check<'a> for SpreadElement<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkSpreadExpression")
+    }
+}
+
+// TODO: OmittedExpression
+
+impl<'a> Check<'a> for YieldExpression<'a> {
+    fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
+        todo!("checkYieldExpression")
+    }
+}
+
+// NOTE: jsx check impls are in jsx.rs
