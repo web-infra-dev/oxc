@@ -10,7 +10,7 @@ pub struct Type {
     flags: TypeFlags,
     // pattern?: DestructuringPattern,
     alias_symbol: Option<SymbolId>,
-    // shoudl we store Rc<Vec<Type>> or Rc<Vec<TypeId>>?
+    // should we store Rc<Vec<Type>> or Rc<Vec<TypeId>>?
     alias_type_arguments: Option<Arc<Vec<Type>>>,
     /// Cached widend form of the type
     // widened: //Cell<Option<Rc<Type<'a>>>>,

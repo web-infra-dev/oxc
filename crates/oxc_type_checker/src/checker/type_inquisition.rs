@@ -1,5 +1,6 @@
 //! Methods for inquiring about a type.
 
+use oxc_semantic::{SymbolFlags, SymbolId};
 use oxc_syntax::types::{ObjectFlags, TypeId};
 
 use crate::ast::Type;
@@ -12,7 +13,7 @@ impl<'a> Checker<'a> {
     ///     return type === errorType || !!(type.flags & TypeFlags.Any && type.aliasSymbol);
     /// }
     /// ```
-    pub fn is_error_type(&self, type_id: TypeId) -> bool {
+    pub(crate) fn is_error_type(&self, type_id: TypeId) -> bool {
         type_id == self.intrinsics.error
             || (self.get_flags(type_id).is_any()
                 && self.builder.table().get_alias_symbol(type_id).is_some())
@@ -23,7 +24,7 @@ impl<'a> Checker<'a> {
     ///     return type.flags & TypeFlags.ObjectFlagsType ? (type as ObjectFlagsType).objectFlags : 0;
     /// }
     /// ```
-    pub fn get_object_flags(&self, type_id: TypeId) -> ObjectFlags {
+    pub(crate) fn get_object_flags(&self, type_id: TypeId) -> ObjectFlags {
         let flags = self.get_type(type_id).get_object_flags();
 
         #[cfg(debug_assertions)]
@@ -33,6 +34,29 @@ impl<'a> Checker<'a> {
         }
 
         flags
+    }
+
+    /// ```typescript
+    /// function isConstEnumObjectType(type: Type): boolean {
+    ///     return !!(getObjectFlags(type) & ObjectFlags.Anonymous) && !!type.symbol && isConstEnumSymbol(type.symbol);
+    /// }
+    /// ```
+    pub(crate) fn is_const_enum_object_type(&self, type_id: TypeId) -> bool {
+        self.get_object_flags(type_id).is_anonymous()
+            && self
+                .table()
+                .get_symbol(type_id)
+                .is_some_and(|symbol_id| self.is_const_enum_symbol(symbol_id))
+    }
+
+    /// ```typescript
+    /// function isConstEnumSymbol(symbol: Symbol): boolean {
+    ///     return (symbol.flags & SymbolFlags.ConstEnum) !== 0;
+    /// }
+    /// ```
+    #[inline]
+    pub(crate) fn is_const_enum_symbol(&self, symbol_id: SymbolId) -> bool {
+        self.semantic.symbols().get_flags(symbol_id).contains(SymbolFlags::ConstEnum)
     }
 }
 

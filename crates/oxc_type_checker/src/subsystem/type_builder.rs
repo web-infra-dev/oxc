@@ -109,6 +109,28 @@ impl<'a> TypeBuilder<'a> {
         self.table_mut().create_type(ty, flags, None, None, None)
     }
 
+    pub fn create_literal_type<V>(
+        &self,
+        flags: TypeFlags,
+        value: V,
+        symbol: Option<SymbolId>,
+        regular_type: Option<TypeId>,
+    ) -> TypeId
+    where
+        V: Into<FreshLiteralType<'a>>,
+    {
+        // function createLiteralType(flags: TypeFlags, value: string | number | PseudoBigInt, symbol?: Symbol, regularType?: LiteralType) {
+        //     const type = createTypeWithSymbol(flags, symbol!) as LiteralType;
+        //     type.value = value;
+        //     type.regularType = regularType || type;
+        //     return type;
+        // }
+        let ty = Type::Literal(self.alloc(LiteralType::Fresh(value.into(), regular_type)));
+        self.table_mut().create_type(
+            ty, flags, symbol, /* alias_symbol */ None, /* alias_type_arguments */ None,
+        )
+    }
+
     /// Creates a [`UnionType`]
     pub fn create_union_type(
         &self,

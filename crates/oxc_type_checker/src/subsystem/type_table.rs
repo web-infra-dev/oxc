@@ -43,6 +43,11 @@ impl<'a> TypeTable<'a> {
         self.flags[id]
     }
 
+    #[inline]
+    pub fn get_symbol(&self, type_id: TypeId) -> Option<SymbolId> {
+        self.symbols[type_id]
+    }
+
     pub fn get_alias_symbol(&self, id: TypeId) -> Option<SymbolId> {
         self.alias_symbols[id]
     }

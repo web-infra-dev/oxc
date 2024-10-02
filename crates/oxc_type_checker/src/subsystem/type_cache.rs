@@ -3,8 +3,11 @@
 use std::{borrow::Borrow, cell::RefCell, ops::Deref};
 
 use oxc_allocator::{Allocator, CloneIn, Vec};
+use oxc_span::Atom;
 use oxc_syntax::types::TypeId;
 use rustc_hash::FxHashMap;
+
+use crate::ast::Number;
 
 type Cache<K> = RefCell<FxHashMap<K, TypeId>>;
 
@@ -35,9 +38,18 @@ pub(crate) struct TypeCache<'a> {
     /// var intersectionTypes = new Map<string, Type>();
     /// ```
     intersections: Cache<TypeList<'a>>,
-    // var stringLiteralTypes = new Map<string, StringLiteralType>();
-    // var numberLiteralTypes = new Map<number, NumberLiteralType>();
-    // var bigIntLiteralTypes = new Map<string, BigIntLiteralType>();
+    /// ```typescript
+    /// var stringLiteralTypes = new Map<string, StringLiteralType>();
+    /// ```
+    string_literals: Cache<Atom<'a>>,
+    /// ```typescript
+    /// var numberLiteralTypes = new Map<number, NumberLiteralType>();
+    /// ```
+    number_literals: Cache<Number>,
+    /// ```typescript
+    /// var bigIntLiteralTypes = new Map<string, BigIntLiteralType>();
+    /// ```
+    big_int_literals: Cache</* raw */ Atom<'a>>,
     // var enumLiteralTypes = new Map<string, LiteralType>();
     // var indexedAccessTypes = new Map<string, IndexedAccessType>();
     // var templateLiteralTypes = new Map<string, TemplateLiteralType>();
@@ -59,6 +71,9 @@ impl<'a> TypeCache<'a> {
             unions: Cache::default(),
             union_of_unions: Cache::default(),
             intersections: Cache::default(),
+            string_literals: Cache::default(),
+            number_literals: Cache::default(),
+            big_int_literals: Cache::default(),
         }
     }
 
@@ -68,6 +83,33 @@ impl<'a> TypeCache<'a> {
 
     pub fn add_union(&self, types: TypeList<'a>, id: TypeId) {
         let existing = self.unions.borrow_mut().insert(types, id);
+        debug_assert!(existing.is_none());
+    }
+
+    pub fn get_number(&self, value: &Number) -> Option<TypeId> {
+        self.number_literals.borrow().get(&value).copied()
+    }
+
+    pub fn add_number(&self, value: Number, type_id: TypeId) {
+        let existing = self.number_literals.borrow_mut().insert(value, type_id);
+        debug_assert!(existing.is_none());
+    }
+
+    pub fn get_string(&self, value: &Atom<'a>) -> Option<TypeId> {
+        self.string_literals.borrow().get(value).copied()
+    }
+
+    pub fn set_string(&self, value: Atom<'a>, type_id: TypeId) {
+        let existing = self.string_literals.borrow_mut().insert(value, type_id);
+        debug_assert!(existing.is_none());
+    }
+
+    pub fn get_big_int(&self, raw_value: &Atom<'a>) -> Option<TypeId> {
+        self.big_int_literals.borrow().get(value).copied()
+    }
+
+    pub fn set_big_int(&self, value: Atom<'a>, type_id: TypeId) {
+        let existing = self.big_int_literals.borrow_mut().insert(value, type_id);
         debug_assert!(existing.is_none());
     }
 }

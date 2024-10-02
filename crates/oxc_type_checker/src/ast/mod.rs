@@ -10,9 +10,13 @@ pub use self::{literal::*, object::*};
 
 #[derive(Debug)]
 pub enum Type<'a> {
+    // Mostly done. missing freshability
     Literal(Box<'a, LiteralType<'a>>),
+    // complete
     Intrinsic(Box<'a, IntrinsicType<'a>>),
+    // 70% done. Missing a lot of union reduction logic
     Union(Box<'a, UnionType<'a>>),
+    // barely started
     Object(Box<'a, ObjectType<'a>>),
 }
 
@@ -32,4 +36,17 @@ pub struct UnionType<'a> {
     pub object_flags: ObjectFlags,
     /// Denormalized union, intersection, or index type in which union originates
     pub(crate) origin: Option<TypeId>, // TODO: add the other fields
+}
+
+// export interface FreshableType extends Type {
+//     freshType: FreshableType; // Fresh version of type
+//     regularType: FreshableType; // Regular version of type
+// }
+/// src/compiler/types.ts, line 6399
+#[derive(Debug)]
+pub enum FreshableType<T> {
+    /// Regular version of the type
+    Regular(T, /* freshType */ TypeId),
+    /// Fresh version of the type
+    Fresh(T, /* regularType. None if fresh type is the regular type */ Option<TypeId>),
 }

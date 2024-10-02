@@ -1,5 +1,6 @@
 mod composite;
 mod get_type_from_type_node;
+mod literal;
 
 pub(crate) use get_type_from_type_node::GetTypeFromTypeNode;
 use oxc_ast::ast::TSType;

@@ -1,19 +1,18 @@
+mod check;
 mod get_type;
 mod type_factory;
 mod type_inquisition;
+mod type_instantiation;
 
 use std::{cell::Ref, rc::Rc};
 
 use oxc_allocator::Allocator;
-#[allow(clippy::wildcard_imports)]
-use oxc_ast::ast::*;
-use oxc_ast::Visit;
 use oxc_semantic::Semantic;
 use oxc_syntax::types::{TypeFlags, TypeId};
 
 use crate::{
     ast::Type,
-    subsystem::{Intrinsics, Links, TypeBuilder, TypeCache},
+    subsystem::{Intrinsics, Links, TypeBuilder, TypeCache, TypeTable},
     CheckerSettings,
 };
 
@@ -50,18 +49,9 @@ impl<'a> Checker<'a> {
     pub(crate) fn get_type(&self, type_id: TypeId) -> Ref<'_, Type<'a>> {
         Ref::map(self.builder.table(), |table| table.get_type(type_id))
     }
-}
 
-impl<'a> Visit<'a> for Checker<'a> {
-    fn visit_ts_type_alias_declaration(&mut self, it: &oxc_ast::ast::TSTypeAliasDeclaration<'a>) {}
-}
-
-pub(crate) trait Check<'a> {
-    fn check(&self, checker: &mut Checker<'a>) -> TypeId;
-}
-
-impl<'a> Check<'a> for TSTypeAliasDeclaration<'a> {
-    fn check(&self, checker: &mut Checker<'a>) -> TypeId {
-        todo!()
+    #[inline]
+    pub(self) fn table(&self) -> Ref<'_, TypeTable<'a>> {
+        self.builder.table()
     }
 }

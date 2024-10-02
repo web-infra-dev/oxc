@@ -384,6 +384,11 @@ impl TypeFlags {
         self.intersects(Self::NonPrimitiveUnion)
     }
 
+    #[inline]
+    pub const fn is_freshable(self) -> bool {
+        self.intersects(Self::Freshable)
+    }
+
     // =========================================================================
     // =============================== INCLUSION ===============================
     // =========================================================================
@@ -422,6 +427,11 @@ impl TypeFlags {
 }
 
 impl ObjectFlags {
+    #[inline]
+    pub const fn is_anonymous(self) -> bool {
+        self.contains(Self::Anonymous)
+    }
+
     #[inline]
     pub const fn is_constrained_type_variable(self) -> bool {
         self.contains(Self::IsConstrainedTypeVariable)
