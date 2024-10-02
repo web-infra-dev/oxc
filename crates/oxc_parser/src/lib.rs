@@ -87,7 +87,7 @@ pub mod lexer;
 use context::{Context, StatementContext};
 use oxc_allocator::Allocator;
 use oxc_ast::{
-    ast::{Expression, Program},
+    ast::{Expression, Program, TSType},
     AstBuilder, Trivias,
 };
 use oxc_diagnostics::{OxcDiagnostic, Result};
@@ -323,6 +323,18 @@ mod parser_parse {
             );
             parser.parse_expression()
         }
+
+        pub fn parse_type(self) -> std::result::Result<TSType<'a>, Vec<OxcDiagnostic>> {
+            let unique = UniquePromise::new();
+            let parser = ParserImpl::new(
+                self.allocator,
+                self.source_text,
+                self.source_type,
+                self.options,
+                unique,
+            );
+            parser.parse_type()
+        }
     }
 }
 use parser_parse::UniquePromise;
@@ -427,6 +439,17 @@ impl<'a> ParserImpl<'a> {
         // initialize cur_token and prev_token by moving onto the first token
         self.bump_any();
         let expr = self.parse_expr().map_err(|diagnostic| vec![diagnostic])?;
+        let errors = self.lexer.errors.into_iter().chain(self.errors).collect::<Vec<_>>();
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(expr)
+    }
+
+    pub fn parse_type(mut self) -> std::result::Result<TSType<'a>, Vec<OxcDiagnostic>> {
+        // initialize cur_token and prev_token by moving onto the first token
+        self.bump_any();
+        let expr = self.parse_ts_type().map_err(|diagnostic| vec![diagnostic])?;
         let errors = self.lexer.errors.into_iter().chain(self.errors).collect::<Vec<_>>();
         if !errors.is_empty() {
             return Err(errors);
