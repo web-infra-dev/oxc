@@ -44,6 +44,7 @@ impl<'a> Checker<'a> {
     pub(crate) fn is_const_enum_object_type(&self, type_id: TypeId) -> bool {
         self.get_object_flags(type_id).is_anonymous()
             && self
+                .builder
                 .table()
                 .get_symbol(type_id)
                 .is_some_and(|symbol_id| self.is_const_enum_symbol(symbol_id))

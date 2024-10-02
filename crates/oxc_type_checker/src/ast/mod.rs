@@ -14,7 +14,7 @@ pub enum Type<'a> {
     Literal(Box<'a, LiteralType<'a>>),
     // complete
     Intrinsic(Box<'a, IntrinsicType<'a>>),
-    // wip
+    // complete?
     FreshableIntrinsic(Box<'a, FreshableIntrinsicType<'a>>),
     // 70% done. Missing a lot of union reduction logic
     Union(Box<'a, UnionType<'a>>),
@@ -31,7 +31,6 @@ pub struct IntrinsicType<'a> {
     // #[cfg(debug_assertions)]
     pub(crate) debug_name: Option<&'a str>,
     pub object_flags: ObjectFlags,
-    // TODO: freshability
 }
 
 #[derive(Debug)]
@@ -42,11 +41,14 @@ pub struct UnionType<'a> {
     pub(crate) origin: Option<TypeId>, // TODO: add the other fields
 }
 
-// export interface FreshableType extends Type {
-//     freshType: FreshableType; // Fresh version of type
-//     regularType: FreshableType; // Regular version of type
-// }
-/// src/compiler/types.ts, line 6399
+/// `src/compiler/types.ts`, line 6399
+///
+/// ```typescript
+/// export interface FreshableType extends Type {
+///     freshType: FreshableType; // Fresh version of type
+///     regularType: FreshableType; // Regular version of type
+/// }
+/// ```
 #[derive(Debug)]
 pub enum FreshableType<T> {
     /// Regular version of the type

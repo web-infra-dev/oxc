@@ -7,6 +7,7 @@ mod type_instantiation;
 use std::{cell::Ref, rc::Rc};
 
 use oxc_allocator::Allocator;
+use oxc_cfg::ControlFlowGraph;
 use oxc_semantic::Semantic;
 use oxc_syntax::types::{TypeFlags, TypeId};
 
@@ -30,6 +31,11 @@ pub struct Checker<'a> {
 // public interface
 impl<'a> Checker<'a> {
     pub fn new(alloc: &'a Allocator, semantic: Rc<Semantic<'a>>) -> Self {
+        assert!(
+            semantic.cfg().is_some(),
+            "Type checking requires a CFG. Please enable CFG construction when building Semantic."
+        );
+
         let settings = CheckerSettings::default();
         let builder = TypeBuilder::new(alloc);
         let cache = TypeCache::new(alloc);
@@ -51,7 +57,8 @@ impl<'a> Checker<'a> {
     }
 
     #[inline]
-    pub(self) fn table(&self) -> Ref<'_, TypeTable<'a>> {
-        self.builder.table()
+    pub(self) fn cfg(&self) -> &ControlFlowGraph {
+        // SAFETY: we assert a CFG exists when Checker is created.
+        unsafe { self.semantic.cfg().unwrap_unchecked() }
     }
 }

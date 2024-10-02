@@ -2040,6 +2040,7 @@ dependencies = [
  "bitflags 2.6.0",
  "oxc_allocator",
  "oxc_ast",
+ "oxc_cfg",
  "oxc_index",
  "oxc_semantic",
  "oxc_span",
