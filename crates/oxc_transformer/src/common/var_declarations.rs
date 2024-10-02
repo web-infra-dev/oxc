@@ -19,7 +19,7 @@ use oxc_ast::{ast::*, NONE};
 use oxc_data_structures::stack::SparseStack;
 use oxc_span::SPAN;
 use oxc_syntax::symbol::SymbolId;
-use oxc_traverse::{Traverse, TraverseCtx};
+use oxc_traverse::{Ancestor, Traverse, TraverseCtx};
 
 use crate::TransformCtx;
 
@@ -38,67 +38,35 @@ impl<'a, 'ctx> VarDeclarations<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> Traverse<'a> for VarDeclarations<'a, 'ctx> {
-    fn exit_program(&mut self, _program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        if let Some(stmt) = self.get_var_statement(ctx) {
-            // Delegate to `TopLevelStatements`
-            self.ctx.top_level_statements.insert_statement(stmt);
-        }
-
-        let declarators = self.ctx.var_declarations.declarators.borrow();
-        debug_assert!(declarators.len() == 1);
-        debug_assert!(declarators.last().is_none());
-    }
-
     fn enter_statements(
         &mut self,
         _stmts: &mut Vec<'a, Statement<'a>>,
         _ctx: &mut TraverseCtx<'a>,
     ) {
-        let mut declarators = self.ctx.var_declarations.declarators.borrow_mut();
-        declarators.push(None);
+        self.ctx.var_declarations.record_entering_statements();
     }
 
     fn exit_statements(&mut self, stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut TraverseCtx<'a>) {
-        if ctx.ancestors_depth() == 2 {
-            // Top level. Handle in `exit_program` instead.
-            // (depth 1 = None, depth 2 = Program)
-            return;
-        }
-
-        if let Some(stmt) = self.get_var_statement(ctx) {
-            stmts.insert(0, stmt);
-        }
+        self.ctx.var_declarations.insert_into_statements(stmts, ctx);
     }
-}
 
-impl<'a, 'ctx> VarDeclarations<'a, 'ctx> {
-    fn get_var_statement(&mut self, ctx: &mut TraverseCtx<'a>) -> Option<Statement<'a>> {
-        let mut declarators = self.ctx.var_declarations.declarators.borrow_mut();
-        let declarators = declarators.pop()?;
-        debug_assert!(!declarators.is_empty());
-
-        let stmt = Statement::VariableDeclaration(ctx.ast.alloc_variable_declaration(
-            SPAN,
-            VariableDeclarationKind::Var,
-            declarators,
-            false,
-        ));
-        Some(stmt)
+    fn exit_program(&mut self, _program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
+        self.ctx.var_declarations.insert_into_program(self.ctx, ctx);
     }
 }
 
 /// Store for `VariableDeclarator`s to be added to enclosing statement block.
 pub struct VarDeclarationsStore<'a> {
-    declarators: RefCell<SparseStack<Vec<'a, VariableDeclarator<'a>>>>,
+    stack: RefCell<SparseStack<Vec<'a, VariableDeclarator<'a>>>>,
 }
 
+// Public methods
 impl<'a> VarDeclarationsStore<'a> {
+    /// Create new `VarDeclarationsStore`.
     pub fn new() -> Self {
-        Self { declarators: RefCell::new(SparseStack::new()) }
+        Self { stack: RefCell::new(SparseStack::new()) }
     }
-}
 
-impl<'a> VarDeclarationsStore<'a> {
     /// Add a `VariableDeclarator` to be inserted at top of current enclosing statement block,
     /// given `name` and `symbol_id`.
     pub fn insert(
@@ -129,7 +97,56 @@ impl<'a> VarDeclarationsStore<'a> {
 
     /// Add a `VariableDeclarator` to be inserted at top of current enclosing statement block.
     pub fn insert_declarator(&self, declarator: VariableDeclarator<'a>, ctx: &mut TraverseCtx<'a>) {
-        let mut declarators = self.declarators.borrow_mut();
-        declarators.last_mut_or_init(|| ctx.ast.vec()).push(declarator);
+        let mut stack = self.stack.borrow_mut();
+        stack.last_mut_or_init(|| ctx.ast.vec()).push(declarator);
+    }
+}
+
+// Internal methods
+impl<'a> VarDeclarationsStore<'a> {
+    fn record_entering_statements(&self) {
+        let mut stack = self.stack.borrow_mut();
+        stack.push(None);
+    }
+
+    fn insert_into_statements(
+        &self,
+        stmts: &mut Vec<'a, Statement<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        if matches!(ctx.parent(), Ancestor::ProgramBody(_)) {
+            // Handle in `insert_into_program` instead
+            return;
+        }
+
+        if let Some(stmt) = self.get_var_statement(ctx) {
+            stmts.insert(0, stmt);
+        }
+    }
+
+    fn insert_into_program(&self, transform_ctx: &TransformCtx<'a>, ctx: &mut TraverseCtx<'a>) {
+        if let Some(stmt) = self.get_var_statement(ctx) {
+            // Delegate to `TopLevelStatements`
+            transform_ctx.top_level_statements.insert_statement(stmt);
+        }
+
+        // Check stack is emptied
+        let stack = self.stack.borrow();
+        debug_assert!(stack.len() == 1);
+        debug_assert!(stack.last().is_none());
+    }
+
+    fn get_var_statement(&self, ctx: &mut TraverseCtx<'a>) -> Option<Statement<'a>> {
+        let mut stack = self.stack.borrow_mut();
+        let declarators = stack.pop()?;
+        debug_assert!(!declarators.is_empty());
+
+        let stmt = Statement::VariableDeclaration(ctx.ast.alloc_variable_declaration(
+            SPAN,
+            VariableDeclarationKind::Var,
+            declarators,
+            false,
+        ));
+        Some(stmt)
     }
 }
