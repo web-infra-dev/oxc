@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_variables)] // while under construction
 mod ast;
 mod checker;
 mod settings;

@@ -13,7 +13,7 @@ use oxc_syntax::types::{TypeFlags, TypeId};
 
 use crate::{
     ast::Type,
-    subsystem::{Intrinsics, TypeBuilder, TypeCache},
+    subsystem::{Intrinsics, Links, TypeBuilder, TypeCache},
     CheckerSettings,
 };
 
@@ -25,6 +25,7 @@ pub struct Checker<'a> {
     intrinsics: Intrinsics,
     semantic: Rc<Semantic<'a>>,
     cache: TypeCache<'a>,
+    links: Links<'a>,
 }
 
 // public interface
@@ -34,8 +35,9 @@ impl<'a> Checker<'a> {
         let builder = TypeBuilder::new(alloc);
         let intrinsics = Intrinsics::new(&builder, &settings);
         let cache = TypeCache::new(alloc);
+        let links = Links::default();
 
-        Self { settings, builder, intrinsics, semantic, cache }
+        Self { settings, builder, intrinsics, semantic, cache, links }
     }
 }
 
