@@ -1,3 +1,6 @@
+//! `check*` methods (e.g. `checkExpression`, `checkSourceFile`) and related
+//! flags/structs.
+
 mod expression;
 mod jsx;
 
@@ -7,6 +10,28 @@ use oxc_syntax::types::TypeId;
 use std::cell::Cell;
 
 use super::Checker;
+
+// Public Checker API
+
+impl<'a> Checker<'a> {
+    #[inline]
+    pub fn check_expression(&mut self, expr: &Expression<'a>) -> TypeId {
+        expr.check(self, &CheckContext::default())
+    }
+
+    #[inline]
+    pub fn check_expression_with_options(
+        &mut self,
+        expr: &Expression<'a>,
+        check_mode: CheckMode,
+        force_tuple: bool,
+    ) -> TypeId {
+        let ctx = CheckContext { mode: check_mode, force_tuple, ..Default::default() };
+        expr.check(self, &ctx)
+    }
+}
+
+// Check trait and stuff related to it
 
 bitflags! {
     // src/compiler/checker.ts, line 1323
@@ -63,22 +88,4 @@ pub(crate) struct CheckContext {
 
 pub(crate) trait Check<'a> {
     fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId;
-}
-
-impl<'a> Checker<'a> {
-    #[inline]
-    pub fn check_expression(&mut self, expr: &Expression<'a>) -> TypeId {
-        expr.check(self, &CheckContext::default())
-    }
-
-    #[inline]
-    pub fn check_expression_with_options(
-        &mut self,
-        expr: &Expression<'a>,
-        check_mode: CheckMode,
-        force_tuple: bool,
-    ) -> TypeId {
-        let ctx = CheckContext { mode: check_mode, force_tuple, ..Default::default() };
-        expr.check(self, &ctx)
-    }
 }

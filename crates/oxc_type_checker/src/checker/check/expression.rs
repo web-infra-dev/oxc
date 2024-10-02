@@ -1,3 +1,5 @@
+//! `checkExpression` and its subfunctions.
+
 #[allow(clippy::wildcard_imports)]
 use oxc_ast::ast::*;
 use oxc_syntax::types::TypeId;
@@ -284,10 +286,6 @@ impl<'a> Checker<'a> {
         // TODO
     }
 }
-
-// =============================================================================
-// ================================= LITERALS ==================================
-// =============================================================================
 
 impl<'a> Check<'a> for NullLiteral {
     #[inline]

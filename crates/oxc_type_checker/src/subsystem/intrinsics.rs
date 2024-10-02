@@ -1,4 +1,4 @@
-//! Intrinsic type constants. Near the top of `checker.ts`
+//! Intrinsic type constants. Port of code near the top of `checker.ts`
 use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 
 use super::{TypeBuilder, TypeCache, TypeList};

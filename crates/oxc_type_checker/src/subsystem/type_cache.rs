@@ -1,4 +1,4 @@
-//! Type caches portion of `checker.ts`
+//! Type caches portion of `createTypeChecker` in `checker.ts`
 
 use std::{borrow::Borrow, cell::RefCell, ops::Deref};
 

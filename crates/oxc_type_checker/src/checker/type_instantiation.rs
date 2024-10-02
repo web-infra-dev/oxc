@@ -1,3 +1,5 @@
+//! I'm thinking this will be `instantiate*` functions, but they may be moved
+//! (and this module deleted).
 use oxc_semantic::AstNode;
 use oxc_syntax::types::TypeId;
 
@@ -72,6 +74,6 @@ impl<'a> Checker<'a> {
         type_id: TypeId,
         check_mode: CheckMode,
     ) -> TypeId {
-        todo!()
+        todo!("type instantiation")
     }
 }

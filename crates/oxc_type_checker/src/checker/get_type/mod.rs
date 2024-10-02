@@ -1,3 +1,11 @@
+//! Trying to get a type from something? It's here.
+//!
+//! Contains logic for constructing types, but not building or checking them.
+//! Although `check*` functions create/get types, they live in the
+//! [`check` module](crate::checker::check).  Type building logic (i.e.
+//! allocating and putting types together) lives in
+//! [`TypeBuilder`](crate::subsystem::TypeBuilder)
+
 mod composite;
 mod get_type_from_type_node;
 mod literal;

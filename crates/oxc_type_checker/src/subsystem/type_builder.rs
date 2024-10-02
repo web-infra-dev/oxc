@@ -1,3 +1,4 @@
+//! Construct and allocate new types. Akin to [`AstBuilder`](oxc_ast::AstBuilder).
 #[allow(clippy::wildcard_imports)]
 use crate::ast::*;
 use std::{

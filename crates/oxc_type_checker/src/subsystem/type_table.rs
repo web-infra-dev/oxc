@@ -1,3 +1,5 @@
+//! Where types are stored and managed.
+
 use crate::ast::Type;
 
 use oxc_allocator::Vec;
