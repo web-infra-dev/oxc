@@ -13,7 +13,7 @@ use oxc_syntax::types::{TypeFlags, TypeId};
 
 use crate::{
     ast::Type,
-    subsystem::{Intrinsics, Links, TypeBuilder, TypeCache, TypeTable},
+    subsystem::{Intrinsics, Links, TypeBuilder, TypeCache},
     CheckerSettings,
 };
 
@@ -30,6 +30,9 @@ pub struct Checker<'a> {
 
 // public interface
 impl<'a> Checker<'a> {
+    /// # Panics
+    /// If `semantic` was created without a control flow graph (CFG). You must
+    /// build `semantic` using [`oxc_semantic::SemanticBuilder::with_cfg`].
     pub fn new(alloc: &'a Allocator, semantic: Rc<Semantic<'a>>) -> Self {
         assert!(
             semantic.cfg().is_some(),

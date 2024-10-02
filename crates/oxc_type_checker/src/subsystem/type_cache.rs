@@ -94,7 +94,7 @@ impl<'a> TypeCache<'a> {
     #[inline]
     #[must_use]
     pub fn type_list(&self, types: &[TypeId]) -> TypeList<'a> {
-        TypeList::new(&self.alloc, types)
+        TypeList::new(self.alloc, types)
     }
 
     pub fn get_union(&self, types: &TypeList<'a>) -> Option<TypeId> {
@@ -107,7 +107,7 @@ impl<'a> TypeCache<'a> {
     }
 
     pub fn get_number(&self, value: &Number) -> Option<TypeId> {
-        self.number_literals.borrow().get(&value).copied()
+        self.number_literals.borrow().get(value).copied()
     }
 
     pub fn add_number(&self, value: Number, type_id: TypeId) {
@@ -178,7 +178,9 @@ impl<'a> TypeList<'a> {
     #[must_use]
     pub fn new(alloc: &'a Allocator, types: &[TypeId]) -> Self {
         let mut v = Vec::with_capacity_in(types.len(), alloc);
-        v.copy_from_slice(types);
+        // This allegedly uses `copy_from_slice` internally using a specialized
+        // `extend` impl for slice iters.
+        v.extend_from_slice(types);
         v.sort_unstable();
         v.dedup();
         v.shrink_to_fit();

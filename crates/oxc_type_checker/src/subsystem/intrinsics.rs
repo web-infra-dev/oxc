@@ -224,3 +224,56 @@ impl Intrinsics {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::rc::Rc;
+
+    use super::Intrinsics;
+    use crate::{ast::Type, Checker};
+    use oxc_allocator::{Allocator, Box};
+    use oxc_ast::ast::{TSBooleanKeyword, TSType};
+    use oxc_parser::{Parser, ParserReturn};
+    use oxc_semantic::{Semantic, SemanticBuilder, SemanticBuilderReturn};
+    use oxc_span::{SourceType, Span};
+
+    fn checker<'a>(alloc: &'a Allocator, source_text: &'a str) -> Checker<'a> {
+        let ParserReturn { program, trivias, errors, panicked } =
+            Parser::new(alloc, source_text, SourceType::ts()).parse();
+        assert!(errors.is_empty(), "{errors:?}");
+        assert!(!panicked);
+
+        let SemanticBuilderReturn { semantic, errors } = SemanticBuilder::new(source_text)
+            .with_trivias(trivias)
+            .with_check_syntax_error(true)
+            .with_cfg(true)
+            .with_build_jsdoc(true)
+            .build(&program);
+        assert!(errors.is_empty(), "{errors:?}");
+
+        let semantic = Rc::new(semantic);
+        Checker::new(alloc, semantic)
+    }
+
+    #[test]
+    fn test_boolean() {
+        let alloc = Allocator::default();
+        let checker = checker(&alloc, "");
+
+        // boolean
+        let bool = TSType::TSBooleanKeyword(Box::new_in(
+            TSBooleanKeyword { span: Span::new(0, "boolean".len() as u32) },
+            &alloc,
+        ));
+        let type_id = checker.get_type_from_type_node(&bool);
+        let ty = checker.get_type(type_id);
+        match &*ty {
+            Type::Union(union) => {
+                assert_eq!(union.types.len(), 2);
+            }
+            ty => {
+                panic!("Unexpected type: expected `boolean` to be a union, but got {ty:?}");
+            }
+        }
+    }
+}

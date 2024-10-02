@@ -1,3 +1,4 @@
+#[allow(clippy::wildcard_imports)]
 use oxc_ast::ast::*;
 use oxc_syntax::types::TypeId;
 
@@ -23,7 +24,7 @@ impl<'a> Check<'a> for Expression<'a> {
     /// }
     /// ```
     fn check(&self, checker: &mut Checker<'a>, ctx: &CheckContext) -> TypeId {
-        let uninstantiated_type = checker.check_expression_worker(self, &ctx);
+        let uninstantiated_type = checker.check_expression_worker(self, ctx);
         // let ty = checker.instantiate_type_with_single_generic_call_signature(
         //     self,
         //     uninstantiated_type,

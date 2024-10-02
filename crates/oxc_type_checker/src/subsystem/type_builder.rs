@@ -50,7 +50,9 @@ impl<'a> TypeBuilder<'a> {
         T: Copy,
     {
         let mut v = Vec::with_capacity_in(slice.len(), self.alloc);
-        v.copy_from_slice(slice);
+        // This allegedly uses `copy_from_slice` internally using a specialized
+        // `extend` impl for slice iters.
+        v.extend_from_slice(slice);
         v
     }
 
