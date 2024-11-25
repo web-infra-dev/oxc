@@ -18,7 +18,7 @@ use oxc_span::{Atom, CompactStr, SourceType, Span};
 use oxc_syntax::module_record::ModuleRecord;
 
 use crate::{
-    binder::Binder,
+    binder::{is_function_redeclared_not_allowed, Binder},
     checker,
     class::ClassTableBuilder,
     diagnostics::redeclaration,
@@ -461,9 +461,23 @@ impl<'a> SemanticBuilder<'a> {
         let symbol_id = self.scope.get_binding(scope_id, name).or_else(|| {
             self.hoisting_variables.get(&scope_id).and_then(|symbols| symbols.get(name).copied())
         })?;
-        if report_error && self.symbols.get_flags(symbol_id).intersects(excludes) {
-            let symbol_span = self.symbols.get_span(symbol_id);
-            self.error(redeclaration(name, symbol_span, span));
+        if report_error {
+            let flags = self.symbols.get_flags(symbol_id);
+            if flags.intersects(excludes)
+                // Needs to further check if the previous declaration is a function and the function
+                // is not allowed to be redeclared.
+                // For example: `async function goo() var goo;`
+                //                                        ^^^ Redeclare
+                || (excludes == SymbolFlags::FunctionScopedVariableExcludes
+                    && flags.is_function() // The previous declaration is a function
+                    && matches!( // Check the previous function whether it is allowed to be redeclared
+                        self.nodes.kind(self.symbols.get_declaration(symbol_id)),
+                        AstKind::Function(func) if is_function_redeclared_not_allowed(func, self)
+                    ))
+            {
+                let symbol_span = self.symbols.get_span(symbol_id);
+                self.error(redeclaration(name, symbol_span, span));
+            }
         }
         Some(symbol_id)
     }
@@ -1628,11 +1642,6 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
             &func.scope_id,
         );
 
-        if func.is_expression() {
-            // We need to bind function expression in the function scope
-            func.bind(self);
-        }
-
         if let Some(id) = &func.id {
             self.visit_binding_identifier(id);
         }
@@ -1690,6 +1699,14 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
             cfg.add_edge(before_function_graph_ix, after_function_graph_ix, EdgeType::Normal);
         });
         /* cfg */
+
+        if func.is_expression() {
+            // We need to bind the function expression in the function scope and place
+            // it at the end of the function body in order to prevent redeclaration errors,
+            // as the function body may contain variables with the same name as the function.
+            // For example: `function foo() { let foo = 1; }` is valid.
+            func.bind(self);
+        }
 
         self.leave_scope();
         self.leave_node(kind);

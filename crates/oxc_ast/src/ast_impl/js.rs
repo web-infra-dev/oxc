@@ -968,11 +968,7 @@ impl<'a> Function<'a> {
 
     /// `true` for overload signatures and `declare function` statements.
     pub fn is_typescript_syntax(&self) -> bool {
-        matches!(
-            self.r#type,
-            FunctionType::TSDeclareFunction | FunctionType::TSEmptyBodyFunctionExpression
-        ) || self.body.is_none()
-            || self.declare
+        self.r#type.is_typescript_syntax() || self.body.is_none() || self.declare
     }
 
     /// `true` for function expressions
@@ -998,6 +994,13 @@ impl<'a> Function<'a> {
     /// `true` if this function's body has a `"use strict"` directive.
     pub fn is_strict(&self) -> bool {
         self.body.as_ref().is_some_and(|body| body.has_use_strict_directive())
+    }
+}
+
+impl FunctionType {
+    /// Returns `true` if it is a [`FunctionType::TSDeclareFunction`] or [`FunctionType::TSEmptyBodyFunctionExpression`].
+    pub fn is_typescript_syntax(&self) -> bool {
+        matches!(self, Self::TSDeclareFunction | Self::TSEmptyBodyFunctionExpression)
     }
 }
 

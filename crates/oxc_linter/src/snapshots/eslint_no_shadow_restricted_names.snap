@@ -1,6 +1,5 @@
 ---
 source: crates/oxc_linter/src/tester.rs
-snapshot_kind: text
 ---
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
    ╭─[no_shadow_restricted_names.tsx:1:10]
@@ -24,16 +23,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'NaN'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:40]
+   ╭─[no_shadow_restricted_names.tsx:1:44]
  1 │ function NaN(NaN) { var NaN; !function NaN(NaN) { try {} catch(NaN) {} }; }
-   ·                                        ───
+   ·                                            ───
    ╰────
   help: Shadowing of global properties 'NaN'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:44]
+   ╭─[no_shadow_restricted_names.tsx:1:40]
  1 │ function NaN(NaN) { var NaN; !function NaN(NaN) { try {} catch(NaN) {} }; }
-   ·                                            ───
+   ·                                        ───
    ╰────
   help: Shadowing of global properties 'NaN'.
 
@@ -59,16 +58,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'undefined'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:43]
+   ╭─[no_shadow_restricted_names.tsx:1:53]
  1 │ function undefined(undefined) { !function undefined(undefined) { try {} catch(undefined) {} }; }
-   ·                                           ─────────
+   ·                                                     ─────────
    ╰────
   help: Shadowing of global properties 'undefined'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:53]
+   ╭─[no_shadow_restricted_names.tsx:1:43]
  1 │ function undefined(undefined) { !function undefined(undefined) { try {} catch(undefined) {} }; }
-   ·                                                     ─────────
+   ·                                           ─────────
    ╰────
   help: Shadowing of global properties 'undefined'.
 
@@ -101,16 +100,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'Infinity'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:55]
+   ╭─[no_shadow_restricted_names.tsx:1:64]
  1 │ function Infinity(Infinity) { var Infinity; !function Infinity(Infinity) { try {} catch(Infinity) {} }; }
-   ·                                                       ────────
+   ·                                                                ────────
    ╰────
   help: Shadowing of global properties 'Infinity'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:64]
+   ╭─[no_shadow_restricted_names.tsx:1:55]
  1 │ function Infinity(Infinity) { var Infinity; !function Infinity(Infinity) { try {} catch(Infinity) {} }; }
-   ·                                                                ────────
+   ·                                                       ────────
    ╰────
   help: Shadowing of global properties 'Infinity'.
 
@@ -143,16 +142,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'arguments'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:58]
+   ╭─[no_shadow_restricted_names.tsx:1:68]
  1 │ function arguments(arguments) { var arguments; !function arguments(arguments) { try {} catch(arguments) {} }; }
-   ·                                                          ─────────
+   ·                                                                    ─────────
    ╰────
   help: Shadowing of global properties 'arguments'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:68]
+   ╭─[no_shadow_restricted_names.tsx:1:58]
  1 │ function arguments(arguments) { var arguments; !function arguments(arguments) { try {} catch(arguments) {} }; }
-   ·                                                                    ─────────
+   ·                                                          ─────────
    ╰────
   help: Shadowing of global properties 'arguments'.
 
@@ -185,16 +184,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'eval'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:43]
+   ╭─[no_shadow_restricted_names.tsx:1:48]
  1 │ function eval(eval) { var eval; !function eval(eval) { try {} catch(eval) {} }; }
-   ·                                           ────
+   ·                                                ────
    ╰────
   help: Shadowing of global properties 'eval'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:48]
+   ╭─[no_shadow_restricted_names.tsx:1:43]
  1 │ function eval(eval) { var eval; !function eval(eval) { try {} catch(eval) {} }; }
-   ·                                                ────
+   ·                                           ────
    ╰────
   help: Shadowing of global properties 'eval'.
 
@@ -227,16 +226,16 @@ snapshot_kind: text
   help: Shadowing of global properties 'eval'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:44]
+   ╭─[no_shadow_restricted_names.tsx:1:49]
  1 │ var eval = (eval) => { var eval; !function eval(eval) { try {} catch(eval) {} }; }
-   ·                                            ────
+   ·                                                 ────
    ╰────
   help: Shadowing of global properties 'eval'.
 
   ⚠ eslint(no-shadow-restricted-names): Shadowing of global properties such as 'undefined' is not allowed.
-   ╭─[no_shadow_restricted_names.tsx:1:49]
+   ╭─[no_shadow_restricted_names.tsx:1:44]
  1 │ var eval = (eval) => { var eval; !function eval(eval) { try {} catch(eval) {} }; }
-   ·                                                 ────
+   ·                                            ────
    ╰────
   help: Shadowing of global properties 'eval'.
 

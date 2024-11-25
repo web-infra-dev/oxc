@@ -1,12 +1,11 @@
 commit: 54a8389f
 
-Passed: 414/846
+Passed: 389/846
 
 # All Passed:
 * babel-plugin-transform-class-static-block
 * babel-plugin-transform-logical-assignment-operators
 * babel-plugin-transform-optional-catch-binding
-* babel-plugin-transform-async-generator-functions
 * babel-preset-react
 * babel-plugin-transform-react-display-name
 * babel-plugin-transform-react-jsx-self
@@ -276,7 +275,7 @@ x Output mismatch
 x Output mismatch
 
 
-# babel-plugin-transform-class-properties (87/264)
+# babel-plugin-transform-class-properties (80/264)
 * assumption-constantSuper/complex-super-class/input.js
 x Output mismatch
 
@@ -814,6 +813,12 @@ Scope parent mismatch:
 after transform: ScopeId(3): Some(ScopeId(1))
 rebuilt        : ScopeId(3): Some(ScopeId(2))
 
+* public/non-block-arrow-func/input.mjs
+x Output mismatch
+
+* public/regression-T2983/input.mjs
+x Output mismatch
+
 * public/regression-T7364/input.mjs
 Scope children mismatch:
 after transform: ScopeId(1): [ScopeId(2), ScopeId(7)]
@@ -846,6 +851,9 @@ rebuilt        : ScopeId(9): Some(ScopeId(8))
 * public/static-class-binding/input.js
 x Output mismatch
 
+* public/static-export/input.mjs
+x Output mismatch
+
 * public/static-infer-name/input.js
 x Output mismatch
 
@@ -874,6 +882,12 @@ x Output mismatch
 x Output mismatch
 
 * public-loose/foobar/input.js
+x Output mismatch
+
+* public-loose/non-block-arrow-func/input.mjs
+x Output mismatch
+
+* public-loose/regression-T2983/input.mjs
 x Output mismatch
 
 * public-loose/regression-T7364/input.mjs
@@ -906,6 +920,9 @@ after transform: ScopeId(6): Some(ScopeId(5))
 rebuilt        : ScopeId(9): Some(ScopeId(8))
 
 * public-loose/static-class-binding/input.js
+x Output mismatch
+
+* public-loose/static-export/input.mjs
 x Output mismatch
 
 * public-loose/static-infer-name/input.js
@@ -948,6 +965,9 @@ rebuilt        : SymbolId(2): ScopeId(0)
 Symbol scope ID mismatch for "_bar":
 after transform: SymbolId(4): ScopeId(2)
 rebuilt        : SymbolId(3): ScopeId(0)
+
+* regression/T2983/input.mjs
+x Output mismatch
 
 * regression/T7364/input.mjs
 Scope children mismatch:
@@ -1005,7 +1025,72 @@ x Output mismatch
 x Output mismatch
 
 
-# babel-plugin-transform-async-to-generator (10/28)
+# babel-plugin-transform-async-generator-functions (7/19)
+* async-generators/declaration/input.js
+Symbol flags mismatch for "_agf":
+after transform: SymbolId(1): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* async-generators/expression/input.js
+Symbol flags mismatch for "agf":
+after transform: SymbolId(0): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* async-generators/transform-class-keys/input.js
+Symbol flags mismatch for "_fn":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* async-generators/yield-star/input.js
+Symbol flags mismatch for "_g":
+after transform: SymbolId(1): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* for-await/async-function/input.js
+Symbol flags mismatch for "_f":
+after transform: SymbolId(8): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* for-await/async-generator/input.js
+Symbol flags mismatch for "_g":
+after transform: SymbolId(8): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* for-await/create-async-from-sync-iterator/input.js
+Symbol flags mismatch for "_fn":
+after transform: SymbolId(8): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* for-await/destructuring/input.js
+Symbol flags mismatch for "_f":
+after transform: SymbolId(9): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* nested/arrows-in-declaration/input.js
+Symbol flags mismatch for "_g":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* nested/async-in-params/input.js
+Symbol flags mismatch for "_g":
+after transform: SymbolId(2): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* nested/generator-in-async/input.js
+Symbol flags mismatch for "_f":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+Symbol flags mismatch for "_g":
+after transform: SymbolId(2): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(3): SymbolFlags(Function)
+
+* yield-star/create-async-from-sync-iterator/input.js
+Symbol flags mismatch for "_fn":
+after transform: SymbolId(1): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+
+# babel-plugin-transform-async-to-generator (4/28)
 * assumption-ignoreFunctionLength-true/basic/input.mjs
 
   x Compiler assumption `ignoreFunctionLength` is not implemented for object-
@@ -1026,6 +1111,44 @@ x Output mismatch
 
 * async-to-generator/async-iife-with-regenerator-spec/input.js
 x Output mismatch
+
+* async-to-generator/function-arity/input.js
+Symbol flags mismatch for "_one":
+after transform: SymbolId(24): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+Symbol flags mismatch for "_two":
+after transform: SymbolId(27): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(8): SymbolFlags(Function)
+Symbol flags mismatch for "_three":
+after transform: SymbolId(29): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(14): SymbolFlags(Function)
+Symbol flags mismatch for "_four":
+after transform: SymbolId(31): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(21): SymbolFlags(Function)
+Symbol flags mismatch for "_five":
+after transform: SymbolId(34): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(29): SymbolFlags(Function)
+Symbol flags mismatch for "_six":
+after transform: SymbolId(36): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(34): SymbolFlags(Function)
+
+* async-to-generator/shadowed-promise/input.js
+Symbol flags mismatch for "_foo":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+* async-to-generator/shadowed-promise-import/input.mjs
+Symbol flags mismatch for "_foo":
+after transform: SymbolId(2): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+* async-to-generator/shadowed-promise-nested/input.js
+Symbol flags mismatch for "_foo":
+after transform: SymbolId(5): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+Symbol flags mismatch for "_bar":
+after transform: SymbolId(4): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(5): SymbolFlags(Function)
 
 * bluebird-coroutines/arrow-function/input.js
 x Output mismatch
@@ -1057,6 +1180,11 @@ x Output mismatch
 * regression/15978/input.js
 x Output mismatch
 
+* regression/8783/input.js
+Symbol flags mismatch for "poll":
+after transform: SymbolId(0): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
 * regression/T7108/input.js
 x Output mismatch
 
@@ -1065,6 +1193,14 @@ x Output mismatch
 
 * regression/in-uncompiled-class-fields/input.js
 x Output mismatch
+
+* regression/regression-2765/input.js
+Symbol flags mismatch for "g":
+after transform: SymbolId(7): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(4): SymbolFlags(Function)
+Symbol flags mismatch for "c":
+after transform: SymbolId(11): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(10): SymbolFlags(Function)
 
 
 # babel-plugin-transform-exponentiation-operator (2/7)
@@ -1678,8 +1814,8 @@ rebuilt        : ScopeId(0): []
 
 * imports/import-type-func-with-duplicate-name/input.ts
 Symbol flags mismatch for "Foo":
-after transform: SymbolId(0): SymbolFlags(BlockScopedVariable | Function | TypeImport)
-rebuilt        : SymbolId(0): SymbolFlags(BlockScopedVariable | Function)
+after transform: SymbolId(0): SymbolFlags(Function | TypeImport)
+rebuilt        : SymbolId(0): SymbolFlags(Function)
 Symbol span mismatch for "Foo":
 after transform: SymbolId(0): Span { start: 13, end: 16 }
 rebuilt        : SymbolId(0): Span { start: 70, end: 73 }
@@ -1687,8 +1823,8 @@ Symbol redeclarations mismatch for "Foo":
 after transform: SymbolId(0): [Span { start: 70, end: 73 }]
 rebuilt        : SymbolId(0): []
 Symbol flags mismatch for "Foo2":
-after transform: SymbolId(1): SymbolFlags(BlockScopedVariable | Function | TypeImport)
-rebuilt        : SymbolId(1): SymbolFlags(BlockScopedVariable | Function)
+after transform: SymbolId(1): SymbolFlags(Function | TypeImport)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
 Symbol span mismatch for "Foo2":
 after transform: SymbolId(1): Span { start: 43, end: 47 }
 rebuilt        : SymbolId(1): Span { start: 87, end: 91 }
@@ -2206,9 +2342,6 @@ rebuilt        : ScopeId(13): [SymbolId(25)]
 Symbol flags mismatch for "B":
 after transform: SymbolId(18): SymbolFlags(RegularEnum)
 rebuilt        : SymbolId(16): SymbolFlags(BlockScopedVariable)
-Symbol flags mismatch for "C":
-after transform: SymbolId(20): SymbolFlags(BlockScopedVariable | Function)
-rebuilt        : SymbolId(20): SymbolFlags(FunctionScopedVariable)
 
 * namespace/export/input.ts
 Missing SymbolId: "N"
@@ -2430,8 +2563,8 @@ Symbol reference IDs mismatch for "G":
 after transform: SymbolId(2): []
 rebuilt        : SymbolId(4): [ReferenceId(1)]
 Symbol flags mismatch for "M":
-after transform: SymbolId(4): SymbolFlags(BlockScopedVariable | Function | NameSpaceModule | ValueModule)
-rebuilt        : SymbolId(6): SymbolFlags(FunctionScopedVariable)
+after transform: SymbolId(4): SymbolFlags(Function | NameSpaceModule | ValueModule)
+rebuilt        : SymbolId(6): SymbolFlags(Function)
 Symbol reference IDs mismatch for "M":
 after transform: SymbolId(4): []
 rebuilt        : SymbolId(6): [ReferenceId(9), ReferenceId(10)]
@@ -2439,8 +2572,8 @@ Symbol redeclarations mismatch for "M":
 after transform: SymbolId(4): [Span { start: 129, end: 130 }]
 rebuilt        : SymbolId(6): []
 Symbol flags mismatch for "D":
-after transform: SymbolId(6): SymbolFlags(BlockScopedVariable | Function | NameSpaceModule | ValueModule)
-rebuilt        : SymbolId(9): SymbolFlags(FunctionScopedVariable)
+after transform: SymbolId(6): SymbolFlags(Function | NameSpaceModule | ValueModule)
+rebuilt        : SymbolId(9): SymbolFlags(Function)
 Symbol reference IDs mismatch for "D":
 after transform: SymbolId(6): []
 rebuilt        : SymbolId(9): [ReferenceId(12), ReferenceId(22), ReferenceId(23)]
@@ -2607,9 +2740,6 @@ rebuilt        : ScopeId(7): [SymbolId(10), SymbolId(11)]
 Scope flags mismatch:
 after transform: ScopeId(8): ScopeFlags(StrictMode)
 rebuilt        : ScopeId(8): ScopeFlags(StrictMode | Function)
-Symbol flags mismatch for "_N3":
-after transform: SymbolId(4): SymbolFlags(BlockScopedVariable | Function)
-rebuilt        : SymbolId(7): SymbolFlags(FunctionScopedVariable)
 Symbol reference IDs mismatch for "_N3":
 after transform: SymbolId(4): []
 rebuilt        : SymbolId(7): [ReferenceId(3)]

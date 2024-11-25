@@ -614,9 +614,6 @@ impl<'s, 'a> Symbol<'s, 'a> {
         let Some(ref_node) = self.get_ref_relevant_node(reference) else {
             return false;
         };
-        if !matches!(ref_node.kind(), AstKind::CallExpression(_) | AstKind::NewExpression(_)) {
-            return false;
-        }
 
         // Do the easy/fast path if possible. If we know its a class/fn from
         // flags, that means it's declared within this file in an understandable

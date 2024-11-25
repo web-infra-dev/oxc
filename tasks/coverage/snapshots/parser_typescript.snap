@@ -3,7 +3,7 @@ commit: d85767ab
 parser_typescript Summary:
 AST Parsed     : 6494/6503 (99.86%)
 Positive Passed: 6483/6503 (99.69%)
-Negative Passed: 1239/5747 (21.56%)
+Negative Passed: 1238/5747 (21.54%)
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/ClassDeclaration10.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/ClassDeclaration11.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/ClassDeclaration13.ts
@@ -1014,6 +1014,7 @@ Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/identityForS
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/identityForSignaturesWithTypeParametersSwitched.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/ifElseWithStatements1.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/ignoredJsxAttributes.tsx
+Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/illegalSuperCallsInConstructor.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/implementArrayInterface.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/implementClausePrecedingExtends.ts
 Expect Syntax Error: tasks/coverage/typescript/tests/cases/compiler/implementGenericWithMismatchedTypes.ts
@@ -8044,22 +8045,6 @@ Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/salsa/private
  4 │ }
    ╰────
   help: Try insert a semicolon here
-
-  × Super calls are not permitted outside constructors or in nested functions inside constructors.
-    ╭─[typescript/tests/cases/compiler/illegalSuperCallsInConstructor.ts:12:17]
- 11 │             get foo() {
- 12 │                 super();
-    ·                 ───────
- 13 │                 return 1;
-    ╰────
-
-  × Super calls are not permitted outside constructors or in nested functions inside constructors.
-    ╭─[typescript/tests/cases/compiler/illegalSuperCallsInConstructor.ts:16:17]
- 15 │             set foo(v: number) {
- 16 │                 super();
-    ·                 ───────
- 17 │             }
-    ╰────
 
   × Identifier `x` has already been declared
    ╭─[typescript/tests/cases/compiler/importAndVariableDeclarationConflict3.ts:5:8]
