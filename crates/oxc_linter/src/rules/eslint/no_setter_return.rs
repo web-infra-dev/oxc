@@ -1,6 +1,7 @@
 use oxc_ast::AstKind;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
+use oxc_semantic::ScopeFlags;
 use oxc_span::Span;
 
 use crate::{context::LintContext, rule::Rule, AstNode};
@@ -41,7 +42,16 @@ impl Rule for NoSetterReturn {
         let AstKind::ReturnStatement(stmt) = node.kind() else {
             return;
         };
-        if stmt.argument.is_some() && ctx.scopes().get_flags(node.scope_id()).is_set_accessor() {
+
+        if stmt.argument.is_some() {
+            for scope_id in ctx.scopes().ancestors(node.scope_id()) {
+                let flags = ctx.scopes().get_flags(scope_id);
+                if flags.is_set_accessor() {
+                    break;
+                } else if flags.intersects(ScopeFlags::Function | ScopeFlags::Top) {
+                    return;
+                }
+            }
             ctx.diagnostic(no_setter_return_diagnostic(stmt.span));
         }
     }

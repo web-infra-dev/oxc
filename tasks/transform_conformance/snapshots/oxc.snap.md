@@ -1,12 +1,11 @@
 commit: 54a8389f
 
-Passed: 90/101
+Passed: 79/101
 
 # All Passed:
 * babel-plugin-transform-class-static-block
 * babel-plugin-transform-nullish-coalescing-operator
 * babel-plugin-transform-optional-catch-binding
-* babel-plugin-transform-async-generator-functions
 * babel-plugin-transform-object-rest-spread
 * babel-plugin-transform-exponentiation-operator
 * babel-plugin-transform-arrow-functions
@@ -15,7 +14,82 @@ Passed: 90/101
 * regexp
 
 
-# babel-plugin-transform-async-to-generator (14/15)
+# babel-plugin-transform-async-generator-functions (1/3)
+* for-await/with-if-statement/input.js
+Symbol flags mismatch for "_handleAsyncIterables":
+after transform: SymbolId(10): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+* for-await/with-labeled-statement/input.js
+Symbol flags mismatch for "_handleAsyncIterable":
+after transform: SymbolId(10): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+
+# babel-plugin-transform-async-to-generator (5/15)
+* arguments/assign/input.js
+Symbol flags mismatch for "ArgumentsAssignment":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(3): SymbolFlags(Function)
+
+* arguments/nested-block/input.js
+Symbol flags mismatch for "ArrowFunction":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(3): SymbolFlags(Function)
+
+* arrow/basic/input.js
+Symbol flags mismatch for "A":
+after transform: SymbolId(5): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(3): SymbolFlags(Function)
+
+* arrow/without-params/input.js
+Symbol flags mismatch for "g":
+after transform: SymbolId(2): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+* function/export/default-with-name/input.js
+Symbol flags mismatch for "_D":
+after transform: SymbolId(4): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(2): SymbolFlags(Function)
+
+* function/export/default-without-name/input.js
+Symbol flags mismatch for "_ref":
+after transform: SymbolId(3): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* function/export/named/input.js
+Symbol flags mismatch for "_named":
+after transform: SymbolId(2): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(1): SymbolFlags(Function)
+
+* function/expression/input.js
+Symbol flags mismatch for "func":
+after transform: SymbolId(7): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(4): SymbolFlags(Function)
+
+* object/property-with-function/input.js
+Symbol flags mismatch for "foo":
+after transform: SymbolId(5): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(3): SymbolFlags(Function)
+Symbol flags mismatch for "bar":
+after transform: SymbolId(7): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(6): SymbolFlags(Function)
+Symbol flags mismatch for "_":
+after transform: SymbolId(10): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(9): SymbolFlags(Function)
+Symbol flags mismatch for "_":
+after transform: SymbolId(12): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(12): SymbolFlags(Function)
+Symbol flags mismatch for "_this":
+after transform: SymbolId(14): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(14): SymbolFlags(Function)
+Symbol flags mismatch for "_default":
+after transform: SymbolId(16): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(16): SymbolFlags(Function)
+Symbol flags mismatch for "O_X_C":
+after transform: SymbolId(18): SymbolFlags(FunctionScopedVariable)
+rebuilt        : SymbolId(18): SymbolFlags(Function)
+
 * super/nested/input.js
 x Output mismatch
 
@@ -116,8 +190,8 @@ Scope flags mismatch:
 after transform: ScopeId(5): ScopeFlags(StrictMode | Function)
 rebuilt        : ScopeId(3): ScopeFlags(Function)
 Symbol flags mismatch for "T":
-after transform: SymbolId(9): SymbolFlags(FunctionScopedVariable | TypeAlias)
-rebuilt        : SymbolId(8): SymbolFlags(FunctionScopedVariable)
+after transform: SymbolId(9): SymbolFlags(Function | TypeAlias)
+rebuilt        : SymbolId(8): SymbolFlags(Function)
 Symbol span mismatch for "T":
 after transform: SymbolId(9): Span { start: 205, end: 206 }
 rebuilt        : SymbolId(8): Span { start: 226, end: 227 }
