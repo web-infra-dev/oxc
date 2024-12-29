@@ -26,7 +26,7 @@ impl<T: Case> Suite<T> for Test262Suite<T> {
     }
 
     fn skip_test_path(&self, path: &Path) -> bool {
-        let path = path.to_string_lossy();
+        let path = path.to_string_lossy().replace('\\', "/");
         path.contains("test262/test/staging") ||
         // ignore markdown files
         path.ends_with(".md") ||
