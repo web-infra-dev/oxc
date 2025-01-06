@@ -397,6 +397,19 @@ impl From<Span> for LabeledSpan {
     }
 }
 
+// On 64-bit platforms, compare `Span`s as single `u64`s, which is faster when used with `&Span` refs.
+// https://godbolt.org/z/P4Wvf7nxT
+impl PartialEq for Span {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        if cfg!(target_pointer_width = "64") {
+            self.as_u64() == other.as_u64()
+        } else {
+            self.start == other.start && self.end == other.end
+        }
+    }
+}
+
 // Skip hashing `_align` field.
 // On 64-bit platforms, hash `Span` as a single `u64`, which is faster with `FxHash`.
 // https://godbolt.org/z/4q36xrWG8
@@ -511,7 +524,13 @@ mod test {
     fn test_eq() {
         assert_eq!(Span::new(0, 0), Span::new(0, 0));
         assert_eq!(Span::new(0, 1), Span::new(0, 1));
+        assert_eq!(Span::new(1, 5), Span::new(1, 5));
+
         assert_ne!(Span::new(0, 0), Span::new(0, 1));
+        assert_ne!(Span::new(1, 5), Span::new(0, 5));
+        assert_ne!(Span::new(1, 5), Span::new(2, 5));
+        assert_ne!(Span::new(1, 5), Span::new(1, 4));
+        assert_ne!(Span::new(1, 5), Span::new(1, 6));
     }
 
     #[test]
