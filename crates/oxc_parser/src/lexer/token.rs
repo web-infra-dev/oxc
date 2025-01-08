@@ -47,11 +47,6 @@ pub struct Token {
     flags: TokenFlags,
 }
 
-#[cfg(all(test, target_pointer_width = "64"))]
-mod size_asserts {
-    const _: () = assert!(std::mem::size_of::<super::Token>() == 8);
-}
-
 impl Token {
     pub(super) fn new_on_new_line() -> Self {
         Self { flags: TokenFlags::IsOnNewLine, ..Self::default() }
@@ -123,4 +118,10 @@ impl Token {
         );
         self.flags.insert(TokenFlags::HasSeparator);
     }
+}
+
+#[cfg(test)]
+mod size_asserts {
+    use super::Token;
+    const _: () = assert!(std::mem::size_of::<Token>() == 8);
 }

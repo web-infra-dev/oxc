@@ -1,6 +1,6 @@
 commit: 54a8389f
 
-Passed: 120/138
+Passed: 122/141
 
 # All Passed:
 * babel-plugin-transform-class-static-block
@@ -16,7 +16,10 @@ Passed: 120/138
 * regexp
 
 
-# babel-plugin-transform-class-properties (20/26)
+# babel-plugin-transform-class-properties (19/26)
+* private-field-resolve-to-method/input.js
+x Output mismatch
+
 * private-field-resolve-to-method-in-computed-key/input.js
 x Output mismatch
 
@@ -42,7 +45,7 @@ after transform: SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), R
 rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(10)]
 
 
-# babel-plugin-transform-async-to-generator (14/15)
+# babel-plugin-transform-async-to-generator (17/18)
 * super/nested/input.js
 x Output mismatch
 

@@ -2,8 +2,8 @@
 #![warn(missing_docs)]
 use std::{borrow::Cow, fmt};
 
-use oxc_allocator::{Box, FromIn, Vec};
-use oxc_span::{Atom, GetSpan, Span};
+use oxc_allocator::{Box, Vec};
+use oxc_span::{Atom, Span};
 use oxc_syntax::{operator::UnaryOperator, scope::ScopeFlags, symbol::SymbolId};
 
 use crate::ast::*;
@@ -70,6 +70,11 @@ impl<'a> Expression<'a> {
     /// Returns `true` for [string](StringLiteral) and [template](TemplateLiteral) literals.
     pub fn is_string_literal(&self) -> bool {
         matches!(self, Self::StringLiteral(_) | Self::TemplateLiteral(_))
+    }
+
+    /// Return `true` if the expression is a plain template.
+    pub fn is_no_substitution_template(&self) -> bool {
+        matches!(self, Expression::TemplateLiteral(e) if e.is_no_substitution_template())
     }
 
     /// Returns `true` for [numeric](NumericLiteral) and [big int](BigIntLiteral) literals.
@@ -782,15 +787,6 @@ impl Statement<'_> {
             return (block_stmt.body.len() == 1).then_some(&mut block_stmt.body[0]);
         }
         Some(self)
-    }
-}
-
-impl<'a> FromIn<'a, Expression<'a>> for Statement<'a> {
-    fn from_in(expression: Expression<'a>, allocator: &'a oxc_allocator::Allocator) -> Self {
-        Statement::ExpressionStatement(Box::from_in(
-            ExpressionStatement { span: expression.span(), expression },
-            allocator,
-        ))
     }
 }
 

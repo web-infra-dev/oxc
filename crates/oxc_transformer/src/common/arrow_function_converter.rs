@@ -92,10 +92,10 @@ use indexmap::IndexMap;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use oxc_allocator::{Box as ArenaBox, Vec as ArenaVec};
-use oxc_ast::{ast::*, NONE};
+use oxc_ast::{ast::*, visit::walk_mut::walk_expression, VisitMut, NONE};
 use oxc_data_structures::stack::{NonEmptyStack, SparseStack};
 use oxc_semantic::{ReferenceFlags, SymbolId};
-use oxc_span::{CompactStr, SPAN};
+use oxc_span::{CompactStr, GetSpan, SPAN};
 use oxc_syntax::{
     scope::{ScopeFlags, ScopeId},
     symbol::SymbolFlags,
@@ -139,6 +139,7 @@ pub struct ArrowFunctionConverter<'a> {
     mode: ArrowFunctionConverterMode,
     this_var_stack: SparseStack<BoundIdentifier<'a>>,
     arguments_var_stack: SparseStack<BoundIdentifier<'a>>,
+    constructor_super_stack: NonEmptyStack<bool>,
     arguments_needs_transform_stack: NonEmptyStack<bool>,
     renamed_arguments_symbol_ids: FxHashSet<SymbolId>,
     // TODO(improve-on-babel): `FxHashMap` would suffice here. Iteration order is not important.
@@ -146,7 +147,7 @@ pub struct ArrowFunctionConverter<'a> {
     super_methods: Option<FxIndexMap<SuperMethodKey<'a>, SuperMethodInfo<'a>>>,
 }
 
-impl<'a> ArrowFunctionConverter<'a> {
+impl ArrowFunctionConverter<'_> {
     pub fn new(env: &EnvOptions) -> Self {
         let mode = if env.es2015.arrow_function.is_some() {
             ArrowFunctionConverterMode::Enabled
@@ -160,6 +161,7 @@ impl<'a> ArrowFunctionConverter<'a> {
             mode,
             this_var_stack: SparseStack::new(),
             arguments_var_stack: SparseStack::new(),
+            constructor_super_stack: NonEmptyStack::new(false),
             arguments_needs_transform_stack: NonEmptyStack::new(false),
             renamed_arguments_symbol_ids: FxHashSet::default(),
             super_methods: None,
@@ -191,6 +193,11 @@ impl<'a> Traverse<'a> for ArrowFunctionConverter<'a> {
         debug_assert!(self.this_var_stack.last().is_none());
         debug_assert!(self.arguments_var_stack.len() == 1);
         debug_assert!(self.arguments_var_stack.last().is_none());
+        debug_assert!(self.constructor_super_stack.len() == 1);
+        // TODO: This assertion currently failing because we don't handle `super` in arrow functions
+        // in class static properties correctly.
+        // e.g. `class C { static f = async () => super.prop; }`
+        // debug_assert!(self.constructor_super_stack.last() == &false);
     }
 
     fn enter_function(&mut self, func: &mut Function<'a>, ctx: &mut TraverseCtx<'a>) {
@@ -200,6 +207,7 @@ impl<'a> Traverse<'a> for ArrowFunctionConverter<'a> {
 
         self.this_var_stack.push(None);
         self.arguments_var_stack.push(None);
+        self.constructor_super_stack.push(false);
         if self.is_async_only() && func.r#async && Self::is_class_method_like_ancestor(ctx.parent())
         {
             self.super_methods = Some(FxIndexMap::default());
@@ -235,6 +243,7 @@ impl<'a> Traverse<'a> for ArrowFunctionConverter<'a> {
             arguments_var,
             ctx,
         );
+        self.constructor_super_stack.pop();
     }
 
     fn enter_arrow_function_expression(
@@ -330,6 +339,10 @@ impl<'a> Traverse<'a> for ArrowFunctionConverter<'a> {
         let new_expr = match expr {
             Expression::ThisExpression(this) => {
                 self.get_this_identifier(this.span, ctx).map(Expression::Identifier)
+            }
+            Expression::Super(_) => {
+                *self.constructor_super_stack.last_mut() = true;
+                return;
             }
             Expression::CallExpression(call) => self.transform_call_expression_for_super(call, ctx),
             Expression::AssignmentExpression(assignment) => {
@@ -436,6 +449,9 @@ impl<'a> ArrowFunctionConverter<'a> {
                 .unwrap();
             ctx.generate_uid("this", target_scope_id, SymbolFlags::FunctionScopedVariable)
         });
+        // TODO: Add `BoundIdentifier::create_spanned_read_reference_boxed` method (and friends)
+        // for this use case, so we can avoid `alloc()` call here.
+        // I (@overlookmotel) doubt it'd make a perf difference, but it'd be cleaner code.
         Some(ctx.ast.alloc(this_var.create_spanned_read_reference(span, ctx)))
     }
 
@@ -994,6 +1010,9 @@ impl<'a> ArrowFunctionConverter<'a> {
         Self::adjust_binding_scope(target_scope_id, &arguments_var, ctx);
         let reference =
             ctx.create_unbound_ident_reference(SPAN, Atom::from("arguments"), ReferenceFlags::Read);
+        // TODO: We shouldn't be cloning `IdentifierReference` here.
+        // We'll end up with 2 x `IdentifierReference`s with same `ReferenceId`.
+        // I guess we don't have a test that covers this, or transform semantic checker would have flagged it.
         let mut init = Expression::Identifier(ctx.ast.alloc(reference.clone()));
 
         // Top level may doesn't have `arguments`, so we need to check it.
@@ -1033,12 +1052,9 @@ impl<'a> ArrowFunctionConverter<'a> {
         let arguments = self.create_arguments_var_declarator(target_scope_id, arguments_var, ctx);
 
         let is_class_method_like = Self::is_class_method_like_ancestor(ctx.parent());
+        let super_method_count = self.super_methods.as_ref().map_or(0, FxIndexMap::len);
         let declarations_count = usize::from(arguments.is_some())
-            + if is_class_method_like {
-                self.super_methods.as_ref().map_or(0, FxIndexMap::len)
-            } else {
-                0
-            }
+            + if is_class_method_like { super_method_count } else { 0 }
             + usize::from(this_var.is_some());
 
         // Exit if no declarations to be inserted
@@ -1070,12 +1086,24 @@ impl<'a> ArrowFunctionConverter<'a> {
 
         // `_this = this;`
         if let Some(this_var) = this_var {
+            let is_constructor = ctx.scopes().get_flags(target_scope_id).is_constructor();
+            let init = if is_constructor
+                && (super_method_count != 0 || *self.constructor_super_stack.last())
+            {
+                // `super()` is called in the constructor body, so we need to insert `_this = this;`
+                // after `super()` call. Because `this` is not available before `super()` call.
+                ConstructorBodyThisAfterSuperInserter::new(&this_var, ctx)
+                    .visit_statements(statements);
+                None
+            } else {
+                Some(ctx.ast.expression_this(SPAN))
+            };
             Self::adjust_binding_scope(target_scope_id, &this_var, ctx);
             let variable_declarator = ctx.ast.variable_declarator(
                 SPAN,
                 VariableDeclarationKind::Var,
                 this_var.create_binding_pattern(ctx),
-                Some(ctx.ast.expression_this(SPAN)),
+                init,
                 false,
             );
             declarations.push(variable_declarator);
@@ -1093,5 +1121,91 @@ impl<'a> ArrowFunctionConverter<'a> {
         let stmt = Statement::VariableDeclaration(stmt);
 
         statements.insert(0, stmt);
+    }
+}
+
+/// Visitor for inserting `this` after `super` in constructor body.
+struct ConstructorBodyThisAfterSuperInserter<'a, 'v> {
+    this_var_binding: &'v BoundIdentifier<'a>,
+    ctx: &'v mut TraverseCtx<'a>,
+}
+
+impl<'a, 'v> ConstructorBodyThisAfterSuperInserter<'a, 'v> {
+    fn new(this_var_binding: &'v BoundIdentifier<'a>, ctx: &'v mut TraverseCtx<'a>) -> Self {
+        Self { this_var_binding, ctx }
+    }
+}
+
+impl<'a> VisitMut<'a> for ConstructorBodyThisAfterSuperInserter<'a, '_> {
+    #[inline] // `#[inline]` because is a no-op
+    fn visit_class(&mut self, _class: &mut Class<'a>) {
+        // Do not need to insert in nested classes
+
+        // TODO: Need to transform `super()` in:
+        // 1. Class `extends` clause.
+        // 2. Class property computed key
+        // 3. Class method computed key
+        //
+        // So do need to visit class, but only the above parts.
+        // Stop traversal in `visit_property_definition`, `visit_accessor_property`, `visit_static_block`
+        // and `visit_function` instead of here.
+        // (the same places as `this_depth` is incremented in `StaticVisitor` in class properties transform).
+        //
+        // https://babeljs.io/repl#?code_lz=MYGwhgzhAEDyCuAXApgJ2sgHigdgExgRVQGV4AHNaAbwChppgB7HCRVeYRJ1ACgEoa9Bo3BRoASRw4qWXAWgQKaAUJEiA2ksp9-AXWgBeaAEYA3MPVswiAJbBoW5boPGATBcubtK_auoAvl4M1nYOTjoCev5B6rEiIMiI0ABmOEbQkACeOA6qhgB80IgAFrYQFgxBQUA&presets=&externalPlugins=%40babel%2Fplugin-external-helpers%407.25.9%2C%40babel%2Fplugin-transform-async-to-generator%407.25.9&assumptions=%7B%7D
+    }
+
+    // TODO: Stop traversal at a `Function` too. `super()` can't appear in a nested function,
+    // so no point traversing it. This is for performance, not correctness.
+
+    /// `super()` -> `super(); _this = this;`
+    fn visit_statements(&mut self, statements: &mut ArenaVec<'a, Statement<'a>>) {
+        let mut new_stmts = vec![];
+
+        for (index, stmt) in statements.iter_mut().enumerate() {
+            if matches!(stmt, Statement::ExpressionStatement(expr_stmt) if expr_stmt.expression.is_super_call_expression())
+            {
+                let assignment = self.create_assignment_to_this_temp_var();
+                let new_stmt = self.ctx.ast.statement_expression(SPAN, assignment);
+                new_stmts.push((index, new_stmt));
+            } else {
+                self.visit_statement(stmt);
+            }
+        }
+
+        for (index, new_stmt) in new_stmts.into_iter().rev() {
+            // insert the new statement after the super call
+            statements.insert(index + 1, new_stmt);
+        }
+    }
+
+    /// `const A = super()` -> `const A = (super(), _this = this);`
+    // `#[inline]` to avoid a function call for all `Expressions` which are not `super()` (vast majority)
+    #[inline]
+    fn visit_expression(&mut self, expr: &mut Expression<'a>) {
+        if expr.is_super_call_expression() {
+            self.transform_super_call_expression(expr);
+        } else {
+            walk_expression(self, expr);
+        }
+    }
+}
+
+impl<'a> ConstructorBodyThisAfterSuperInserter<'a, '_> {
+    /// `super()` -> `(super(), _this = this)`
+    fn transform_super_call_expression(&mut self, expr: &mut Expression<'a>) {
+        let assignment = self.create_assignment_to_this_temp_var();
+        let span = expr.span();
+        let exprs = self.ctx.ast.vec_from_array([self.ctx.ast.move_expression(expr), assignment]);
+        *expr = self.ctx.ast.expression_sequence(span, exprs);
+    }
+
+    /// `_this = this`
+    fn create_assignment_to_this_temp_var(&mut self) -> Expression<'a> {
+        self.ctx.ast.expression_assignment(
+            SPAN,
+            AssignmentOperator::Assign,
+            self.this_var_binding.create_write_target(self.ctx),
+            self.ctx.ast.expression_this(SPAN),
+        )
     }
 }
