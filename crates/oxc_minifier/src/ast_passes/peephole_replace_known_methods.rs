@@ -375,7 +375,10 @@ impl<'a> PeepholeReplaceKnownMethods {
             // [].concat() or "".concat()
             let is_root_expr_concat = {
                 let Expression::StaticMemberExpression(member) = callee else { unreachable!() };
-                matches!(&member.object, Expression::ArrayExpression(_) | Expression::StringLiteral(_))
+                matches!(
+                    &member.object,
+                    Expression::ArrayExpression(_) | Expression::StringLiteral(_)
+                )
             };
             if is_root_expr_concat {
                 new_root_callee = callee;
