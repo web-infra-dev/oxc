@@ -1694,7 +1694,6 @@ name = "oxc_diagnostics"
 version = "0.46.0"
 dependencies = [
  "oxc-miette",
- "rustc-hash",
 ]
 
 [[package]]
@@ -2222,6 +2221,7 @@ dependencies = [
  "oxc_linter",
  "oxc_span",
  "rayon",
+ "rustc-hash",
  "serde",
  "serde_json",
  "tempfile",
