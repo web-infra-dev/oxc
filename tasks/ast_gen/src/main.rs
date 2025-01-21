@@ -55,7 +55,7 @@ const GENERATORS: &[&dyn Generator] = &[
 type Result<R> = std::result::Result<R, String>;
 
 #[derive(Debug, Bpaf)]
-pub struct CliOptions {
+struct CliOptions {
     /// Runs all generators but won't write anything down.
     #[bpaf(switch)]
     #[expect(dead_code)]
