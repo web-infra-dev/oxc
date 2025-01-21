@@ -5,36 +5,7 @@ use crate::{derives::Derive, Output, Result, Schema, DERIVES, GENERATORS};
 pub type DeriveId = usize;
 pub type GeneratorId = usize;
 
-pub trait Runner {
-    #[expect(dead_code)]
-    fn verb(&self) -> &'static str;
-
-    #[expect(dead_code)]
-    fn name(&self) -> &'static str;
-
-    #[expect(dead_code)]
-    fn file_path(&self) -> &'static str;
-
-    #[expect(dead_code)]
-    fn run(&mut self, ctx: &Schema, codegen: &Codegen) -> Result<Vec<Output>>;
-}
-
-#[derive(Clone, Copy, Debug)]
-enum AttrTarget {
-    Derive(DeriveId),
-    Generator(GeneratorId),
-}
-
-impl AttrTarget {
-    fn name(self) -> &'static str {
-        match self {
-            Self::Derive(id) => DERIVES[id].trait_name(),
-            Self::Generator(_id) => "Unknown generator", // TODO
-        }
-    }
-}
-
-// TODO: Move `derive_name_to_id` into `Schema`
+// TODO: Move `derive_name_to_id` into `Schema`?
 
 pub struct Codegen {
     /// Mapping from derive name to `DeriveId`
@@ -151,4 +122,33 @@ impl Codegen {
     pub fn get_derive_by_name(&self, name: &str) -> &dyn Derive {
         self.get_derive(self.get_derive_id_by_name(name))
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum AttrTarget {
+    Derive(DeriveId),
+    Generator(GeneratorId),
+}
+
+impl AttrTarget {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Derive(id) => DERIVES[id].trait_name(),
+            Self::Generator(_id) => "Unknown generator", // TODO
+        }
+    }
+}
+
+pub trait Runner {
+    #[expect(dead_code)]
+    fn verb(&self) -> &'static str;
+
+    #[expect(dead_code)]
+    fn name(&self) -> &'static str;
+
+    #[expect(dead_code)]
+    fn file_path(&self) -> &'static str;
+
+    #[expect(dead_code)]
+    fn run(&mut self, ctx: &Schema, codegen: &Codegen) -> Result<Vec<Output>>;
 }
