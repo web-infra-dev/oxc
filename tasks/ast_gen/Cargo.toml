@@ -1,0 +1,28 @@
+[package]
+name = "oxc_ast_gen"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "oxc_ast_gen"
+test = false
+doctest = false
+
+[dependencies]
+bpaf = { workspace = true, features = ["autocomplete", "bright-color", "derive"] }
+convert_case = { workspace = true }
+cow-utils = { workspace = true }
+indexmap = { workspace = true }
+itertools = { workspace = true }
+lazy_static = { workspace = true }
+prettyplease = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+regex = { workspace = true }
+rustc-hash = { workspace = true }
+syn = { workspace = true, features = ["clone-impls", "derive", "extra-traits", "full", "parsing", "printing", "proc-macro"] }

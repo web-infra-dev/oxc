@@ -1609,6 +1609,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxc_ast_gen"
+version = "0.0.0"
+dependencies = [
+ "bpaf",
+ "convert_case 0.7.1",
+ "cow-utils",
+ "indexmap",
+ "itertools",
+ "lazy_static",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "syn",
+]
+
+[[package]]
 name = "oxc_ast_macros"
 version = "0.48.1"
 dependencies = [
