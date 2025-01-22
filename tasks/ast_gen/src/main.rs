@@ -74,7 +74,16 @@ fn main() {
 
     // Parse inputs and generate `Schema`
     let codegen = Codegen::new();
-    let schema = analyse::analyse(SOURCE_PATHS, &codegen);
+    let mut schema = analyse::analyse(SOURCE_PATHS, &codegen);
+
+    // Run modify actions
+    for runner in GENERATORS {
+        runner.modify(&mut schema);
+    }
+
+    for runner in DERIVES {
+        runner.modify(&mut schema);
+    }
 
     // Run generators
     let mut outputs = vec![];
