@@ -143,12 +143,9 @@ pub trait Runner {
     #[expect(dead_code)]
     fn verb(&self) -> &'static str;
 
-    #[expect(dead_code)]
     fn name(&self) -> &'static str;
 
-    #[expect(dead_code)]
     fn file_path(&self) -> &'static str;
 
-    #[expect(dead_code)]
     fn run(&self, ctx: &Schema, codegen: &Codegen) -> Result<Vec<Output>>;
 }

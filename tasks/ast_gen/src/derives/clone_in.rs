@@ -28,6 +28,8 @@ impl Derive for DeriveCloneIn {
     }
 
     fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
-        quote!()
+        quote! {
+            const TODO: u64 = 123;
+        }
     }
 }

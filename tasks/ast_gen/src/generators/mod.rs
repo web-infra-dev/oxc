@@ -1,4 +1,4 @@
-use crate::{output::Output, Result, Schema};
+use crate::{output::Output, Result, Runner, Schema};
 
 mod assert_layouts;
 mod ast_builder;
@@ -14,7 +14,7 @@ pub use get_id::GetIdGenerator;
 pub use typescript::TypescriptGenerator;
 pub use visit::{VisitGenerator, VisitMutGenerator};
 
-pub trait Generator {
+pub trait Generator: Runner {
     // Methods which can/must be defined by implementer.
 
     /// Attributes on types that this derive uses.

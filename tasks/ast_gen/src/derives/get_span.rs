@@ -28,7 +28,9 @@ impl Derive for DeriveGetSpan {
     }
 
     fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
-        quote!()
+        quote! {
+            const TODO: u64 = 123;
+        }
     }
 }
 
@@ -51,6 +53,8 @@ impl Derive for DeriveGetSpanMut {
     }
 
     fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
-        quote!()
+        quote! {
+            const TODO: u64 = 123;
+        }
     }
 }

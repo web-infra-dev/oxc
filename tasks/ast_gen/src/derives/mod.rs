@@ -8,7 +8,7 @@ use syn::{parse_str, ItemUse};
 use crate::{
     output::{output_path, Output},
     schema::{Schema, TypeDef},
-    Codegen, Result,
+    Codegen, Result, Runner,
 };
 
 mod clone_in;
@@ -23,7 +23,7 @@ pub use estree::DeriveESTree;
 pub use get_address::DeriveGetAddress;
 pub use get_span::{DeriveGetSpan, DeriveGetSpanMut};
 
-pub trait Derive {
+pub trait Derive: Runner {
     // Methods which can/must be defined by implementer.
 
     /// Get trait name.

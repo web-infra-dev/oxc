@@ -12,7 +12,7 @@ use codegen::{Codegen, Runner};
 use derives::Derive;
 use generators::Generator;
 use logger::{log, log_failed, log_result, log_success};
-use output::Output;
+use output::{Output, RawOutput};
 use schema::Schema;
 
 static SOURCE_PATHS: &[&str] = &[
@@ -30,7 +30,6 @@ static SOURCE_PATHS: &[&str] = &[
 
 const AST_CRATE: &str = "crates/oxc_ast";
 const TYPESCRIPT_PACKAGE: &str = "npm/oxc-types";
-#[expect(dead_code)]
 const GITHUB_WATCH_LIST_PATH: &str = ".github/.generated_ast_watch_list.yml";
 
 const DERIVES: &[&dyn Derive] = &[
@@ -58,31 +57,74 @@ type Result<R> = std::result::Result<R, String>;
 struct CliOptions {
     /// Runs all generators but won't write anything down.
     #[bpaf(switch)]
-    #[expect(dead_code)]
     dry_run: bool,
     /// Prints no logs.
     quiet: bool,
 }
 
 fn main() {
+    // Parse CLI options
     let cli_options = cli_options().run();
 
+    // Init logger
     if cli_options.quiet {
         logger::quiet();
     }
 
+    // Parse inputs and generate `Schema`
     let codegen = Codegen::new();
     let schema = analyse::analyse(SOURCE_PATHS, &codegen);
 
+    // Run generators
     let mut outputs = vec![];
 
-    for generator in GENERATORS {
-        let this_outputs = generator.output(&schema).unwrap();
-        outputs.extend(this_outputs);
+    for runner in GENERATORS {
+        log!("Generate {}... ", runner.name());
+        let result = runner.run(&schema, &codegen);
+        log_result!(result);
+        let runner_outputs = result.unwrap();
+        let runner_path = runner.file_path();
+        outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
 
-    for generator in DERIVES {
-        let this_outputs = generator.output(&schema, &codegen).unwrap();
-        outputs.extend(this_outputs);
+    for runner in DERIVES {
+        log!("Derive {}... ", runner.name());
+        let result = runner.run(&schema, &codegen);
+        log_result!(result);
+        let runner_outputs = result.unwrap();
+        let runner_path = runner.file_path();
+        outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
+
+    // Add CI filter file to outputs
+    outputs.push(generate_ci_filter(&outputs));
+
+    // Write outputs to disk
+    if !cli_options.dry_run {
+        for output in outputs {
+            output.write_to_file().unwrap();
+        }
+    }
+}
+
+fn generate_ci_filter(outputs: &[RawOutput]) -> RawOutput {
+    log!("Generate CI filter... ");
+
+    let mut code = "src:\n".to_string();
+    let mut push_item = |path: &str| code.push_str(format!("  - '{path}'\n").as_str());
+
+    for input in SOURCE_PATHS {
+        push_item(input);
+    }
+
+    for output in outputs {
+        push_item(output.path.as_str());
+    }
+
+    push_item("tasks/ast_tools/src/**");
+    push_item(GITHUB_WATCH_LIST_PATH);
+
+    log_success!();
+
+    Output::Yaml { path: GITHUB_WATCH_LIST_PATH.to_string(), code }.into_raw(file!())
 }

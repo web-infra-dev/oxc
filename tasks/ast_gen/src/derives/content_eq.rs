@@ -25,6 +25,8 @@ impl Derive for DeriveContentEq {
     }
 
     fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
-        quote!()
+        quote! {
+            const TODO: u64 = 123;
+        }
     }
 }
