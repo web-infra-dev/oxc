@@ -8,7 +8,7 @@ use quote::{format_ident, quote};
 
 use crate::{
     output::{output_path, Output},
-    schema::{Schema, TypeDef},
+    schema::{Def, Schema, TypeDef},
     Generator,
 };
 
@@ -38,7 +38,7 @@ impl Generator for GetIdGenerator {
 fn generate_for_type(def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
     let TypeDef::Struct(def) = def else { return None };
 
-    let struct_name = def.name.as_str();
+    let struct_name = def.name();
 
     let methods = def
         .fields
@@ -100,11 +100,10 @@ fn generate_for_type(def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
         return None;
     }
 
-    let struct_typ = def.typ_anonymous();
-
+    let struct_ty = def.ty_anon(schema);
     Some(quote! {
         ///@@line_break
-        impl #struct_typ {
+        impl #struct_ty {
             #(#methods)*
         }
     })

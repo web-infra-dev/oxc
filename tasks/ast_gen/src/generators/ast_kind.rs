@@ -4,7 +4,7 @@ use syn::LitInt;
 
 use crate::{
     output::{output_path, Output},
-    schema::Schema,
+    schema::{Def, Schema},
     Generator,
 };
 
@@ -93,12 +93,12 @@ impl Generator for AstKindGenerator {
             }
 
             let type_ident = def.ident();
-            let type_typ = def.typ(schema);
+            let type_ty = def.ty(schema);
 
             let index = u8::try_from(next_index).unwrap();
             let index = LitInt::new(&index.to_string(), Span::call_site());
             type_variants.push(quote!( #type_ident = #index ));
-            kind_variants.push(quote!( #type_ident(&'a #type_typ) = AstType::#type_ident as u8 ));
+            kind_variants.push(quote!( #type_ident(&'a #type_ty) = AstType::#type_ident as u8 ));
 
             span_match_arms.push(quote!( Self::#type_ident(it) => it.span() ));
 
@@ -106,7 +106,7 @@ impl Generator for AstKindGenerator {
             as_methods.push(quote! {
                 ///@@line_break
                 #[inline]
-                pub fn #as_method_name(self) -> Option<&'a #type_typ> {
+                pub fn #as_method_name(self) -> Option<&'a #type_ty> {
                     if let Self::#type_ident(v) = self {
                         Some(v)
                     } else {

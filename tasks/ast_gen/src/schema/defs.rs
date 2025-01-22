@@ -11,6 +11,67 @@ use super::{DeriveId, Derives, FileId, TypeId};
 
 pub type Discriminant = u8;
 
+/// Trait for type defs.
+pub trait Def {
+    /// Get type name.
+    fn name(&self) -> &str;
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, schema: &Schema) -> bool;
+
+    /// Get type name in snake case.
+    fn snake_name(&self) -> String {
+        self.name().to_case(Case::Snake)
+    }
+
+    /// Get type name as an `Ident`.
+    fn ident(&self) -> Ident {
+        create_ident(self.name())
+    }
+
+    /// Get type signature (including lifetimes).
+    fn ty(&self, schema: &Schema) -> TokenStream {
+        self.ty_with_lifetime(schema, false)
+    }
+
+    /// Get type signature (including anonymous lifetimes).
+    fn ty_anon(&self, schema: &Schema) -> TokenStream {
+        self.ty_with_lifetime(schema, true)
+    }
+
+    /// Get type signature (including lifetimes).
+    /// Lifetimes are anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream;
+
+    /// Get lifetime (if type has one).
+    /// Lifetime is anonymous (`'_`) if `anon` is true.
+    fn lifetime_maybe_anon(&self, schema: &Schema, anon: bool) -> TokenStream {
+        if anon {
+            self.lifetime_anon(schema)
+        } else {
+            self.lifetime(schema)
+        }
+    }
+
+    /// Get lifetime (if type has one).
+    fn lifetime(&self, schema: &Schema) -> TokenStream {
+        if self.has_lifetime(schema) {
+            quote!( <'a> )
+        } else {
+            TokenStream::new()
+        }
+    }
+
+    /// Get anonymous lifetime (if type has one).
+    fn lifetime_anon(&self, schema: &Schema) -> TokenStream {
+        if self.has_lifetime(schema) {
+            quote!( <'_> )
+        } else {
+            TokenStream::new()
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum TypeDef {
     Struct(StructDef),
@@ -22,74 +83,48 @@ pub enum TypeDef {
     Cell(CellDef),
 }
 
-impl TypeDef {
+impl Def for TypeDef {
     /// Get type name.
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         match self {
-            TypeDef::Struct(def) => &def.name,
-            TypeDef::Enum(def) => &def.name,
-            TypeDef::Primitive(def) => def.name,
-            TypeDef::Option(def) => &def.name,
-            TypeDef::Box(def) => &def.name,
-            TypeDef::Vec(def) => &def.name,
-            TypeDef::Cell(def) => &def.name,
+            TypeDef::Struct(def) => def.name(),
+            TypeDef::Enum(def) => def.name(),
+            TypeDef::Primitive(def) => def.name(),
+            TypeDef::Option(def) => def.name(),
+            TypeDef::Box(def) => def.name(),
+            TypeDef::Vec(def) => def.name(),
+            TypeDef::Cell(def) => def.name(),
         }
     }
 
-    /// Get type name in snake case.
-    pub fn snake_name(&self) -> String {
-        self.name().to_case(Case::Snake)
-    }
-
-    /// Get type name as an `Ident`.
-    pub fn ident(&self) -> Ident {
-        create_ident(self.name())
-    }
-
-    /// Get type definition (including lifetimes).
-    pub fn typ(&self, schema: &Schema) -> TokenStream {
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, schema: &Schema) -> bool {
         match self {
-            TypeDef::Struct(_) | TypeDef::Enum(_) | TypeDef::Primitive(_) => {
-                let ident = self.ident();
-                if self.has_lifetime() {
-                    quote!( #ident<'a> )
-                } else {
-                    quote!( #ident )
-                }
-            }
-            TypeDef::Option(def) => {
-                let inner_type = schema.def(def.inner_type_id).typ(schema);
-                quote!( Option<#inner_type> )
-            }
-            TypeDef::Box(def) => {
-                let inner_type = schema.def(def.inner_type_id).typ(schema);
-                quote!( Box<'a, #inner_type> )
-            }
-            TypeDef::Vec(def) => {
-                let inner_type = schema.def(def.inner_type_id).typ(schema);
-                quote!( Vec<'a, #inner_type> )
-            }
-            TypeDef::Cell(def) => {
-                let inner_type = schema.def(def.inner_type_id).typ(schema);
-                quote!( Cell<'a, #inner_type> )
-            }
+            TypeDef::Struct(def) => def.has_lifetime(schema),
+            TypeDef::Enum(def) => def.has_lifetime(schema),
+            TypeDef::Primitive(def) => def.has_lifetime(schema),
+            TypeDef::Option(def) => def.has_lifetime(schema),
+            TypeDef::Box(def) => def.has_lifetime(schema),
+            TypeDef::Vec(def) => def.has_lifetime(schema),
+            TypeDef::Cell(def) => def.has_lifetime(schema),
         }
     }
 
-    /// Get if has lifetime.
-    pub fn has_lifetime(&self) -> bool {
-        #[expect(clippy::match_same_arms)]
+    /// Get type signature (including anonymous lifetimes).
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
         match self {
-            TypeDef::Struct(def) => def.has_lifetime,
-            TypeDef::Enum(def) => def.has_lifetime,
-            TypeDef::Primitive(_) => false, // TODO
-            TypeDef::Option(_) => false,    // TODO
-            TypeDef::Box(_) => true,
-            TypeDef::Vec(_) => true,
-            TypeDef::Cell(_) => false, // TODO
+            TypeDef::Struct(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Enum(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Primitive(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Option(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Box(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Vec(def) => def.ty_with_lifetime(schema, anon),
+            TypeDef::Cell(def) => def.ty_with_lifetime(schema, anon),
         }
     }
+}
 
+impl TypeDef {
     /// Get `FileId`.
     pub fn file_id(&self) -> Option<FileId> {
         match self {
@@ -136,35 +171,23 @@ pub struct StructDef {
     pub is_visitable: bool,
 }
 
-impl StructDef {
+impl Def for StructDef {
     /// Get type name.
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         &self.name
     }
 
-    /// Get type name as an `Ident`.
-    pub fn ident(&self) -> Ident {
-        create_ident(&self.name)
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, _schema: &Schema) -> bool {
+        self.has_lifetime
     }
 
-    /// Get type definition (including lifetimes).
-    pub fn typ(&self) -> TokenStream {
+    /// Get type signature (including lifetime).
+    /// Lifetime is anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
         let ident = self.ident();
-        if self.has_lifetime {
-            quote!( #ident<'a> )
-        } else {
-            quote!( #ident )
-        }
-    }
-
-    /// Get type definition (including anonymous lifetimes).
-    pub fn typ_anonymous(&self) -> TokenStream {
-        let ident = self.ident();
-        if self.has_lifetime {
-            quote!( #ident<'_> )
-        } else {
-            quote!( #ident )
-        }
+        let lifetime = self.lifetime_maybe_anon(schema, anon);
+        quote!( #ident #lifetime )
     }
 }
 
@@ -181,35 +204,23 @@ pub struct EnumDef {
     pub is_visitable: bool,
 }
 
-impl EnumDef {
+impl Def for EnumDef {
     /// Get type name.
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         &self.name
     }
 
-    /// Get type name as an `Ident`.
-    pub fn ident(&self) -> Ident {
-        create_ident(&self.name)
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, _schema: &Schema) -> bool {
+        self.has_lifetime
     }
 
-    /// Get type definition (including lifetimes).
-    pub fn typ(&self) -> TokenStream {
+    /// Get type signature (including lifetime).
+    /// Lifetime is anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
         let ident = self.ident();
-        if self.has_lifetime {
-            quote!( #ident<'a> )
-        } else {
-            quote!( #ident )
-        }
-    }
-
-    /// Get type definition (including anonymous lifetimes).
-    pub fn typ_anonymous(&self) -> TokenStream {
-        let ident = self.ident();
-        if self.has_lifetime {
-            quote!( #ident<'_> )
-        } else {
-            quote!( #ident )
-        }
+        let lifetime = self.lifetime_maybe_anon(schema, anon);
+        quote!( #ident #lifetime )
     }
 }
 
@@ -218,6 +229,13 @@ pub struct VariantDef {
     pub name: String,
     pub fields: Vec<FieldDef>,
     pub discriminant: Discriminant,
+}
+
+impl VariantDef {
+    /// Get variant name as an `Ident`.
+    pub fn ident(&self) -> Ident {
+        create_ident(&self.name)
+    }
 }
 
 #[derive(Debug)]
@@ -244,10 +262,49 @@ pub struct PrimitiveDef {
     pub name: &'static str,
 }
 
+impl Def for PrimitiveDef {
+    /// Get type name.
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, _schema: &Schema) -> bool {
+        false
+    }
+
+    /// Get type signature.
+    fn ty_with_lifetime(&self, _schema: &Schema, _anon: bool) -> TokenStream {
+        let ident = self.ident();
+        quote!( #ident )
+    }
+}
+
 #[derive(Debug)]
 pub struct OptionDef {
     pub name: String,
     pub inner_type_id: TypeId,
+}
+
+impl Def for OptionDef {
+    /// Get type name.
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, schema: &Schema) -> bool {
+        let inner_type = schema.def(self.inner_type_id);
+        inner_type.has_lifetime(schema)
+    }
+
+    /// Get type signature (including lifetimes).
+    /// Lifetimes are anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
+        let inner_type = schema.def(self.inner_type_id);
+        let inner_ty = inner_type.ty_with_lifetime(schema, anon);
+        quote!( Option<#inner_ty> )
+    }
 }
 
 #[derive(Debug)]
@@ -256,14 +313,78 @@ pub struct BoxDef {
     pub inner_type_id: TypeId,
 }
 
+impl Def for BoxDef {
+    /// Get type name.
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, _schema: &Schema) -> bool {
+        true
+    }
+
+    /// Get type signature (including lifetimes).
+    /// Lifetimes are anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
+        let inner_type = schema.def(self.inner_type_id);
+        let inner_ty = inner_type.ty_with_lifetime(schema, anon);
+        let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
+        quote!( Box<#lifetime, #inner_ty> )
+    }
+}
+
 #[derive(Debug)]
 pub struct VecDef {
     pub name: String,
     pub inner_type_id: TypeId,
 }
 
+impl Def for VecDef {
+    /// Get type name.
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, _schema: &Schema) -> bool {
+        true
+    }
+
+    /// Get type signature (including lifetimes).
+    /// Lifetimes are anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
+        let inner_type = schema.def(self.inner_type_id);
+        let inner_ty = inner_type.ty_with_lifetime(schema, anon);
+        let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
+        quote!( Vec<#lifetime, #inner_ty> )
+    }
+}
+
 #[derive(Debug)]
 pub struct CellDef {
     pub name: String,
     pub inner_type_id: TypeId,
+}
+
+impl Def for CellDef {
+    /// Get type name.
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get if type has a lifetime.
+    fn has_lifetime(&self, schema: &Schema) -> bool {
+        let inner_type = schema.def(self.inner_type_id);
+        inner_type.has_lifetime(schema)
+    }
+
+    /// Get type signature (including lifetimes).
+    /// Lifetimes are anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
+        let inner_type = schema.def(self.inner_type_id);
+        let inner_ty = inner_type.ty_with_lifetime(schema, anon);
+        let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
+        quote!( Vec<#lifetime, #inner_ty> )
+    }
 }
