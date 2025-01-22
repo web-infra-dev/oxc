@@ -80,7 +80,7 @@ fn main() {
     let mut outputs = vec![];
 
     for runner in GENERATORS {
-        if runner.name() != "GetIdGenerator" {
+        if !["GetIdGenerator", "AstKindGenerator"].contains(&runner.name()) {
             continue;
         }
 
