@@ -2,14 +2,14 @@
 
 use std::mem;
 
-use oxc_allocator::{CloneIn, Vec as ArenaVec};
+use oxc_allocator::{Address, CloneIn, GetAddress, Vec as ArenaVec};
 use oxc_ast::{ast::*, NONE};
 use oxc_semantic::ReferenceFlags;
 use oxc_span::SPAN;
 use oxc_syntax::operator::{AssignmentOperator, BinaryOperator};
-use oxc_traverse::{BoundIdentifier, Traverse, TraverseCtx};
+use oxc_traverse::{Ancestor, BoundIdentifier, Traverse, TraverseCtx};
 
-use crate::TransformCtx;
+use crate::{Helper, TransformCtx};
 
 pub struct LegacyDecorators<'a, 'ctx> {
     ctx: &'ctx TransformCtx<'a>,
@@ -34,13 +34,13 @@ impl<'a> LegacyDecorators<'a, '_> {
         let (class_or_constructor_parameter_is_decorated, child_is_decorated) =
             self.check_class_decorators(class);
 
-        if class_or_constructor_parameter_is_decorated {
-            self.transform_class_declaration_with_class_decorators(class, ctx);
-        }
-
-        // if child_is_decorated {
-        //     self.transform_class_child(class, ctx);
+        // if class_or_constructor_parameter_is_decorated {
+        //     self.transform_class_declaration_with_class_decorators(class, ctx);
         // }
+
+        if child_is_decorated {
+            self.transform_class_declaration_without_class_decorators(class, ctx);
+        }
     }
 
     /// Transforms a decorated class declaration and appends the resulting statements. If
@@ -144,32 +144,112 @@ impl<'a> LegacyDecorators<'a, '_> {
         ctx: &mut TraverseCtx<'a>,
     ) {
         // If the class declaration
+        let statements = self.transform_decorators_of_class_elements(class, ctx);
+        // Insert statements after class
+        let stmt_address = match ctx.parent() {
+            parent @ (Ancestor::ExportDefaultDeclarationDeclaration(_)
+            | Ancestor::ExportNamedDeclarationDeclaration(_)) => parent.address(),
+            // `Class` is always stored in a `Box`, so has a stable memory location
+            _ => Address::from_ptr(class),
+        };
+        self.ctx.statement_injector.insert_many_after(&stmt_address, statements);
     }
 
     fn transform_decorators_of_class_elements(
         &self,
         class: &mut Class<'a>,
         ctx: &mut TraverseCtx<'a>,
-    ) {
-        let mut decoration_statements = vec![];
-        let mut static_decoration_statements = vec![];
+    ) -> ArenaVec<'a, Statement<'a>> {
+        let mut decoration_statements = ctx.ast.vec_with_capacity(class.body.body.len());
+        let mut static_decoration_statements = Vec::with_capacity(class.body.body.len());
 
         for element in &mut class.body.body {
-            match element {
-                ClassElement::MethodDefinition(method) => {
-                    self.transform_decorators(&mut method.decorators);
-                    self.transform_decorators_of_parameters(&mut method.value.params);
-                }
-                ClassElement::PropertyDefinition(prop) => {
-                    self.transform_decorators_of_property_definition(&mut prop.value);
-                }
-                _ => {}
+            let (is_static, elements) =
+                match element {
+                    ClassElement::MethodDefinition(method) => {
+                        let decoration_count = method.decorators.len();
+                        let params = &mut method.value.params;
+                        let param_decoration_count =
+                            params.items.iter().fold(0, |acc, param| acc + param.decorators.len());
+                        let decoration_count = decoration_count + param_decoration_count;
+
+                        if decoration_count == 0 {
+                            continue;
+                        }
+
+                        let mut elements = ctx.ast.vec_with_capacity(decoration_count);
+                        elements.extend(
+                            method.decorators.drain(..).map(|decorator| {
+                                ArrayExpressionElement::from(decorator.expression)
+                            }),
+                        );
+
+                        if param_decoration_count > 0 {
+                            self.transform_decorators_of_parameters(
+                                &mut elements,
+                                &mut method.value.params,
+                                ctx,
+                            );
+                        }
+
+                        (method.r#static, elements)
+                    }
+                    ClassElement::PropertyDefinition(prop) if !prop.decorators.is_empty() => {
+                        let elements =
+                            ctx.ast.vec_from_iter(prop.decorators.drain(..).map(|decorator| {
+                                ArrayExpressionElement::from(decorator.expression)
+                            }));
+                        (prop.r#static, elements)
+                    }
+                    _ => {
+                        continue;
+                    }
+                };
+            let array = ctx.ast.expression_array(SPAN, elements, None);
+            let arguments = ctx.ast.vec1(Argument::from(array));
+            let helper = self.ctx.helper_call_expr(Helper::Decorator, SPAN, arguments, ctx);
+            let decoration_statement = ctx.ast.statement_expression(SPAN, helper);
+
+            if is_static {
+                static_decoration_statements.push(decoration_statement);
+            } else {
+                decoration_statements.push(decoration_statement);
             }
         }
+
+        decoration_statements.extend(static_decoration_statements);
+        decoration_statements
     }
 
-    fn transform_decorators(&self, decorators: &mut ArenaVec<'a, Decorator<'a>>) {}
-    fn transform_decorators_of_parameters(&self, params: &mut FormalParameters<'a>) {}
+    fn transform_decorators_of_parameters(
+        &self,
+        elements: &mut ArenaVec<'a, ArrayExpressionElement<'a>>,
+        params: &mut FormalParameters<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        for (index, param) in &mut params.items.iter_mut().enumerate() {
+            if param.decorators.is_empty() {
+                continue;
+            }
+            elements.extend(param.decorators.drain(..).map(|decorator| {
+                let arguments = ctx.ast.vec_from_array([
+                    Argument::from(ctx.ast.expression_numeric_literal(
+                        SPAN,
+                        index as f64,
+                        None,
+                        NumberBase::Decimal,
+                    )),
+                    Argument::from(decorator.expression),
+                ]);
+                ArrayExpressionElement::from(self.ctx.helper_call_expr(
+                    Helper::DecoratorParam,
+                    decorator.span,
+                    arguments,
+                    ctx,
+                ))
+            }));
+        }
+    }
 
     fn check_class_decorators(&self, class: &Class<'a>) -> (bool, bool) {
         let mut class_or_constructor_parameter_is_decorated = !class.decorators.is_empty();
