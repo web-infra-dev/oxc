@@ -18,7 +18,7 @@ pub struct GetIdGenerator;
 define_generator!(GetIdGenerator);
 
 impl Generator for GetIdGenerator {
-    fn generate(&mut self, _schema: &Schema) -> Output {
+    fn generate(&self, _schema: &Schema) -> Output {
         Output::Rust { path: output_path(crate::AST_CRATE, "get_id.rs"), tokens: quote!() }
     }
 }

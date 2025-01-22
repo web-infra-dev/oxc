@@ -33,11 +33,11 @@ pub trait Generator {
     }
 
     /// Generate output.
-    fn generate(&mut self, schema: &Schema) -> Output;
+    fn generate(&self, schema: &Schema) -> Output;
 
     // Standard methods. Should not be overriden.
 
-    fn output(&mut self, schema: &Schema) -> Result<Vec<Output>> {
+    fn output(&self, schema: &Schema) -> Result<Vec<Output>> {
         Ok(vec![self.generate(schema)])
     }
 }
@@ -65,7 +65,7 @@ macro_rules! define_generator {
                     file!()
                 }
 
-                fn run(&mut self, schema: &Schema, _codegen: &Codegen) -> Result<Vec<Output>> {
+                fn run(&self, schema: &Schema, _codegen: &Codegen) -> Result<Vec<Output>> {
                     self.output(schema)
                 }
             }

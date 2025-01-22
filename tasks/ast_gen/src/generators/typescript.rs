@@ -17,7 +17,7 @@ impl Generator for TypescriptGenerator {
         &["ts"]
     }
 
-    fn generate(&mut self, _schema: &Schema) -> Output {
+    fn generate(&self, _schema: &Schema) -> Output {
         Output::Javascript {
             path: format!("{}/types.d.ts", crate::TYPESCRIPT_PACKAGE),
             code: String::new(),

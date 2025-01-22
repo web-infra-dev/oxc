@@ -35,7 +35,7 @@ impl Derive for DeriveESTree {
         }
     }
 
-    fn derive(&mut self, _def: &TypeDef, _: &Schema) -> TokenStream {
+    fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
         quote!()
     }
 }

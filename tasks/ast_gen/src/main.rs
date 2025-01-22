@@ -72,5 +72,17 @@ fn main() {
     }
 
     let codegen = Codegen::new();
-    let _schema = analyse::analyse(SOURCE_PATHS, &codegen);
+    let schema = analyse::analyse(SOURCE_PATHS, &codegen);
+
+    let mut outputs = vec![];
+
+    for generator in GENERATORS {
+        let this_outputs = generator.output(&schema).unwrap();
+        outputs.extend(this_outputs);
+    }
+
+    for generator in DERIVES {
+        let this_outputs = generator.output(&schema, &codegen).unwrap();
+        outputs.extend(this_outputs);
+    }
 }

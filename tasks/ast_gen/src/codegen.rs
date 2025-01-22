@@ -150,5 +150,5 @@ pub trait Runner {
     fn file_path(&self) -> &'static str;
 
     #[expect(dead_code)]
-    fn run(&mut self, ctx: &Schema, codegen: &Codegen) -> Result<Vec<Output>>;
+    fn run(&self, ctx: &Schema, codegen: &Codegen) -> Result<Vec<Output>>;
 }

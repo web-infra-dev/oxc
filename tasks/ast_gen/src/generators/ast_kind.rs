@@ -13,7 +13,7 @@ pub struct AstKindGenerator;
 define_generator!(AstKindGenerator);
 
 impl Generator for AstKindGenerator {
-    fn generate(&mut self, _schema: &Schema) -> Output {
+    fn generate(&self, _schema: &Schema) -> Output {
         Output::Rust { path: output_path(crate::AST_CRATE, "ast_kind.rs"), tokens: quote!() }
     }
 }

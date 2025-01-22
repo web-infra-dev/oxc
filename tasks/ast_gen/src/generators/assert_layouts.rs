@@ -13,7 +13,7 @@ pub struct AssertLayouts;
 define_generator!(AssertLayouts);
 
 impl Generator for AssertLayouts {
-    fn generate(&mut self, _schema: &Schema) -> Output {
+    fn generate(&self, _schema: &Schema) -> Output {
         Output::Rust { path: output_path(crate::AST_CRATE, "assert_layouts.rs"), tokens: quote!() }
     }
 }

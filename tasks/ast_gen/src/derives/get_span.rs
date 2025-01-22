@@ -27,7 +27,7 @@ impl Derive for DeriveGetSpan {
         }
     }
 
-    fn derive(&mut self, _def: &TypeDef, _: &Schema) -> TokenStream {
+    fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
         quote!()
     }
 }
@@ -50,7 +50,7 @@ impl Derive for DeriveGetSpanMut {
         }
     }
 
-    fn derive(&mut self, _def: &TypeDef, _: &Schema) -> TokenStream {
+    fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
         quote!()
     }
 }

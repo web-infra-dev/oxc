@@ -23,7 +23,7 @@ pub use estree::DeriveESTree;
 pub use get_address::DeriveGetAddress;
 pub use get_span::{DeriveGetSpan, DeriveGetSpanMut};
 
-pub trait Derive: Sync {
+pub trait Derive {
     // Methods which can/must be defined by implementer.
 
     /// Get trait name.
@@ -61,7 +61,7 @@ pub trait Derive: Sync {
     }
 
     /// Generate trait implementation for a type.
-    fn derive(&mut self, def: &TypeDef, schema: &Schema) -> TokenStream;
+    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream;
 
     // Standard methods. Should not be overriden.
 
@@ -93,7 +93,7 @@ pub trait Derive: Sync {
         }
     }
 
-    fn output(&mut self, schema: &Schema, codegen: &Codegen) -> Result<Vec<Output>> {
+    fn output(&self, schema: &Schema, codegen: &Codegen) -> Result<Vec<Output>> {
         let trait_name = self.trait_name();
         let filename = format!("derive_{}.rs", self.snake_name());
 
@@ -161,7 +161,7 @@ macro_rules! define_derive {
                     file!()
                 }
 
-                fn run(&mut self, schema: &Schema, codegen: &Codegen) -> Result<Vec<Output>> {
+                fn run(&self, schema: &Schema, codegen: &Codegen) -> Result<Vec<Output>> {
                     self.output(schema, codegen)
                 }
             }
