@@ -270,7 +270,7 @@ impl<'a> LegacyDecorators<'a, '_> {
                 }
                 _ => {}
             }
-            if class_or_constructor_parameter_is_decorated && child_is_decorated {
+            if class_or_constructor_parameter_is_decorated {
                 break;
             }
         }
