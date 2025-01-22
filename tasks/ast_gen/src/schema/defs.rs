@@ -1,6 +1,11 @@
 #![expect(dead_code)]
 
-use syn::{ItemEnum, ItemStruct};
+use convert_case::{Case, Casing};
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Ident, ItemEnum, ItemStruct};
+
+use crate::{utils::create_ident, Schema};
 
 use super::{DeriveId, Derives, FileId, TypeId};
 
@@ -28,6 +33,46 @@ impl TypeDef {
             TypeDef::Box(def) => &def.name,
             TypeDef::Vec(def) => &def.name,
             TypeDef::Cell(def) => &def.name,
+        }
+    }
+
+    /// Get type name in snake case.
+    pub fn snake_name(&self) -> String {
+        self.name().to_case(Case::Snake)
+    }
+
+    /// Get type name as an `Ident`.
+    pub fn ident(&self) -> Ident {
+        create_ident(self.name())
+    }
+
+    /// Get type definition (including lifetimes).
+    pub fn typ(&self, schema: &Schema) -> TokenStream {
+        match self {
+            TypeDef::Struct(_) | TypeDef::Enum(_) | TypeDef::Primitive(_) => {
+                let ident = self.ident();
+                if self.has_lifetime() {
+                    quote!( #ident<'a> )
+                } else {
+                    quote!( #ident )
+                }
+            }
+            TypeDef::Option(def) => {
+                let inner_type = schema.def(def.inner_type_id).typ(schema);
+                quote!( Option<#inner_type> )
+            }
+            TypeDef::Box(def) => {
+                let inner_type = schema.def(def.inner_type_id).typ(schema);
+                quote!( Box<'a, #inner_type> )
+            }
+            TypeDef::Vec(def) => {
+                let inner_type = schema.def(def.inner_type_id).typ(schema);
+                quote!( Vec<'a, #inner_type> )
+            }
+            TypeDef::Cell(def) => {
+                let inner_type = schema.def(def.inner_type_id).typ(schema);
+                quote!( Cell<'a, #inner_type> )
+            }
         }
     }
 

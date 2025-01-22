@@ -7,6 +7,7 @@ mod generators;
 mod logger;
 mod output;
 mod schema;
+mod utils;
 
 use codegen::{Codegen, Runner};
 use derives::Derive;
@@ -79,6 +80,10 @@ fn main() {
     let mut outputs = vec![];
 
     for runner in GENERATORS {
+        if runner.name() != "AstKindGenerator" {
+            continue;
+        }
+
         log!("Generate {}... ", runner.name());
         let result = runner.run(&schema, &codegen);
         log_result!(result);
@@ -87,6 +92,7 @@ fn main() {
         outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
 
+    /*
     for runner in DERIVES {
         log!("Derive {}... ", runner.name());
         let result = runner.run(&schema, &codegen);
@@ -95,6 +101,7 @@ fn main() {
         let runner_path = runner.file_path();
         outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
+    */
 
     // Add CI filter file to outputs
     outputs.push(generate_ci_filter(&outputs));

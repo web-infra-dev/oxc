@@ -13,7 +13,6 @@ pub struct Schema {
 }
 
 impl Schema {
-    #[expect(dead_code)]
     pub fn def(&self, type_id: TypeId) -> &TypeDef {
         &self.defs[type_id]
     }

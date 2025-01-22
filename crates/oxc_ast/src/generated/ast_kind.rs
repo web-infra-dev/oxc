@@ -1,5 +1,5 @@
 // Auto-generated code, DO NOT EDIT DIRECTLY!
-// To edit this generated file you have to edit `tasks/ast_tools/src/generators/ast_kind.rs`
+// To edit this generated file you have to edit `tasks/ast_gen/src/generators/ast_kind.rs`
 
 #![allow(missing_docs)]
 // FIXME (in ast_tools/src/generators/ast_kind.rs)
@@ -378,7 +378,6 @@ impl AstKind<'_> {
 }
 
 impl GetSpan for AstKind<'_> {
-    #[allow(clippy::match_same_arms)]
     fn span(&self) -> Span {
         match self {
             Self::BooleanLiteral(it) => it.span(),
