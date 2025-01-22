@@ -136,6 +136,38 @@ pub struct StructDef {
     pub is_visitable: bool,
 }
 
+impl StructDef {
+    /// Get type name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get type name as an `Ident`.
+    pub fn ident(&self) -> Ident {
+        create_ident(&self.name)
+    }
+
+    /// Get type definition (including lifetimes).
+    pub fn typ(&self) -> TokenStream {
+        let ident = self.ident();
+        if self.has_lifetime {
+            quote!( #ident<'a> )
+        } else {
+            quote!( #ident )
+        }
+    }
+
+    /// Get type definition (including anonymous lifetimes).
+    pub fn typ_anonymous(&self) -> TokenStream {
+        let ident = self.ident();
+        if self.has_lifetime {
+            quote!( #ident<'_> )
+        } else {
+            quote!( #ident )
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct EnumDef {
     pub name: String,
@@ -147,6 +179,38 @@ pub struct EnumDef {
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
     pub is_visitable: bool,
+}
+
+impl EnumDef {
+    /// Get type name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get type name as an `Ident`.
+    pub fn ident(&self) -> Ident {
+        create_ident(&self.name)
+    }
+
+    /// Get type definition (including lifetimes).
+    pub fn typ(&self) -> TokenStream {
+        let ident = self.ident();
+        if self.has_lifetime {
+            quote!( #ident<'a> )
+        } else {
+            quote!( #ident )
+        }
+    }
+
+    /// Get type definition (including anonymous lifetimes).
+    pub fn typ_anonymous(&self) -> TokenStream {
+        let ident = self.ident();
+        if self.has_lifetime {
+            quote!( #ident<'_> )
+        } else {
+            quote!( #ident )
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -161,6 +225,18 @@ pub struct FieldDef {
     /// `None` if unnamed field
     pub name: Option<String>,
     pub type_id: TypeId,
+}
+
+impl FieldDef {
+    /// Get field name as an `Ident`.
+    pub fn ident(&self) -> Option<Ident> {
+        self.name.as_ref().map(|name| create_ident(name))
+    }
+
+    /// Get field type.
+    pub fn def<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
+        schema.def(self.type_id)
+    }
 }
 
 #[derive(Debug)]

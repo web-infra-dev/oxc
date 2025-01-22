@@ -80,7 +80,7 @@ fn main() {
     let mut outputs = vec![];
 
     for runner in GENERATORS {
-        if runner.name() != "AstKindGenerator" {
+        if runner.name() != "GetIdGenerator" {
             continue;
         }
 
@@ -104,7 +104,7 @@ fn main() {
     */
 
     // Add CI filter file to outputs
-    outputs.push(generate_ci_filter(&outputs));
+    // outputs.push(generate_ci_filter(&outputs));
 
     // Write outputs to disk
     if !cli_options.dry_run {
@@ -114,6 +114,7 @@ fn main() {
     }
 }
 
+#[expect(dead_code)]
 fn generate_ci_filter(outputs: &[RawOutput]) -> RawOutput {
     log!("Generate CI filter... ");
 
