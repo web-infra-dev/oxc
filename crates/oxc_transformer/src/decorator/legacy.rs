@@ -1,8 +1,8 @@
 //! Typescript Experimental Decorator
 
 use oxc_allocator::{Address, GetAddress, Vec as ArenaVec};
-use oxc_ast::{ast::*, Visit};
-use oxc_semantic::SymbolFlags;
+use oxc_ast::{ast::*, Visit, VisitMut};
+use oxc_semantic::{SymbolFlags, SymbolId};
 use oxc_span::SPAN;
 use oxc_syntax::operator::AssignmentOperator;
 use oxc_traverse::{Ancestor, BoundIdentifier, Traverse, TraverseCtx};
@@ -35,11 +35,9 @@ impl<'a> LegacyDecorators<'a, '_> {
             has_private_in_expression_in_decorator,
         ) = self.check_class_decorators(class);
 
-        // if class_or_constructor_parameter_is_decorated {
-        //     self.transform_class_declaration_with_class_decorators(class, ctx);
-        // }
-
-        if child_is_decorated {
+        if class_or_constructor_parameter_is_decorated {
+            self.transform_class_declaration_with_class_decorators(class, ctx);
+        } else if child_is_decorated {
             self.transform_class_declaration_without_class_decorators(class, ctx);
         }
     }
@@ -47,7 +45,7 @@ impl<'a> LegacyDecorators<'a, '_> {
     /// Transforms a decorated class declaration and appends the resulting statements. If
     /// the class requires an alias to avoid issues with double-binding, the alias is returned.
     fn transform_class_declaration_with_class_decorators(
-        &self,
+        &mut self,
         class: &mut Class<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) {
@@ -136,6 +134,15 @@ impl<'a> LegacyDecorators<'a, '_> {
         //                                  | var C_1;
         //  ---------------------------------------------------------------------
         //
+
+        let Class { id, body, .. } = class;
+
+        let class_alias_binding = id.as_ref().and_then(|id| {
+            ClassReferenceChanger::new(BoundIdentifier::from_binding_ident(id), ctx, self.ctx)
+                .get_class_alias_if_needed(body)
+        });
+
+        let statements = self.transform_decorators_of_class_elements(class, ctx);
     }
 
     /// Transforms a non-decorated class declaration.
@@ -450,5 +457,65 @@ impl PrivateInExpressionDetector {
             detector.visit_decorators(&param.decorators);
             detector.has_private_in_expression
         })
+    }
+}
+
+/// Visitor to change references to the class to a local alias
+/// <https://github.com/microsoft/TypeScript/blob/8da951cbb629b648753454872df4e1754982aef1/src/compiler/transformers/legacyDecorators.ts#L770-L783>
+struct ClassReferenceChanger<'a, 'ctx> {
+    class_binding: BoundIdentifier<'a>,
+    // `Some` if there are references to the class inside the class body
+    class_alias_binding: Option<BoundIdentifier<'a>>,
+    ctx: &'ctx mut TraverseCtx<'a>,
+    transformer_ctx: &'ctx TransformCtx<'a>,
+}
+
+impl<'a, 'ctx> ClassReferenceChanger<'a, 'ctx> {
+    fn new(
+        class_binding: BoundIdentifier<'a>,
+        ctx: &'ctx mut TraverseCtx<'a>,
+        transformer_ctx: &'ctx TransformCtx<'a>,
+    ) -> Self {
+        Self { class_binding, class_alias_binding: None, ctx, transformer_ctx }
+    }
+
+    fn get_class_alias_if_needed(
+        mut self,
+        class: &mut ClassBody<'a>,
+    ) -> Option<BoundIdentifier<'a>> {
+        self.visit_class_body(class);
+        self.class_alias_binding
+    }
+}
+
+impl<'a> VisitMut<'a> for ClassReferenceChanger<'a, '_> {
+    #[inline]
+    fn visit_identifier_reference(&mut self, ident: &mut IdentifierReference<'a>) {
+        if self.is_class_reference(ident) {
+            *ident = self.get_alias_ident_reference();
+        }
+    }
+}
+
+impl<'a> ClassReferenceChanger<'a, '_> {
+    // Check if the identifier reference is a reference to the class
+    fn is_class_reference(&self, ident: &IdentifierReference<'a>) -> bool {
+        self.ctx
+            .symbols()
+            .get_reference(ident.reference_id())
+            .symbol_id()
+            .is_some_and(|symbol_id| self.class_binding.symbol_id == symbol_id)
+    }
+
+    fn get_alias_ident_reference(&mut self) -> IdentifierReference<'a> {
+        if self.class_alias_binding.is_none() {
+            self.class_alias_binding.replace(
+                self.transformer_ctx
+                    .var_declarations
+                    .create_uid_var(&self.class_binding.name, self.ctx),
+            );
+        }
+
+        self.class_alias_binding.as_ref().unwrap().create_read_reference(self.ctx)
     }
 }
