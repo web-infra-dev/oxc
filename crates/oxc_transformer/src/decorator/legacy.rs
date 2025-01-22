@@ -1,8 +1,8 @@
 //! Typescript Experimental Decorator
 
-use oxc_allocator::{Address, GetAddress, Vec as ArenaVec};
+use oxc_allocator::{Address, Box as ArenaBox, GetAddress, Vec as ArenaVec};
 use oxc_ast::{ast::*, Visit, VisitMut};
-use oxc_semantic::{SymbolFlags, SymbolId};
+use oxc_semantic::SymbolFlags;
 use oxc_span::SPAN;
 use oxc_syntax::operator::AssignmentOperator;
 use oxc_traverse::{Ancestor, BoundIdentifier, Traverse, TraverseCtx};
@@ -21,14 +21,16 @@ impl<'a, 'ctx> LegacyDecorators<'a, 'ctx> {
 
 impl<'a> Traverse<'a> for LegacyDecorators<'a, '_> {
     fn enter_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
-        if let Statement::ClassDeclaration(class) = stmt {
-            self.transform_class(class, ctx);
+        if matches!(stmt, Statement::ClassDeclaration(_)) {
+            self.transform_class(stmt, ctx);
         }
     }
 }
 
 impl<'a> LegacyDecorators<'a, '_> {
-    fn transform_class(&mut self, class: &mut Class<'a>, ctx: &mut TraverseCtx<'a>) {
+    fn transform_class(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
+        let Statement::ClassDeclaration(class) = stmt else { unreachable!() };
+
         let (
             class_or_constructor_parameter_is_decorated,
             child_is_decorated,
@@ -36,7 +38,10 @@ impl<'a> LegacyDecorators<'a, '_> {
         ) = self.check_class_decorators(class);
 
         if class_or_constructor_parameter_is_decorated {
-            self.transform_class_declaration_with_class_decorators(class, ctx);
+            let Statement::ClassDeclaration(class) = ctx.ast.move_statement(stmt) else {
+                unreachable!()
+            };
+            *stmt = self.transform_class_declaration_with_class_decorators(class, ctx);
         } else if child_is_decorated {
             self.transform_class_declaration_without_class_decorators(class, ctx);
         }
@@ -46,9 +51,9 @@ impl<'a> LegacyDecorators<'a, '_> {
     /// the class requires an alias to avoid issues with double-binding, the alias is returned.
     fn transform_class_declaration_with_class_decorators(
         &mut self,
-        class: &mut Class<'a>,
+        mut class: ArenaBox<'a, Class<'a>>,
         ctx: &mut TraverseCtx<'a>,
-    ) {
+    ) -> Statement<'a> {
         // When we emit an ES6 class that has a class decorator, we must tailor the
         // emit to certain specific cases.
         //
@@ -135,14 +140,42 @@ impl<'a> LegacyDecorators<'a, '_> {
         //  ---------------------------------------------------------------------
         //
 
-        let Class { id, body, .. } = class;
-
-        let class_alias_binding = id.as_ref().and_then(|id| {
-            ClassReferenceChanger::new(BoundIdentifier::from_binding_ident(id), ctx, self.ctx)
-                .get_class_alias_if_needed(body)
+        let span = class.span;
+        let class_binding =
+            class.id.take().map(|ident| BoundIdentifier::from_binding_ident(&ident));
+        let class_alias_binding = class_binding.as_ref().and_then(|id| {
+            ClassReferenceChanger::new(id.clone(), ctx, self.ctx)
+                .get_class_alias_if_needed(&mut class.body)
         });
+        let class_binding = class_binding
+            .unwrap_or_else(|| ctx.generate_uid_in_current_scope("default", SymbolFlags::Class));
 
-        let statements = self.transform_decorators_of_class_elements(class, ctx);
+        let statements =
+            self.transform_decorators_of_class_elements(&mut class, &class_binding, ctx);
+
+        class.r#type = ClassType::ClassExpression;
+        let initializer = if let Some(class_alias_binding) = class_alias_binding {
+            let left = class_alias_binding.create_write_target(ctx);
+            let right = Expression::ClassExpression(class);
+            ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, right)
+        } else {
+            Expression::ClassExpression(class)
+        };
+        let declarator = ctx.ast.variable_declarator(
+            SPAN,
+            VariableDeclarationKind::Let,
+            class_binding.create_binding_pattern(ctx),
+            Some(initializer),
+            false,
+        );
+        let var_declaration = ctx.ast.declaration_variable(
+            span,
+            VariableDeclarationKind::Let,
+            ctx.ast.vec1(declarator),
+            false,
+        );
+
+        Statement::from(var_declaration)
     }
 
     /// Transforms a non-decorated class declaration.
@@ -152,12 +185,17 @@ impl<'a> LegacyDecorators<'a, '_> {
         ctx: &mut TraverseCtx<'a>,
     ) {
         // `export default class {}`
-        if class.id.is_none() {
-            ctx.generate_uid_in_current_scope("default", SymbolFlags::Class);
-        }
+        // class.id.map(|ident| BoundIdentifier::from_binding_ident(&ident)).get_or_insert(|| {});
+        let class_binding = if let Some(ident) = &class.id {
+            BoundIdentifier::from_binding_ident(ident)
+        } else {
+            let class_binding = ctx.generate_uid_in_current_scope("default", SymbolFlags::Class);
+            class.id.replace(class_binding.create_binding_identifier(ctx));
+            class_binding
+        };
 
         // If the class declaration
-        let statements = self.transform_decorators_of_class_elements(class, ctx);
+        let statements = self.transform_decorators_of_class_elements(class, &class_binding, ctx);
         // Insert statements after class
         let stmt_address = match ctx.parent() {
             parent @ (Ancestor::ExportDefaultDeclarationDeclaration(_)
@@ -171,12 +209,12 @@ impl<'a> LegacyDecorators<'a, '_> {
     fn transform_decorators_of_class_elements(
         &mut self,
         class: &mut Class<'a>,
+        class_binding: &BoundIdentifier<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> ArenaVec<'a, Statement<'a>> {
         // FIXME: In TypeScript, it will transform non-static class elements and static class elements
         // separately so that static decorators will be inserted last. Check if there is any reason to do this.
         let mut decoration_stmts = ctx.ast.vec_with_capacity(class.body.body.len());
-        let class_binding = BoundIdentifier::from_binding_ident(class.id.as_ref().unwrap());
 
         for element in &mut class.body.body {
             let (is_static, key, descriptor, decorations) =
@@ -231,7 +269,7 @@ impl<'a> LegacyDecorators<'a, '_> {
 
             let decorations = ctx.ast.expression_array(SPAN, decorations, None);
             // `Class` or `Class.prototype`
-            let prefix = Self::get_class_member_prefix(&class_binding, is_static, ctx);
+            let prefix = Self::get_class_member_prefix(class_binding, is_static, ctx);
             let key = self.get_expression_for_property_name(key, ctx);
             decoration_stmts.push(self.create_decorator(decorations, prefix, key, descriptor, ctx));
         }
