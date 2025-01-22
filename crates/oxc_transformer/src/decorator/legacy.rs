@@ -1,9 +1,7 @@
 //! Typescript Experimental Decorator
 
-use std::mem;
-
 use oxc_allocator::{Address, CloneIn, GetAddress, Vec as ArenaVec};
-use oxc_ast::{ast::*, NONE};
+use oxc_ast::{ast::*, Visit, NONE};
 use oxc_semantic::ReferenceFlags;
 use oxc_span::SPAN;
 use oxc_syntax::operator::{AssignmentOperator, BinaryOperator};
@@ -31,8 +29,11 @@ impl<'a> Traverse<'a> for LegacyDecorators<'a, '_> {
 
 impl<'a> LegacyDecorators<'a, '_> {
     fn transform_class(&self, class: &mut Class<'a>, ctx: &mut TraverseCtx<'a>) {
-        let (class_or_constructor_parameter_is_decorated, child_is_decorated) =
-            self.check_class_decorators(class);
+        let (
+            class_or_constructor_parameter_is_decorated,
+            child_is_decorated,
+            has_private_in_expression_in_decorator,
+        ) = self.check_class_decorators(class);
 
         // if class_or_constructor_parameter_is_decorated {
         //     self.transform_class_declaration_with_class_decorators(class, ctx);
@@ -167,11 +168,10 @@ impl<'a> LegacyDecorators<'a, '_> {
             let (is_static, elements) =
                 match element {
                     ClassElement::MethodDefinition(method) => {
-                        let decoration_count = method.decorators.len();
                         let params = &mut method.value.params;
                         let param_decoration_count =
                             params.items.iter().fold(0, |acc, param| acc + param.decorators.len());
-                        let decoration_count = decoration_count + param_decoration_count;
+                        let decoration_count = method.decorators.len() + param_decoration_count;
 
                         if decoration_count == 0 {
                             continue;
@@ -218,6 +218,7 @@ impl<'a> LegacyDecorators<'a, '_> {
         }
 
         decoration_statements.extend(static_decoration_statements);
+
         decoration_statements
     }
 
@@ -251,34 +252,97 @@ impl<'a> LegacyDecorators<'a, '_> {
         }
     }
 
-    fn check_class_decorators(&self, class: &Class<'a>) -> (bool, bool) {
+    fn check_class_decorators(&self, class: &Class<'a>) -> (bool, bool, bool) {
         let mut class_or_constructor_parameter_is_decorated = !class.decorators.is_empty();
         let mut child_is_decorated = false;
+        let mut has_private_in_expression_in_decorator = false;
 
         for element in &class.body.body {
             match element {
                 ClassElement::MethodDefinition(method) if method.kind.is_constructor() => {
                     class_or_constructor_parameter_is_decorated |=
                         Self::class_method_parameter_is_decorated(&method.value);
+
+                    if class_or_constructor_parameter_is_decorated
+                        && !has_private_in_expression_in_decorator
+                    {
+                        has_private_in_expression_in_decorator =
+                            PrivateInExpressionDetector::has_private_in_expression_in_method_decorator(method);
+                    }
                 }
                 ClassElement::MethodDefinition(method) => {
                     child_is_decorated |= !method.decorators.is_empty()
                         || Self::class_method_parameter_is_decorated(&method.value);
+
+                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                        has_private_in_expression_in_decorator =
+                            PrivateInExpressionDetector::has_private_in_expression_in_method_decorator(method);
+                    }
                 }
                 ClassElement::PropertyDefinition(prop) => {
                     child_is_decorated |= !prop.decorators.is_empty();
+
+                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                        has_private_in_expression_in_decorator =
+                            PrivateInExpressionDetector::has_private_in_expression(
+                                &prop.decorators,
+                            );
+                    }
                 }
                 _ => {}
             }
-            if class_or_constructor_parameter_is_decorated {
-                break;
-            }
         }
 
-        (class_or_constructor_parameter_is_decorated, child_is_decorated)
+        (
+            class_or_constructor_parameter_is_decorated,
+            child_is_decorated,
+            has_private_in_expression_in_decorator,
+        )
     }
 
     fn class_method_parameter_is_decorated(func: &Function<'a>) -> bool {
         func.params.items.iter().any(|param| !param.decorators.is_empty())
+    }
+}
+
+/// Visitor to detect if a private-in expression is present in a decorator
+#[derive(Default)]
+struct PrivateInExpressionDetector {
+    has_private_in_expression: bool,
+}
+
+impl Visit<'_> for PrivateInExpressionDetector {
+    fn visit_private_in_expression(&mut self, _it: &PrivateInExpression<'_>) {
+        self.has_private_in_expression = true;
+    }
+
+    fn visit_decorators(&mut self, decorators: &ArenaVec<'_, Decorator<'_>>) {
+        for decorator in decorators {
+            self.visit_expression(&decorator.expression);
+            // Early exit if a private-in expression is found
+            if self.has_private_in_expression {
+                break;
+            }
+        }
+    }
+}
+
+impl PrivateInExpressionDetector {
+    fn has_private_in_expression(decorators: &ArenaVec<'_, Decorator<'_>>) -> bool {
+        let mut detector = Self::default();
+        detector.visit_decorators(decorators);
+        detector.has_private_in_expression
+    }
+
+    fn has_private_in_expression_in_method_decorator(method: &MethodDefinition<'_>) -> bool {
+        let mut detector = Self::default();
+        detector.visit_decorators(&method.decorators);
+        if detector.has_private_in_expression {
+            return true;
+        }
+        method.value.params.items.iter().any(|param| {
+            detector.visit_decorators(&param.decorators);
+            detector.has_private_in_expression
+        })
     }
 }
