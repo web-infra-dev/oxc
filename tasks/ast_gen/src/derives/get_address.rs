@@ -38,7 +38,7 @@ fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
     let matches = def.all_variants(schema).map(|variant| {
         let variant_type = variant.field().unwrap().def(schema);
         assert!(
-            matches!(variant_type, TypeDef::Box(_)),
+            variant_type.is_box(),
             "`GetAddress` can only be derived on enums where all variants are boxed"
         );
 

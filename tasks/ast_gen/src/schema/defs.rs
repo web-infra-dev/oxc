@@ -99,6 +99,11 @@ pub enum TypeDef {
 }
 
 impl TypeDef {
+    #[expect(dead_code)]
+    pub fn is_struct(&self) -> bool {
+        matches!(self, Self::Struct(_))
+    }
+
     pub fn as_struct(&self) -> Option<&StructDef> {
         match self {
             Self::Struct(def) => Some(def),
@@ -111,6 +116,11 @@ impl TypeDef {
             Self::Struct(def) => Some(def),
             _ => None,
         }
+    }
+
+    #[expect(dead_code)]
+    pub fn is_enum(&self) -> bool {
+        matches!(self, Self::Enum(_))
     }
 
     pub fn as_enum(&self) -> Option<&EnumDef> {
@@ -127,6 +137,11 @@ impl TypeDef {
         }
     }
 
+    #[expect(dead_code)]
+    pub fn is_primitve(&self) -> bool {
+        matches!(self, Self::Primitive(_))
+    }
+
     pub fn as_primitive(&self) -> Option<&PrimitiveDef> {
         match self {
             Self::Primitive(def) => Some(def),
@@ -139,6 +154,11 @@ impl TypeDef {
             Self::Primitive(def) => Some(def),
             _ => None,
         }
+    }
+
+    #[expect(dead_code)]
+    pub fn is_option(&self) -> bool {
+        matches!(self, Self::Option(_))
     }
 
     pub fn as_option(&self) -> Option<&OptionDef> {
@@ -155,6 +175,10 @@ impl TypeDef {
         }
     }
 
+    pub fn is_box(&self) -> bool {
+        matches!(self, Self::Box(_))
+    }
+
     pub fn as_box(&self) -> Option<&BoxDef> {
         match self {
             Self::Box(def) => Some(def),
@@ -169,6 +193,11 @@ impl TypeDef {
         }
     }
 
+    #[expect(dead_code)]
+    pub fn is_vec(&self) -> bool {
+        matches!(self, Self::Vec(_))
+    }
+
     pub fn as_vec(&self) -> Option<&VecDef> {
         match self {
             Self::Vec(def) => Some(def),
@@ -181,6 +210,11 @@ impl TypeDef {
             Self::Vec(def) => Some(def),
             _ => None,
         }
+    }
+
+    #[expect(dead_code)]
+    pub fn is_cell(&self) -> bool {
+        matches!(self, Self::Cell(_))
     }
 
     pub fn as_cell(&self) -> Option<&CellDef> {

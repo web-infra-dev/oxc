@@ -196,7 +196,7 @@ where
 
         let mut it = quote!(it);
         let variant_type = variant.field().unwrap().def(schema);
-        if matches!(variant_type, TypeDef::Box(_)) {
+        if variant_type.is_box() {
             it = unbox(it);
         }
 
