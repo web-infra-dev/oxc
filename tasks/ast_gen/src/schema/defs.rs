@@ -71,6 +71,18 @@ pub trait Def {
         }
     }
 
+    /// Get whether type is visitable.
+    ///
+    /// Returns `true` if type is tagged `#[ast(visit)]`.
+    fn is_visitable(&self) -> bool {
+        false
+    }
+
+    /// Get whether type has `AstKind`.
+    fn has_kind(&self) -> bool {
+        false
+    }
+
     /// Get type's layout.
     fn layout(&self) -> &Layout;
 }
@@ -226,6 +238,34 @@ impl Def for TypeDef {
         }
     }
 
+    /// Get whether type is visitable.
+    ///
+    /// Returns `true` if type is tagged `#[ast(visit)]`.
+    fn is_visitable(&self) -> bool {
+        match self {
+            TypeDef::Struct(def) => def.is_visitable(),
+            TypeDef::Enum(def) => def.is_visitable(),
+            TypeDef::Primitive(def) => def.is_visitable(),
+            TypeDef::Option(def) => def.is_visitable(),
+            TypeDef::Box(def) => def.is_visitable(),
+            TypeDef::Vec(def) => def.is_visitable(),
+            TypeDef::Cell(def) => def.is_visitable(),
+        }
+    }
+
+    /// Get whether type has `AstKind`.
+    fn has_kind(&self) -> bool {
+        match self {
+            TypeDef::Struct(def) => def.has_kind(),
+            TypeDef::Enum(def) => def.has_kind(),
+            TypeDef::Primitive(def) => def.has_kind(),
+            TypeDef::Option(def) => def.has_kind(),
+            TypeDef::Box(def) => def.has_kind(),
+            TypeDef::Vec(def) => def.has_kind(),
+            TypeDef::Cell(def) => def.has_kind(),
+        }
+    }
+
     /// Get type's layout.
     fn layout(&self) -> &Layout {
         match self {
@@ -263,17 +303,6 @@ impl TypeDef {
     pub fn generates_derive(&self, derive_id: DeriveId) -> bool {
         self.generated_derives().has(derive_id)
     }
-
-    /// Get whether type is visitable.
-    ///
-    /// Returns `true` if type is tagged `#[ast(visit)]`.
-    pub fn is_visitable(&self) -> bool {
-        match self {
-            TypeDef::Struct(def) => def.is_visitable,
-            TypeDef::Enum(def) => def.is_visitable,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -285,6 +314,7 @@ pub struct StructDef {
     pub item: ItemStruct,
     pub fields: Vec<FieldDef>,
     pub is_visitable: bool,
+    pub has_kind: bool,
     pub layout: Layout,
 }
 
@@ -306,6 +336,7 @@ impl StructDef {
             item,
             fields,
             is_visitable,
+            has_kind: false,
             layout: Layout::default(),
         }
     }
@@ -338,6 +369,18 @@ impl Def for StructDef {
         quote!( #ident #lifetime )
     }
 
+    /// Get whether type is visitable.
+    ///
+    /// Returns `true` if type is tagged `#[ast(visit)]`.
+    fn is_visitable(&self) -> bool {
+        self.is_visitable
+    }
+
+    /// Get whether type has `AstKind`.
+    fn has_kind(&self) -> bool {
+        self.has_kind
+    }
+
     /// Get type's layout.
     fn layout(&self) -> &Layout {
         &self.layout
@@ -355,6 +398,7 @@ pub struct EnumDef {
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
     pub is_visitable: bool,
+    pub has_kind: bool,
     pub layout: Layout,
 }
 
@@ -379,6 +423,7 @@ impl EnumDef {
             variants,
             inherits,
             is_visitable,
+            has_kind: false,
             layout: Layout::default(),
         }
     }
@@ -409,6 +454,18 @@ impl Def for EnumDef {
         let ident = self.ident();
         let lifetime = self.lifetime_maybe_anon(schema, anon);
         quote!( #ident #lifetime )
+    }
+
+    /// Get whether type is visitable.
+    ///
+    /// Returns `true` if type is tagged `#[ast(visit)]`.
+    fn is_visitable(&self) -> bool {
+        self.is_visitable
+    }
+
+    /// Get whether type has `AstKind`.
+    fn has_kind(&self) -> bool {
+        self.has_kind
     }
 
     /// Get type's layout.

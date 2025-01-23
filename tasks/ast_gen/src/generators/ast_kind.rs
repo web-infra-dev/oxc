@@ -14,7 +14,7 @@ use syn::LitInt;
 
 use crate::{
     output::{output_path, Output},
-    schema::{Def, Schema},
+    schema::{Def, Schema, TypeDef},
     Generator,
 };
 
@@ -90,6 +90,26 @@ pub const BLACK_LIST: [&str; 62] = [
 ];
 
 impl Generator for AstKindGenerator {
+    /// Set `has_kind` for structs and enums which are not on blacklist.
+    fn modify(&self, schema: &mut Schema) {
+        for def in &mut schema.defs {
+            match def {
+                TypeDef::Struct(def) => {
+                    if def.is_visitable() && !BLACK_LIST.contains(&def.name()) {
+                        def.has_kind = true;
+                    }
+                }
+                TypeDef::Enum(def) => {
+                    if def.is_visitable() && !BLACK_LIST.contains(&def.name()) {
+                        def.has_kind = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Generate `AstKind` etc definitions.
     fn generate(&self, schema: &Schema) -> Output {
         let mut type_variants = vec![];
         let mut kind_variants = vec![];
@@ -98,7 +118,7 @@ impl Generator for AstKindGenerator {
 
         let mut next_index = 0usize;
         for def in &schema.defs {
-            if !def.is_visitable() || BLACK_LIST.contains(&def.name()) {
+            if !def.has_kind() {
                 continue;
             }
 
