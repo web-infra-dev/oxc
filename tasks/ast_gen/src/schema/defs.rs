@@ -435,6 +435,14 @@ impl EnumDef {
     pub fn all_variants<'s>(&'s self, schema: &'s Schema) -> AllVariantsIter<'s> {
         AllVariantsIter::new(self, schema)
     }
+
+    /// Get whether all variants are fieldless.
+    pub fn is_fieldless(&self) -> bool {
+        // All AST enums are `#[repr(C, u8)]` or `#[repr(u8)]`.
+        // Such enums must have at least 1 variant, so only way can have size 1 is if all variants
+        // are fieldless.
+        self.layout.layout_64.size == 1
+    }
 }
 
 impl Def for EnumDef {
