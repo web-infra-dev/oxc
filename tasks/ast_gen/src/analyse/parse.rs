@@ -2,14 +2,14 @@ use quote::ToTokens;
 use rustc_hash::FxHashMap;
 use syn::{
     punctuated::Punctuated, AttrStyle, Attribute, Expr, ExprLit, Field, Fields, GenericArgument,
-    Generics, Ident, Lit, Meta, Path, PathArguments, PathSegment, Token, Type, TypePath,
-    TypeReference, Variant, Visibility as SynVisibility,
+    Generics, Ident, ItemEnum, ItemStruct, Lit, Meta, Path, PathArguments, PathSegment, Token,
+    Type, TypePath, TypeReference, Variant, Visibility as SynVisibility,
 };
 
 use crate::{
     codegen::{AttrTarget, Codegen},
     schema::{
-        BoxDef, CellDef, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
+        BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
     },
     DERIVES, GENERATORS,
@@ -159,8 +159,26 @@ impl<'c> Parser<'c> {
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
-        let mut def =
-            StructDef::new(name, has_lifetime, file_id, generated_derives, fields, is_visited);
+        let mut def = TypeDef::Struct(StructDef::new(
+            name,
+            has_lifetime,
+            file_id,
+            generated_derives,
+            fields,
+            is_visited,
+        ));
+
+        // Parse attrs on type and fields
+        self.parse_type_attrs(&mut def, &item.attrs);
+        self.parse_field_attrs(&mut def, &item, generated_derives);
+
+        def
+    }
+
+    fn parse_field_attrs(&self, def: &mut TypeDef, item: &ItemStruct, generated_derives: Derives) {
+        let TypeDef::Struct(def) = def else {
+            panic!("A derive or generator mutated `TypeDef::Struct` to another kind of `TypeDef`");
+        };
 
         for (field_index, field) in item.fields.iter().enumerate() {
             for attr in &field.attrs {
@@ -175,32 +193,20 @@ impl<'c> Parser<'c> {
                         AttrTarget::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
-                            assert!(
-                                generated_derives.has(derive_id),
-                                "Struct {} has `#[{}]` attr on {} field but {} trait is not derived on it",
-                                &def.name,
-                                &attr_name,
-                                def.field(field_index).name_or_unnamed(),
-                                derive.trait_name(),
-                            );
+                            if !generated_derives.has(derive_id) {
+                                panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                            }
 
-                            derive.parse_field_attr(&attr_name, &attr.meta, &mut def, field_index);
+                            derive.parse_field_attr(&attr_name, &attr.meta, def, field_index);
                         }
                         AttrTarget::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_field_attr(
-                                &attr_name,
-                                &attr.meta,
-                                &mut def,
-                                field_index,
-                            );
+                            generator.parse_field_attr(&attr_name, &attr.meta, def, field_index);
                         }
                     }
                 }
             }
         }
-
-        TypeDef::Struct(def)
     }
 
     /// Parse `EnumSkeleton` to yield a `TypeDef`.
@@ -211,7 +217,7 @@ impl<'c> Parser<'c> {
         let inherits = inherits.into_iter().map(|name| self.type_id(&name)).collect();
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
-        TypeDef::Enum(EnumDef::new(
+        let mut def = TypeDef::Enum(EnumDef::new(
             name,
             has_lifetime,
             file_id,
@@ -219,7 +225,52 @@ impl<'c> Parser<'c> {
             variants,
             inherits,
             is_visited,
-        ))
+        ));
+
+        // Parse attrs on type and variants
+        self.parse_type_attrs(&mut def, &item.attrs);
+        self.parse_variant_attrs(&mut def, &item, generated_derives);
+
+        def
+    }
+
+    fn parse_variant_attrs(&self, def: &mut TypeDef, item: &ItemEnum, generated_derives: Derives) {
+        let TypeDef::Enum(def) = def else {
+            panic!("A derive or generator mutated `TypeDef::Enum` to another kind of `TypeDef`");
+        };
+
+        for (variant_index, field) in item.variants.iter().enumerate() {
+            for attr in &field.attrs {
+                if !matches!(attr.style, AttrStyle::Outer) {
+                    continue;
+                }
+                let Some(attr_ident) = attr.path().get_ident() else { continue };
+                let attr_name = ident_name(attr_ident);
+
+                if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
+                    match target {
+                        AttrTarget::Derive(derive_id) => {
+                            // Check this struct has the relevant trait `#[generate_derive]`-ed on it
+                            let derive = DERIVES[derive_id];
+                            if !generated_derives.has(derive_id) {
+                                panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                            }
+
+                            derive.parse_variant_attr(&attr_name, &attr.meta, def, variant_index);
+                        }
+                        AttrTarget::Generator(generator_id) => {
+                            let generator = GENERATORS[generator_id];
+                            generator.parse_variant_attr(
+                                &attr_name,
+                                &attr.meta,
+                                def,
+                                variant_index,
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Parse `Fields` to `Vec<FieldDef>`.
@@ -349,6 +400,34 @@ impl<'c> Parser<'c> {
         Some(self.type_id("&str"))
     }
 
+    fn parse_type_attrs(&mut self, def: &mut TypeDef, attrs: &[Attribute]) {
+        for attr in attrs {
+            if !matches!(attr.style, AttrStyle::Outer) {
+                continue;
+            }
+            let Some(attr_ident) = attr.path().get_ident() else { continue };
+            let attr_name = ident_name(attr_ident);
+
+            if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
+                match target {
+                    AttrTarget::Derive(derive_id) => {
+                        // Check this struct has the relevant trait `#[generate_derive]`-ed on it
+                        let derive = DERIVES[derive_id];
+                        if !def.generates_derive(derive_id) {
+                            panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                        }
+
+                        derive.parse_type_attr(&attr_name, &attr.meta, def);
+                    }
+                    AttrTarget::Generator(generator_id) => {
+                        let generator = GENERATORS[generator_id];
+                        generator.parse_type_attr(&attr_name, &attr.meta, def);
+                    }
+                }
+            }
+        }
+    }
+
     /// Get derives which are generated with `#[generate_derive(...)]` attrs.
     fn get_generated_derives(&self, attrs: &[Attribute]) -> Derives {
         let mut derives = Derives::none();
@@ -426,4 +505,13 @@ fn type_path_segment(type_path: &TypePath) -> Option<&PathSegment> {
         return None;
     }
     segments.first()
+}
+
+/// Panic with message that expected trait is not derived
+fn panic_not_derived(type_name: &str, attr_name: &str, trait_name: &str) {
+    panic!(
+        "`{type_name}` type has `#[{attr_name}]` attribute, but `{trait_name}` trait \
+        that handles `#[{attr_name}]` is not derived on `{type_name}`.\n\
+        Expected `#[generate_derive({trait_name})]` to be present."
+    );
 }

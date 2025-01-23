@@ -7,7 +7,7 @@ use syn::{parse_str, ItemUse, Meta};
 
 use crate::{
     output::{output_path, Output},
-    schema::{Schema, StructDef, TypeDef},
+    schema::{EnumDef, Schema, StructDef, TypeDef},
     Codegen, Result, Runner,
 };
 
@@ -42,6 +42,10 @@ pub trait Derive: Runner {
         &[]
     }
 
+    /// Process an attribute on a struct or enum.
+    #[expect(unused_variables)]
+    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) {}
+
     /// Attributes on struct fields that this derive uses.
     fn field_attrs(&self) -> &[&'static str] {
         &[]
@@ -61,6 +65,17 @@ pub trait Derive: Runner {
     /// Attributes on enum variants that this derive uses.
     fn variant_attrs(&self) -> &[&'static str] {
         &[]
+    }
+
+    /// Process an attribute on an enum variant.
+    #[expect(unused_variables)]
+    fn parse_variant_attr(
+        &self,
+        attr_name: &str,
+        meta: &Meta,
+        def: &mut EnumDef,
+        variant_index: usize,
+    ) {
     }
 
     /// Generate prelude to be output at top of generated files.

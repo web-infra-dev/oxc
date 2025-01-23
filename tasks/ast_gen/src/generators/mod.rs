@@ -2,7 +2,7 @@ use syn::Meta;
 
 use crate::{
     output::Output,
-    schema::{Schema, StructDef},
+    schema::{EnumDef, Schema, StructDef, TypeDef},
     Result, Runner,
 };
 
@@ -28,6 +28,10 @@ pub trait Generator: Runner {
         &[]
     }
 
+    /// Process an attribute on a struct or enum.
+    #[expect(unused_variables)]
+    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) {}
+
     /// Attributes on struct fields that this derive uses.
     fn field_attrs(&self) -> &[&'static str] {
         &[]
@@ -47,6 +51,17 @@ pub trait Generator: Runner {
     /// Attributes on enum variants that this derive uses.
     fn variant_attrs(&self) -> &[&'static str] {
         &[]
+    }
+
+    /// Process an attribute on an enum variant.
+    #[expect(unused_variables)]
+    fn parse_variant_attr(
+        &self,
+        attr_name: &str,
+        meta: &Meta,
+        def: &mut EnumDef,
+        variant_index: usize,
+    ) {
     }
 
     /// Modify schema.
