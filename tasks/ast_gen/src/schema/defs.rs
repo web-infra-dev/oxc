@@ -1,5 +1,7 @@
 #![expect(dead_code)]
 
+use std::iter::FusedIterator;
+
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -428,6 +430,10 @@ impl EnumDef {
     pub fn variant_mut(&mut self, variant_index: usize) -> &mut VariantDef {
         &mut self.variants[variant_index]
     }
+
+    pub fn all_variants<'s>(&'s self, schema: &'s Schema) -> AllVariantsIter<'s> {
+        AllVariantsIter::new(self, schema)
+    }
 }
 
 impl Def for EnumDef {
@@ -466,6 +472,53 @@ impl Def for EnumDef {
         &self.layout
     }
 }
+
+/// Iterator over all variants of an enum (including inherited).
+pub struct AllVariantsIter<'s> {
+    schema: &'s Schema,
+    variants_iter: std::slice::Iter<'s, VariantDef>,
+    inherits_iter: std::slice::Iter<'s, TypeId>,
+    inner_iter: Option<Box<AllVariantsIter<'s>>>,
+}
+
+impl<'s> AllVariantsIter<'s> {
+    fn new(def: &'s EnumDef, schema: &'s Schema) -> Self {
+        let variants_iter = def.variants.iter();
+        let inherits_iter = def.inherits.iter();
+        Self { schema, variants_iter, inherits_iter, inner_iter: None }
+    }
+}
+
+impl<'s> Iterator for AllVariantsIter<'s> {
+    type Item = &'s VariantDef;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Yield own variants first
+        if let Some(variant) = self.variants_iter.next() {
+            return Some(variant);
+        }
+
+        // Yield from inner iterator (iterating over inheritee's variants)
+        if let Some(inner_iter) = &mut self.inner_iter {
+            if let Some(variant) = inner_iter.next() {
+                return Some(variant);
+            }
+            self.inner_iter = None;
+        }
+
+        // No current inner iterator. Start iterating over next inheritee.
+        if let Some(&inherits_type_id) = self.inherits_iter.next() {
+            let inner_type = self.schema.def_enum(inherits_type_id);
+            let inner_iter = inner_type.all_variants(self.schema);
+            self.inner_iter = Some(Box::new(inner_iter));
+            Some(self.inner_iter.as_mut().unwrap().next().unwrap())
+        } else {
+            None
+        }
+    }
+}
+
+impl FusedIterator for AllVariantsIter<'_> {}
 
 #[derive(Debug)]
 pub struct VariantDef {
