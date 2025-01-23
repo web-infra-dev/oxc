@@ -7,8 +7,8 @@ use syn::Ident;
 use crate::{
     output::{output_path, Output},
     schema::{
-        CellDef, Def, Discriminant, EnumDef, Layout, Niche, Offset, OptionDef, PlatformLayout,
-        PrimitiveDef, Schema, StructDef, TypeDef, TypeId, Visibility,
+        Def, Discriminant, EnumDef, Layout, Niche, Offset, PlatformLayout, PrimitiveDef, Schema,
+        StructDef, TypeDef, TypeId, Visibility,
     },
     Generator,
 };
@@ -21,26 +21,8 @@ define_generator!(AssertLayouts);
 
 impl Generator for AssertLayouts {
     fn modify(&self, schema: &mut Schema) {
-        let mut queue = (0..schema.defs.len()).collect::<Vec<_>>();
-
-        while !queue.is_empty() {
-            queue.retain(|&type_id| {
-                if let Some(layout) = calculate_layout(type_id, schema) {
-                    let layout_mut = match schema.def_mut(type_id) {
-                        TypeDef::Struct(def) => &mut def.layout,
-                        TypeDef::Enum(def) => &mut def.layout,
-                        TypeDef::Primitive(def) => &mut def.layout,
-                        TypeDef::Option(def) => &mut def.layout,
-                        TypeDef::Box(def) => &mut def.layout,
-                        TypeDef::Vec(def) => &mut def.layout,
-                        TypeDef::Cell(def) => &mut def.layout,
-                    };
-                    *layout_mut = layout;
-                    false
-                } else {
-                    true
-                }
-            });
+        for type_id in 0..schema.defs.len() {
+            calculate_layout(type_id, schema);
         }
     }
 
@@ -77,30 +59,44 @@ impl Generator for AssertLayouts {
     }
 }
 
-fn calculate_layout(type_id: TypeId, schema: &mut Schema) -> Option<Layout> {
+fn calculate_layout(type_id: TypeId, schema: &mut Schema) -> &Layout {
     let def = schema.def(type_id);
-    match def {
-        TypeDef::Struct(_) => calculate_layout_struct(type_id, schema),
-        TypeDef::Enum(def) => calculate_layout_enum(def, schema),
-        TypeDef::Primitive(def) => Some(calculate_layout_primitive(def)),
-        TypeDef::Option(def) => calculate_layout_option(def, schema),
-        TypeDef::Box(_) => Some(calculate_layout_box()),
-        TypeDef::Vec(_) => Some(calculate_layout_vec()),
-        TypeDef::Cell(def) => calculate_layout_cell(def, schema),
+    if !def.layout().is_initialized() {
+        match def {
+            TypeDef::Struct(_) => {
+                schema.def_struct_mut(type_id).layout = calculate_layout_struct(type_id, schema);
+            }
+            TypeDef::Enum(_) => {
+                schema.def_enum_mut(type_id).layout = calculate_layout_enum(type_id, schema);
+            }
+            TypeDef::Primitive(def) => {
+                schema.def_primitive_mut(type_id).layout = calculate_layout_primitive(def);
+            }
+            TypeDef::Option(_) => {
+                schema.def_option_mut(type_id).layout = calculate_layout_option(type_id, schema);
+            }
+            TypeDef::Box(_) => {
+                schema.def_box_mut(type_id).layout = calculate_layout_box();
+            }
+            TypeDef::Vec(_) => {
+                schema.def_vec_mut(type_id).layout = calculate_layout_vec();
+            }
+            TypeDef::Cell(_) => {
+                schema.def_cell_mut(type_id).layout = calculate_layout_cell(type_id, schema);
+            }
+        }
     }
+    schema.def(type_id).layout()
 }
 
-fn calculate_layout_struct(type_id: TypeId, schema: &mut Schema) -> Option<Layout> {
+fn calculate_layout_struct(type_id: TypeId, schema: &mut Schema) -> Layout {
     let mut layout_64 = PlatformLayout::from_size_align(0, 1);
     let mut layout_32 = PlatformLayout::from_size_align(0, 1);
 
     let def = schema.def_struct(type_id);
     for field_index in 0..def.fields.len() {
         let field_type_id = schema.def_struct(type_id).field(field_index).type_id;
-        let field_layout = schema.def(field_type_id).layout();
-        if !field_layout.is_initialized() {
-            return None;
-        }
+        let field_layout = calculate_layout(field_type_id, schema);
 
         #[expect(clippy::items_after_statements)]
         fn update(layout: &mut PlatformLayout, field_layout: &PlatformLayout) -> u32 {
@@ -139,10 +135,10 @@ fn calculate_layout_struct(type_id: TypeId, schema: &mut Schema) -> Option<Layou
     layout_64.size = layout_64.size.next_multiple_of(layout_64.align);
     layout_32.size = layout_32.size.next_multiple_of(layout_32.align);
 
-    Some(Layout { layout_64, layout_32 })
+    Layout { layout_64, layout_32 }
 }
 
-fn calculate_layout_enum(def: &EnumDef, schema: &Schema) -> Option<Layout> {
+fn calculate_layout_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
     // `#[repr(C, u8)]` enums have alignment of highest-aligned variant.
     // Size is size of largest variant + alignment of most-aligned variant.
     // Fieldless `#[repr(u8)]` enums obey the same rules. Fieldless variants act as size 0, align 1.
@@ -154,20 +150,20 @@ fn calculate_layout_enum(def: &EnumDef, schema: &Schema) -> Option<Layout> {
         layout_32: PlatformLayout,
     }
 
-    fn process_variants(def: &EnumDef, state: &mut State, schema: &Schema) -> bool {
+    fn process_variants(type_id: TypeId, state: &mut State, schema: &mut Schema) {
         let State { min_discriminant, max_discriminant, layout_64, layout_32 } = state;
 
-        for variant in &def.variants {
+        let def = schema.def_enum(type_id);
+        for variant_index in 0..def.variants.len() {
+            let variant = schema.def_enum(type_id).variant(variant_index);
+
             *min_discriminant = min(*min_discriminant, variant.discriminant);
             *max_discriminant = max(*max_discriminant, variant.discriminant);
 
             if !variant.fields.is_empty() {
                 assert_eq!(variant.fields.len(), 1);
 
-                let variant_layout = schema.def(variant.fields[0].type_id).layout();
-                if !variant_layout.is_initialized() {
-                    return false;
-                }
+                let variant_layout = calculate_layout(variant.fields[0].type_id, schema);
 
                 layout_64.size = max(layout_64.size, variant_layout.layout_64.size);
                 layout_64.align = max(layout_64.align, variant_layout.layout_64.align);
@@ -176,14 +172,11 @@ fn calculate_layout_enum(def: &EnumDef, schema: &Schema) -> Option<Layout> {
             }
         }
 
-        for &inherits_type_id in &def.inherits {
-            let inherits_type = schema.def_enum(inherits_type_id);
-            if !process_variants(inherits_type, state, schema) {
-                return false;
-            }
+        let def = schema.def_enum(type_id);
+        for inherits_index in 0..def.inherits.len() {
+            let inherits_type_id = schema.def_enum(type_id).inherits[inherits_index];
+            process_variants(inherits_type_id, state, schema);
         }
-
-        true
     }
 
     let mut state = State {
@@ -192,9 +185,7 @@ fn calculate_layout_enum(def: &EnumDef, schema: &Schema) -> Option<Layout> {
         layout_64: PlatformLayout::from_size_align(0, 1),
         layout_32: PlatformLayout::from_size_align(0, 1),
     };
-    if !process_variants(def, &mut state, schema) {
-        return None;
-    }
+    process_variants(type_id, &mut state, schema);
     let State { min_discriminant, max_discriminant, mut layout_64, mut layout_32 } = state;
 
     layout_64.size += layout_64.align;
@@ -215,14 +206,12 @@ fn calculate_layout_enum(def: &EnumDef, schema: &Schema) -> Option<Layout> {
         layout_32.niche = Some(niche);
     }
 
-    Some(Layout { layout_64, layout_32 })
+    Layout { layout_64, layout_32 }
 }
 
-fn calculate_layout_option(def: &OptionDef, schema: &Schema) -> Option<Layout> {
-    let inner_layout = schema.def(def.inner_type_id).layout();
-    if !inner_layout.is_initialized() {
-        return None;
-    }
+fn calculate_layout_option(type_id: TypeId, schema: &mut Schema) -> Layout {
+    let def = schema.def_option(type_id);
+    let inner_layout = calculate_layout(def.inner_type_id, schema);
 
     // `Option`s consume 1 niche if there is one, or add `bool` as discriminant before the inner type.
     // The discriminant has same niche as a `bool`.
@@ -243,7 +232,7 @@ fn calculate_layout_option(def: &OptionDef, schema: &Schema) -> Option<Layout> {
     let mut layout = inner_layout.clone();
     consume_niche(&mut layout.layout_64);
     consume_niche(&mut layout.layout_32);
-    Some(layout)
+    layout
 }
 
 fn calculate_layout_box() -> Layout {
@@ -263,16 +252,15 @@ fn calculate_layout_vec() -> Layout {
     }
 }
 
-fn calculate_layout_cell(def: &CellDef, schema: &Schema) -> Option<Layout> {
-    let inner_layout = schema.def(def.inner_type_id).layout();
-    if !inner_layout.is_initialized() {
-        return None;
-    }
+fn calculate_layout_cell(type_id: TypeId, schema: &mut Schema) -> Layout {
+    let def = schema.def_cell(type_id);
+    let inner_layout = calculate_layout(def.inner_type_id, schema);
 
+    // `Cell`s have same layout as inner type, but with no niche
     let mut layout = inner_layout.clone();
     layout.layout_64.niche = None;
     layout.layout_32.niche = None;
-    Some(layout)
+    layout
 }
 
 fn calculate_layout_primitive(def: &PrimitiveDef) -> Layout {

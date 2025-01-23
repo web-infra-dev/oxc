@@ -114,6 +114,76 @@ impl TypeDef {
             _ => None,
         }
     }
+
+    pub fn as_primitive(&self) -> Option<&PrimitiveDef> {
+        match self {
+            Self::Primitive(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_primitive_mut(&mut self) -> Option<&mut PrimitiveDef> {
+        match self {
+            Self::Primitive(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_option(&self) -> Option<&OptionDef> {
+        match self {
+            Self::Option(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_option_mut(&mut self) -> Option<&mut OptionDef> {
+        match self {
+            Self::Option(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_box(&self) -> Option<&BoxDef> {
+        match self {
+            Self::Box(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_box_mut(&mut self) -> Option<&mut BoxDef> {
+        match self {
+            Self::Box(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_vec(&self) -> Option<&VecDef> {
+        match self {
+            Self::Vec(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_vec_mut(&mut self) -> Option<&mut VecDef> {
+        match self {
+            Self::Vec(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_cell(&self) -> Option<&CellDef> {
+        match self {
+            Self::Cell(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_cell_mut(&mut self) -> Option<&mut CellDef> {
+        match self {
+            Self::Cell(def) => Some(def),
+            _ => None,
+        }
+    }
 }
 
 impl Def for TypeDef {
@@ -311,6 +381,14 @@ impl EnumDef {
             is_visitable,
             layout: Layout::default(),
         }
+    }
+
+    pub fn variant(&self, variant_index: usize) -> &VariantDef {
+        &self.variants[variant_index]
+    }
+
+    pub fn variant_mut(&mut self, variant_index: usize) -> &mut VariantDef {
+        &mut self.variants[variant_index]
     }
 }
 
