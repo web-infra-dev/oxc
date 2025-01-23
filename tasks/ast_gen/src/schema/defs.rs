@@ -171,6 +171,20 @@ pub struct StructDef {
     pub is_visitable: bool,
 }
 
+impl StructDef {
+    pub fn new(
+        name: String,
+        has_lifetime: bool,
+        file_id: FileId,
+        generated_derives: Derives,
+        item: ItemStruct,
+        fields: Vec<FieldDef>,
+        is_visitable: bool,
+    ) -> Self {
+        Self { name, has_lifetime, file_id, generated_derives, item, fields, is_visitable }
+    }
+}
+
 impl Def for StructDef {
     /// Get type name.
     fn name(&self) -> &str {
@@ -202,6 +216,31 @@ pub struct EnumDef {
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
     pub is_visitable: bool,
+}
+
+impl EnumDef {
+    #[expect(clippy::too_many_arguments)]
+    pub fn new(
+        name: String,
+        has_lifetime: bool,
+        file_id: FileId,
+        generated_derives: Derives,
+        item: ItemEnum,
+        variants: Vec<VariantDef>,
+        inherits: Vec<TypeId>,
+        is_visitable: bool,
+    ) -> Self {
+        Self {
+            name,
+            has_lifetime,
+            file_id,
+            generated_derives,
+            item,
+            variants,
+            inherits,
+            is_visitable,
+        }
+    }
 }
 
 impl Def for EnumDef {
@@ -246,6 +285,12 @@ pub struct FieldDef {
 }
 
 impl FieldDef {
+    pub fn new(name: Option<String>, type_id: TypeId) -> Self {
+        Self { name, type_id }
+    }
+}
+
+impl FieldDef {
     /// Get field name as an `Ident`.
     pub fn ident(&self) -> Option<Ident> {
         self.name.as_ref().map(|name| create_ident(name))
@@ -260,6 +305,12 @@ impl FieldDef {
 #[derive(Debug)]
 pub struct PrimitiveDef {
     pub name: &'static str,
+}
+
+impl PrimitiveDef {
+    pub fn new(name: &'static str) -> Self {
+        Self { name }
+    }
 }
 
 impl Def for PrimitiveDef {
@@ -284,6 +335,12 @@ impl Def for PrimitiveDef {
 pub struct OptionDef {
     pub name: String,
     pub inner_type_id: TypeId,
+}
+
+impl OptionDef {
+    pub fn new(name: String, inner_type_id: TypeId) -> Self {
+        Self { name, inner_type_id }
+    }
 }
 
 impl Def for OptionDef {
@@ -313,6 +370,12 @@ pub struct BoxDef {
     pub inner_type_id: TypeId,
 }
 
+impl BoxDef {
+    pub fn new(name: String, inner_type_id: TypeId) -> Self {
+        Self { name, inner_type_id }
+    }
+}
+
 impl Def for BoxDef {
     /// Get type name.
     fn name(&self) -> &str {
@@ -340,6 +403,12 @@ pub struct VecDef {
     pub inner_type_id: TypeId,
 }
 
+impl VecDef {
+    pub fn new(name: String, inner_type_id: TypeId) -> Self {
+        Self { name, inner_type_id }
+    }
+}
+
 impl Def for VecDef {
     /// Get type name.
     fn name(&self) -> &str {
@@ -365,6 +434,12 @@ impl Def for VecDef {
 pub struct CellDef {
     pub name: String,
     pub inner_type_id: TypeId,
+}
+
+impl CellDef {
+    pub fn new(name: String, inner_type_id: TypeId) -> Self {
+        Self { name, inner_type_id }
+    }
 }
 
 impl Def for CellDef {

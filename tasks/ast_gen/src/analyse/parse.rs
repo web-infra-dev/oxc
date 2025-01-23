@@ -83,7 +83,7 @@ impl<'c> Parser<'c> {
         }
 
         // Generate new type for known primitives/special cases
-        let primitive = |name| TypeDef::Primitive(PrimitiveDef { name });
+        let primitive = |name| TypeDef::Primitive(PrimitiveDef::new(name));
 
         let def = match name {
             "bool" => primitive("bool"),
@@ -110,15 +110,15 @@ impl<'c> Parser<'c> {
             // Cannot be parsed normally as is defined inside `bitflags!` macro.
             // TODO: Find a way to encode this in the actual file.
             // e.g. `#[ast(alias_for(RegExpFlags))] struct RegExpFlagsAlias(u8);`
-            "RegExpFlags" => TypeDef::Struct(StructDef {
-                name: "RegExpFlags".to_string(),
-                has_lifetime: false,
-                file_id: self.get_file_id("oxc_ast::ast::literal"),
-                generated_derives: Derives::none(),
-                item: parse_quote! { struct RegExpFlags(u8); },
-                fields: vec![FieldDef { name: None, type_id: self.type_id("u8") }],
-                is_visitable: false,
-            }),
+            "RegExpFlags" => TypeDef::Struct(StructDef::new(
+                "RegExpFlags".to_string(),
+                false,
+                self.get_file_id("oxc_ast::ast::literal"),
+                Derives::none(),
+                parse_quote! { struct RegExpFlags(u8); },
+                vec![FieldDef::new(None, self.type_id("u8"))],
+                false,
+            )),
             _ => panic!("Unknown type: {name}"),
         };
 
@@ -159,7 +159,7 @@ impl<'c> Parser<'c> {
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visitable = check_ast_attr(&item.attrs);
-        TypeDef::Struct(StructDef {
+        TypeDef::Struct(StructDef::new(
             name,
             has_lifetime,
             file_id,
@@ -167,7 +167,7 @@ impl<'c> Parser<'c> {
             item,
             fields,
             is_visitable,
-        })
+        ))
     }
 
     /// Parse `EnumSkeleton` to yield a `TypeDef`.
@@ -178,7 +178,7 @@ impl<'c> Parser<'c> {
         let inherits = inherits.into_iter().map(|name| self.type_id(&name)).collect();
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visitable = check_ast_attr(&item.attrs);
-        TypeDef::Enum(EnumDef {
+        TypeDef::Enum(EnumDef::new(
             name,
             has_lifetime,
             file_id,
@@ -187,7 +187,7 @@ impl<'c> Parser<'c> {
             variants,
             inherits,
             is_visitable,
-        })
+        ))
     }
 
     /// Parse `Fields` to `Vec<FieldDef>`.
@@ -202,7 +202,7 @@ impl<'c> Parser<'c> {
         let type_id = self
             .parse_type_name(ty)
             .unwrap_or_else(|| panic!("Cannot parse type reference: {}", ty.to_token_stream()));
-        FieldDef { name, type_id }
+        FieldDef::new(name, type_id)
     }
 
     /// Parse `Variant` to `VariantDef`.
@@ -269,28 +269,28 @@ impl<'c> Parser<'c> {
         let type_id = match wrapper_name {
             "Option" => self.options.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Option<{}>", &self.type_names[inner_type_id]);
-                let def = TypeDef::Option(OptionDef { name: name.clone(), inner_type_id });
+                let def = TypeDef::Option(OptionDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.options.insert(inner_type_id, type_id);
                 type_id
             }),
             "Box" => self.boxes.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Box<{}>", &self.type_names[inner_type_id]);
-                let def = TypeDef::Box(BoxDef { name: name.clone(), inner_type_id });
+                let def = TypeDef::Box(BoxDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.boxes.insert(inner_type_id, type_id);
                 type_id
             }),
             "Vec" => self.vecs.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Vec<{}>", &self.type_names[inner_type_id]);
-                let def = TypeDef::Vec(VecDef { name: name.clone(), inner_type_id });
+                let def = TypeDef::Vec(VecDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.vecs.insert(inner_type_id, type_id);
                 type_id
             }),
             "Cell" => self.cells.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Cell<{}>", &self.type_names[inner_type_id]);
-                let def = TypeDef::Cell(CellDef { name: name.clone(), inner_type_id });
+                let def = TypeDef::Cell(CellDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.cells.insert(inner_type_id, type_id);
                 type_id
