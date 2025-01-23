@@ -1,5 +1,7 @@
 //! Typescript Experimental Decorator
 
+use std::mem::swap;
+
 use oxc_allocator::{Address, Box as ArenaBox, GetAddress, Vec as ArenaVec};
 use oxc_ast::{ast::*, Visit, VisitMut};
 use oxc_semantic::SymbolFlags;
@@ -141,6 +143,8 @@ impl<'a> LegacyDecorators<'a, '_> {
         //
 
         let span = class.span;
+        // TODO: In TypeScript, the class binding will keep it as-is, but our implementation will take it,
+        // this way we can avoid syncing semantic data, need to check if there is any runtime impact.
         let class_binding =
             class.id.take().map(|ident| BoundIdentifier::from_binding_ident(&ident));
         let class_alias_binding = class_binding.as_ref().and_then(|id| {
@@ -150,17 +154,23 @@ impl<'a> LegacyDecorators<'a, '_> {
         let class_binding = class_binding
             .unwrap_or_else(|| ctx.generate_uid_in_current_scope("default", SymbolFlags::Class));
 
-        let statements =
+        let constructor_decoration = self.generate_constructor_decoration_expression(
+            &mut class,
+            &class_binding,
+            class_alias_binding.as_ref(),
+            ctx,
+        );
+        let mut stmts =
             self.transform_decorators_of_class_elements(&mut class, &class_binding, ctx);
+        stmts.push(constructor_decoration);
 
+        // `class C {}` -> `let C = class {}`
         class.r#type = ClassType::ClassExpression;
-        let initializer = if let Some(class_alias_binding) = class_alias_binding {
-            let left = class_alias_binding.create_write_target(ctx);
-            let right = Expression::ClassExpression(class);
-            ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, right)
-        } else {
-            Expression::ClassExpression(class)
-        };
+        let initializer = Self::get_class_initializer(
+            Expression::ClassExpression(class),
+            class_alias_binding.as_ref(),
+            ctx,
+        );
         let declarator = ctx.ast.variable_declarator(
             SPAN,
             VariableDeclarationKind::Let,
@@ -174,8 +184,11 @@ impl<'a> LegacyDecorators<'a, '_> {
             ctx.ast.vec1(declarator),
             false,
         );
+        let statement = Statement::from(var_declaration);
 
-        Statement::from(var_declaration)
+        self.ctx.statement_injector.insert_many_after(&statement, stmts);
+
+        statement
     }
 
     /// Transforms a non-decorated class declaration.
@@ -217,57 +230,36 @@ impl<'a> LegacyDecorators<'a, '_> {
         let mut decoration_stmts = ctx.ast.vec_with_capacity(class.body.body.len());
 
         for element in &mut class.body.body {
-            let (is_static, key, descriptor, decorations) =
-                match element {
-                    ClassElement::MethodDefinition(method) => {
-                        let params = &mut method.value.params;
-                        let param_decoration_count =
-                            params.items.iter().fold(0, |acc, param| acc + param.decorators.len());
-                        let decoration_count = method.decorators.len() + param_decoration_count;
-
-                        if decoration_count == 0 {
-                            continue;
-                        }
-
-                        let mut decorations = ctx.ast.vec_with_capacity(decoration_count);
-                        decorations.extend(
-                            method.decorators.drain(..).map(|decorator| {
-                                ArrayExpressionElement::from(decorator.expression)
-                            }),
-                        );
-
-                        if param_decoration_count > 0 {
-                            self.transform_decorators_of_parameters(
-                                &mut decorations,
-                                &mut method.value.params,
-                                ctx,
-                            );
-                        }
-
-                        // We emit `null` here to indicate to `__decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
-                        // We have this extra argument here so that we can inject an explicit property descriptor at a later date.
-                        let descriptor = ctx.ast.expression_null_literal(SPAN);
-
-                        (method.r#static, &mut method.key, descriptor, decorations)
-                    }
-                    ClassElement::PropertyDefinition(prop) if !prop.decorators.is_empty() => {
-                        let decorations =
-                            ctx.ast.vec_from_iter(prop.decorators.drain(..).map(|decorator| {
-                                ArrayExpressionElement::from(decorator.expression)
-                            }));
-
-                        // We emit `void 0` here to indicate to `__decorate` that it can invoke `Object.defineProperty` directly, but that it
-                        // should not invoke `Object.getOwnPropertyDescriptor`.
-                        let descriptor = ctx.ast.expression_null_literal(SPAN);
-
-                        (prop.r#static, &mut prop.key, descriptor, decorations)
-                    }
-                    _ => {
+            let (is_static, key, descriptor, decorations) = match element {
+                ClassElement::MethodDefinition(method) => {
+                    let Some(decorations) = self.get_all_decorators_of_class_method(method, ctx)
+                    else {
                         continue;
-                    }
-                };
+                    };
 
-            let decorations = ctx.ast.expression_array(SPAN, decorations, None);
+                    // We emit `null` here to indicate to `__decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
+                    // We have this extra argument here so that we can inject an explicit property descriptor at a later date.
+                    let descriptor = ctx.ast.expression_null_literal(SPAN);
+
+                    (method.r#static, &mut method.key, descriptor, decorations)
+                }
+                ClassElement::PropertyDefinition(prop) if !prop.decorators.is_empty() => {
+                    let decorations = Self::convert_decorators_to_array_expression(
+                        prop.decorators.drain(..),
+                        ctx,
+                    );
+
+                    // We emit `void 0` here to indicate to `__decorate` that it can invoke `Object.defineProperty` directly, but that it
+                    // should not invoke `Object.getOwnPropertyDescriptor`.
+                    let descriptor = ctx.ast.expression_null_literal(SPAN);
+
+                    (prop.r#static, &mut prop.key, descriptor, decorations)
+                }
+                _ => {
+                    continue;
+                }
+            };
+
             // `Class` or `Class.prototype`
             let prefix = Self::get_class_member_prefix(class_binding, is_static, ctx);
             let key = self.get_expression_for_property_name(key, ctx);
@@ -277,6 +269,40 @@ impl<'a> LegacyDecorators<'a, '_> {
         decoration_stmts
     }
 
+    fn get_all_decorators_of_class_method(
+        &self,
+        method: &mut MethodDefinition<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Option<Expression<'a>> {
+        let params = &mut method.value.params;
+        let param_decoration_count =
+            params.items.iter().fold(0, |acc, param| acc + param.decorators.len());
+        let method_decoration_count = method.decorators.len() + param_decoration_count;
+
+        if method_decoration_count == 0 {
+            return None;
+        }
+
+        let mut decorations = ctx.ast.vec_with_capacity(method_decoration_count);
+        decorations.extend(
+            method
+                .decorators
+                .drain(..)
+                .map(|decorator| ArrayExpressionElement::from(decorator.expression)),
+        );
+
+        if param_decoration_count > 0 {
+            self.transform_decorators_of_parameters(
+                &mut decorations,
+                &mut method.value.params,
+                ctx,
+            );
+        }
+
+        Some(ctx.ast.expression_array(SPAN, decorations, None))
+    }
+
+    #[allow(clippy::cast_precision_loss)]
     fn transform_decorators_of_parameters(
         &self,
         decorations: &mut ArenaVec<'a, ArrayExpressionElement<'a>>,
@@ -288,6 +314,7 @@ impl<'a> LegacyDecorators<'a, '_> {
                 continue;
             }
             decorations.extend(param.decorators.drain(..).map(|decorator| {
+                // (index, decorator)
                 let arguments = ctx.ast.vec_from_array([
                     Argument::from(ctx.ast.expression_numeric_literal(
                         SPAN,
@@ -297,6 +324,7 @@ impl<'a> LegacyDecorators<'a, '_> {
                     )),
                     Argument::from(decorator.expression),
                 ]);
+                // __decoratorParam(index, decorator)
                 ArrayExpressionElement::from(self.ctx.helper_call_expr(
                     Helper::DecoratorParam,
                     decorator.span,
@@ -304,6 +332,70 @@ impl<'a> LegacyDecorators<'a, '_> {
                     ctx,
                 ))
             }));
+        }
+    }
+
+    fn convert_decorators_to_array_expression(
+        decorators_iter: impl Iterator<Item = Decorator<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Expression<'a> {
+        let decorations = ctx.ast.vec_from_iter(
+            decorators_iter.map(|decorator| ArrayExpressionElement::from(decorator.expression)),
+        );
+        ctx.ast.expression_array(SPAN, decorations, None)
+    }
+
+    fn generate_constructor_decoration_expression(
+        &self,
+        class: &mut Class<'a>,
+        class_binding: &BoundIdentifier<'a>,
+        class_alias_binding: Option<&BoundIdentifier<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Statement<'a> {
+        let constructor = class.body.body.iter_mut().find_map(|element| match element {
+            ClassElement::MethodDefinition(method) if method.kind.is_constructor() => Some(method),
+            _ => None,
+        });
+
+        let decorations = if let Some(constructor) = constructor {
+            // Constructor cannot have decorators, swap decorators of class and constructor to use
+            // `get_all_decorators_of_class_method` to get all decorators of the class and constructor params
+            swap(&mut class.decorators, &mut constructor.decorators);
+            //  constructor.decorators
+            self.get_all_decorators_of_class_method(constructor, ctx)
+                .expect("At least one decorator")
+        } else {
+            Self::convert_decorators_to_array_expression(class.decorators.drain(..), ctx)
+        };
+
+        let arguments = ctx.ast.vec_from_array([
+            Argument::from(decorations),
+            Argument::from(class_binding.create_read_expression(ctx)),
+        ]);
+
+        let left = class_binding.create_write_target(ctx);
+        let right = Self::get_class_initializer(
+            self.ctx.helper_call_expr(Helper::Decorator, SPAN, arguments, ctx),
+            class_alias_binding,
+            ctx,
+        );
+        let assignment =
+            ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, right);
+        ctx.ast.statement_expression(SPAN, assignment)
+    }
+
+    /// * class_alias_binding is `Some`: `Class = _Class = expr`
+    /// * class_alias_binding is `None`: `Class = expr`
+    fn get_class_initializer(
+        expr: Expression<'a>,
+        class_alias_binding: Option<&BoundIdentifier<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Expression<'a> {
+        if let Some(class_alias_binding) = class_alias_binding {
+            let left = class_alias_binding.create_write_target(ctx);
+            ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, expr)
+        } else {
+            expr
         }
     }
 
@@ -439,14 +531,14 @@ impl<'a> LegacyDecorators<'a, '_> {
     /// `_decorator([...decorators], Class, "key", descriptor)`
     fn create_decorator(
         &self,
-        decoration_elements_array: Expression<'a>,
+        decorations: Expression<'a>,
         prefix: Expression<'a>,
         key: Expression<'a>,
         descriptor: Expression<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> Statement<'a> {
         let arguments = ctx.ast.vec_from_array([
-            Argument::from(decoration_elements_array),
+            Argument::from(decorations),
             Argument::from(prefix),
             Argument::from(key),
             Argument::from(descriptor),
