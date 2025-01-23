@@ -3,11 +3,11 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::quote;
 use rustc_hash::{FxHashMap, FxHashSet};
-use syn::{parse_str, ItemUse};
+use syn::{parse_str, ItemUse, Meta};
 
 use crate::{
     output::{output_path, Output},
-    schema::{Schema, TypeDef},
+    schema::{Schema, StructDef, TypeDef},
     Codegen, Result, Runner,
 };
 
@@ -45,6 +45,17 @@ pub trait Derive: Runner {
     /// Attributes on struct fields that this derive uses.
     fn field_attrs(&self) -> &[&'static str] {
         &[]
+    }
+
+    /// Process an attribute on a struct field.
+    #[expect(unused_variables)]
+    fn parse_field_attr(
+        &self,
+        attr_name: &str,
+        meta: &Meta,
+        def: &mut StructDef,
+        field_index: usize,
+    ) {
     }
 
     /// Attributes on enum variants that this derive uses.

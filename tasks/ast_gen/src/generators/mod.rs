@@ -1,4 +1,10 @@
-use crate::{output::Output, Result, Runner, Schema};
+use syn::Meta;
+
+use crate::{
+    output::Output,
+    schema::{Schema, StructDef},
+    Result, Runner,
+};
 
 mod assert_layouts;
 mod ast_builder;
@@ -25,6 +31,17 @@ pub trait Generator: Runner {
     /// Attributes on struct fields that this derive uses.
     fn field_attrs(&self) -> &[&'static str] {
         &[]
+    }
+
+    /// Process an attribute on a struct field.
+    #[expect(unused_variables)]
+    fn parse_field_attr(
+        &self,
+        attr_name: &str,
+        meta: &Meta,
+        def: &mut StructDef,
+        field_index: usize,
+    ) {
     }
 
     /// Attributes on enum variants that this derive uses.

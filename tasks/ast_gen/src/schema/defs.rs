@@ -494,9 +494,17 @@ impl FieldDef {
     pub fn new(name: Option<String>, type_id: TypeId, visibility: Visibility) -> Self {
         Self { name, type_id, visibility, offset: Offset::default() }
     }
-}
 
-impl FieldDef {
+    /// Get field name.
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// Get field name, or "unnamed" if it's not named.
+    pub fn name_or_unnamed(&self) -> &str {
+        self.name.as_deref().unwrap_or("unnamed")
+    }
+
     /// Get field name as an `Ident`.
     pub fn ident(&self) -> Option<Ident> {
         self.name.as_ref().map(|name| create_ident(name))

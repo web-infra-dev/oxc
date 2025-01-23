@@ -12,13 +12,12 @@ pub struct Codegen {
     derive_name_to_id: FxHashMap<&'static str, DeriveId>,
     /// Mapping from type attr to ID of derive/generator which uses the attr
     #[expect(dead_code)]
-    type_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub type_attrs: FxHashMap<&'static str, AttrTarget>,
     /// Mapping from struct field attr to ID of derive/generator which uses the attr
-    #[expect(dead_code)]
-    field_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub field_attrs: FxHashMap<&'static str, AttrTarget>,
     /// Mapping from enum variant attr to ID of derive/generator which uses the attr
     #[expect(dead_code)]
-    variant_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub variant_attrs: FxHashMap<&'static str, AttrTarget>,
 }
 
 impl Codegen {
@@ -125,13 +124,13 @@ impl Codegen {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum AttrTarget {
+pub enum AttrTarget {
     Derive(DeriveId),
     Generator(GeneratorId),
 }
 
 impl AttrTarget {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Self::Derive(id) => DERIVES[id].trait_name(),
             Self::Generator(_id) => "Unknown generator", // TODO
