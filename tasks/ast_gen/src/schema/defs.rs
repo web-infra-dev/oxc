@@ -527,9 +527,14 @@ pub struct VariantDef {
 }
 
 impl VariantDef {
+    /// Get variant name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     /// Get variant name as an `Ident`.
     pub fn ident(&self) -> Ident {
-        create_ident(&self.name)
+        create_ident(self.name())
     }
 
     /// Get variant's field.
