@@ -4,7 +4,7 @@ use std::mem::swap;
 
 use oxc_allocator::{Address, Box as ArenaBox, GetAddress, Vec as ArenaVec};
 use oxc_ast::{ast::*, Visit, VisitMut};
-use oxc_semantic::SymbolFlags;
+use oxc_semantic::{ScopeFlags, SymbolFlags};
 use oxc_span::SPAN;
 use oxc_syntax::operator::AssignmentOperator;
 use oxc_traverse::{Ancestor, BoundIdentifier, Traverse, TraverseCtx};
@@ -43,9 +43,17 @@ impl<'a> LegacyDecorators<'a, '_> {
             let Statement::ClassDeclaration(class) = ctx.ast.move_statement(stmt) else {
                 unreachable!()
             };
-            *stmt = self.transform_class_declaration_with_class_decorators(class, ctx);
+            *stmt = self.transform_class_declaration_with_class_decorators(
+                class,
+                has_private_in_expression_in_decorator,
+                ctx,
+            );
         } else if child_is_decorated {
-            self.transform_class_declaration_without_class_decorators(class, ctx);
+            self.transform_class_declaration_without_class_decorators(
+                class,
+                has_private_in_expression_in_decorator,
+                ctx,
+            );
         }
     }
 
@@ -54,6 +62,7 @@ impl<'a> LegacyDecorators<'a, '_> {
     fn transform_class_declaration_with_class_decorators(
         &mut self,
         mut class: ArenaBox<'a, Class<'a>>,
+        has_private_in_expression_in_decorator: bool,
         ctx: &mut TraverseCtx<'a>,
     ) -> Statement<'a> {
         // When we emit an ES6 class that has a class decorator, we must tailor the
@@ -160,9 +169,15 @@ impl<'a> LegacyDecorators<'a, '_> {
             class_alias_binding.as_ref(),
             ctx,
         );
-        let mut stmts =
+        let mut decoration_stmts =
             self.transform_decorators_of_class_elements(&mut class, &class_binding, ctx);
-        stmts.push(constructor_decoration);
+
+        if has_private_in_expression_in_decorator {
+            let stmts = ctx.ast.vec_from_iter(decoration_stmts.drain(..));
+            Self::insert_decorations_into_class_static_block(&mut class, stmts, ctx);
+        }
+
+        decoration_stmts.push(constructor_decoration);
 
         // `class C {}` -> `let C = class {}`
         class.r#type = ClassType::ClassExpression;
@@ -186,7 +201,7 @@ impl<'a> LegacyDecorators<'a, '_> {
         );
         let statement = Statement::from(var_declaration);
 
-        self.ctx.statement_injector.insert_many_after(&statement, stmts);
+        self.ctx.statement_injector.insert_many_after(&statement, decoration_stmts);
 
         statement
     }
@@ -195,6 +210,7 @@ impl<'a> LegacyDecorators<'a, '_> {
     fn transform_class_declaration_without_class_decorators(
         &mut self,
         class: &mut Class<'a>,
+        has_private_in_expression_in_decorator: bool,
         ctx: &mut TraverseCtx<'a>,
     ) {
         // `export default class {}`
@@ -207,16 +223,21 @@ impl<'a> LegacyDecorators<'a, '_> {
             class_binding
         };
 
-        // If the class declaration
-        let statements = self.transform_decorators_of_class_elements(class, &class_binding, ctx);
-        // Insert statements after class
-        let stmt_address = match ctx.parent() {
-            parent @ (Ancestor::ExportDefaultDeclarationDeclaration(_)
-            | Ancestor::ExportNamedDeclarationDeclaration(_)) => parent.address(),
-            // `Class` is always stored in a `Box`, so has a stable memory location
-            _ => Address::from_ptr(class),
-        };
-        self.ctx.statement_injector.insert_many_after(&stmt_address, statements);
+        let decoration_stmts =
+            self.transform_decorators_of_class_elements(class, &class_binding, ctx);
+
+        if has_private_in_expression_in_decorator {
+            Self::insert_decorations_into_class_static_block(class, decoration_stmts, ctx);
+        } else {
+            // Insert statements after class
+            let stmt_address = match ctx.parent() {
+                parent @ (Ancestor::ExportDefaultDeclarationDeclaration(_)
+                | Ancestor::ExportNamedDeclarationDeclaration(_)) => parent.address(),
+                // `Class` is always stored in a `Box`, so has a stable memory location
+                _ => Address::from_ptr(class),
+            };
+            self.ctx.statement_injector.insert_many_after(&stmt_address, decoration_stmts);
+        }
     }
 
     fn transform_decorators_of_class_elements(
@@ -267,6 +288,17 @@ impl<'a> LegacyDecorators<'a, '_> {
         }
 
         decoration_stmts
+    }
+
+    fn insert_decorations_into_class_static_block(
+        class: &mut Class<'a>,
+        decorations: ArenaVec<'a, Statement<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        let scope_id = ctx.create_child_scope(class.scope_id(), ScopeFlags::ClassStaticBlock);
+        let static_block = ctx.ast.alloc_static_block_with_scope_id(SPAN, decorations, scope_id);
+        let element = ClassElement::StaticBlock(static_block);
+        class.body.body.push(element);
     }
 
     fn get_all_decorators_of_class_method(
