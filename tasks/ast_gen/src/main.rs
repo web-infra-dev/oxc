@@ -52,7 +52,7 @@ const GENERATORS: &[&dyn Generator] = &[
     &generators::TypescriptGenerator,
 ];
 
-type Result<R> = std::result::Result<R, String>;
+type Result<R> = std::result::Result<R, ()>;
 
 #[derive(Debug, Bpaf)]
 struct CliOptions {

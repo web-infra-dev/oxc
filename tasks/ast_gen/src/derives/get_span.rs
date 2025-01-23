@@ -34,7 +34,7 @@ impl Derive for DeriveGetSpan {
             def.span_field_index = Some(field_index);
             Ok(())
         } else {
-            Err(String::new())
+            Err(())
         }
     }
 

@@ -40,7 +40,7 @@ impl Derive for DeriveCloneIn {
             }
         }
 
-        Err(String::new())
+        Err(())
     }
 
     fn prelude(&self) -> TokenStream {
