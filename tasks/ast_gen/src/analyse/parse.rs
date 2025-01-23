@@ -1,9 +1,9 @@
 use quote::ToTokens;
 use rustc_hash::FxHashMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, Attribute, Expr, ExprLit, Field, Fields, GenericArgument,
-    Generics, Ident, Lit, Meta, Path, PathArguments, PathSegment, Token, Type, TypePath,
-    TypeReference, Variant, Visibility as SynVisibility,
+    punctuated::Punctuated, Attribute, Expr, ExprLit, Field, Fields, GenericArgument, Generics,
+    Ident, Lit, Meta, Path, PathArguments, PathSegment, Token, Type, TypePath, TypeReference,
+    Variant, Visibility as SynVisibility,
 };
 
 use crate::{
@@ -115,7 +115,6 @@ impl<'c> Parser<'c> {
                 false,
                 self.get_file_id("oxc_ast::ast::literal"),
                 Derives::none(),
-                parse_quote! { struct RegExpFlags(u8); },
                 vec![FieldDef::new(None, self.type_id("u8"), Visibility::Public)],
                 false,
             )),
@@ -164,7 +163,6 @@ impl<'c> Parser<'c> {
             has_lifetime,
             file_id,
             generated_derives,
-            item,
             fields,
             is_visited,
         ))
@@ -183,7 +181,6 @@ impl<'c> Parser<'c> {
             has_lifetime,
             file_id,
             generated_derives,
-            item,
             variants,
             inherits,
             is_visited,

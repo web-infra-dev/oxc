@@ -3,7 +3,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, ItemEnum, ItemStruct};
+use syn::Ident;
 
 use crate::{utils::create_ident, Schema};
 
@@ -311,7 +311,6 @@ pub struct StructDef {
     pub has_lifetime: bool,
     pub file_id: FileId,
     pub generated_derives: Derives,
-    pub item: ItemStruct,
     pub fields: Vec<FieldDef>,
     pub is_visited: bool,
     pub has_kind: bool,
@@ -324,7 +323,6 @@ impl StructDef {
         has_lifetime: bool,
         file_id: FileId,
         generated_derives: Derives,
-        item: ItemStruct,
         fields: Vec<FieldDef>,
         is_visited: bool,
     ) -> Self {
@@ -333,7 +331,6 @@ impl StructDef {
             has_lifetime,
             file_id,
             generated_derives,
-            item,
             fields,
             is_visited,
             has_kind: false,
@@ -393,7 +390,6 @@ pub struct EnumDef {
     pub has_lifetime: bool,
     pub file_id: FileId,
     pub generated_derives: Derives,
-    pub item: ItemEnum,
     pub variants: Vec<VariantDef>,
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
@@ -403,13 +399,11 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    #[expect(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         has_lifetime: bool,
         file_id: FileId,
         generated_derives: Derives,
-        item: ItemEnum,
         variants: Vec<VariantDef>,
         inherits: Vec<TypeId>,
         is_visited: bool,
@@ -419,7 +413,6 @@ impl EnumDef {
             has_lifetime,
             file_id,
             generated_derives,
-            item,
             variants,
             inherits,
             is_visited,
