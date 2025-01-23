@@ -1,3 +1,13 @@
+//! Generator of code related to `AstKind`.
+//!
+//! * `AstType` type definition.
+//! * `AstKind` type definition.
+//! * `AstKind::ty` method.
+//! * `AstKind::as_*` methods.
+//! * `GetSpan` impl for `AstKind`.
+//!
+//! Variants of `AstKind` and `AstType` are not created for types listed in `BLACK_LIST` below.
+
 use proc_macro2::Span;
 use quote::{format_ident, quote};
 use syn::LitInt;
