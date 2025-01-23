@@ -479,6 +479,21 @@ impl VariantDef {
     pub fn ident(&self) -> Ident {
         create_ident(&self.name)
     }
+
+    /// Get variant's field.
+    ///
+    /// Returns `None` if variant is fieldless.
+    ///
+    /// # Panics
+    /// Panics if variant has more than 1 field.
+    pub fn field(&self) -> Option<&FieldDef> {
+        if self.fields.is_empty() {
+            None
+        } else {
+            assert!(self.fields.len() == 1);
+            Some(&self.fields[0])
+        }
+    }
 }
 
 #[derive(Debug)]

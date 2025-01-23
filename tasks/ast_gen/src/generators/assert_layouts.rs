@@ -194,10 +194,8 @@ fn calculate_layout_for_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
             *min_discriminant = min(*min_discriminant, variant.discriminant);
             *max_discriminant = max(*max_discriminant, variant.discriminant);
 
-            if !variant.fields.is_empty() {
-                assert_eq!(variant.fields.len(), 1);
-
-                let variant_layout = calculate_layout(variant.fields[0].type_id, schema);
+            if let Some(field) = variant.field() {
+                let variant_layout = calculate_layout(field.type_id, schema);
 
                 layout_64.size = max(layout_64.size, variant_layout.layout_64.size);
                 layout_64.align = max(layout_64.align, variant_layout.layout_64.align);
