@@ -315,6 +315,7 @@ pub struct StructDef {
     pub is_visited: bool,
     pub has_kind: bool,
     pub layout: Layout,
+    pub span_field_index: Option<usize>,
 }
 
 impl StructDef {
@@ -335,6 +336,7 @@ impl StructDef {
             is_visited,
             has_kind: false,
             layout: Layout::default(),
+            span_field_index: None,
         }
     }
 
