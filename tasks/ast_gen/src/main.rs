@@ -101,8 +101,11 @@ fn main() {
         outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
 
-    /*
     for runner in DERIVES {
+        if !["DeriveCloneIn"].contains(&runner.name()) {
+            continue;
+        }
+
         log!("Derive {}... ", runner.name());
         let result = runner.run(&schema, &codegen);
         log_result!(result);
@@ -110,7 +113,6 @@ fn main() {
         let runner_path = runner.file_path();
         outputs.extend(runner_outputs.into_iter().map(|output| output.into_raw(runner_path)));
     }
-    */
 
     // Add CI filter file to outputs
     // outputs.push(generate_ci_filter(&outputs));

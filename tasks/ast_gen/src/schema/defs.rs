@@ -528,7 +528,6 @@ pub struct VariantDef {
 
 impl VariantDef {
     /// Get variant name as an `Ident`.
-    #[expect(dead_code)]
     pub fn ident(&self) -> Ident {
         create_ident(&self.name)
     }
@@ -556,11 +555,12 @@ pub struct FieldDef {
     pub type_id: TypeId,
     pub visibility: Visibility,
     pub offset: Offset,
+    pub clone_in_default: bool,
 }
 
 impl FieldDef {
     pub fn new(name: Option<String>, type_id: TypeId, visibility: Visibility) -> Self {
-        Self { name, type_id, visibility, offset: Offset::default() }
+        Self { name, type_id, visibility, offset: Offset::default(), clone_in_default: false }
     }
 
     /// Get field name.
