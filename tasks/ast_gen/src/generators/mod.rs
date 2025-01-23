@@ -30,7 +30,9 @@ pub trait Generator: Runner {
 
     /// Process an attribute on a struct or enum.
     #[expect(unused_variables)]
-    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) {}
+    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) -> Result<()> {
+        Ok(())
+    }
 
     /// Attributes on struct fields that this derive uses.
     fn field_attrs(&self) -> &[&'static str] {
@@ -45,7 +47,8 @@ pub trait Generator: Runner {
         meta: &Meta,
         def: &mut StructDef,
         field_index: usize,
-    ) {
+    ) -> Result<()> {
+        Ok(())
     }
 
     /// Attributes on enum variants that this derive uses.
@@ -61,7 +64,8 @@ pub trait Generator: Runner {
         meta: &Meta,
         def: &mut EnumDef,
         variant_index: usize,
-    ) {
+    ) -> Result<()> {
+        Ok(())
     }
 
     /// Modify schema.

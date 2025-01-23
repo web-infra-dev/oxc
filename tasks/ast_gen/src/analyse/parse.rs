@@ -189,7 +189,7 @@ impl<'c> Parser<'c> {
                 let attr_name = ident_name(attr_ident);
 
                 if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                    match target {
+                    let result = match target {
                         AttrTarget::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
@@ -197,13 +197,20 @@ impl<'c> Parser<'c> {
                                 panic_not_derived(def.name(), &attr_name, derive.trait_name());
                             }
 
-                            derive.parse_field_attr(&attr_name, &attr.meta, def, field_index);
+                            derive.parse_field_attr(&attr_name, &attr.meta, def, field_index)
                         }
                         AttrTarget::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_field_attr(&attr_name, &attr.meta, def, field_index);
+                            generator.parse_field_attr(&attr_name, &attr.meta, def, field_index)
                         }
-                    }
+                    };
+
+                    assert!(
+                        result.is_ok(),
+                        "Invalid use of `#[{attr_name}]` on `{}::{}` struct field",
+                        def.name(),
+                        def.field(field_index).name_or_unnamed()
+                    );
                 }
             }
         }
@@ -239,8 +246,8 @@ impl<'c> Parser<'c> {
             panic!("A derive or generator mutated `TypeDef::Enum` to another kind of `TypeDef`");
         };
 
-        for (variant_index, field) in item.variants.iter().enumerate() {
-            for attr in &field.attrs {
+        for (variant_index, variant) in item.variants.iter().enumerate() {
+            for attr in &variant.attrs {
                 if !matches!(attr.style, AttrStyle::Outer) {
                     continue;
                 }
@@ -248,7 +255,7 @@ impl<'c> Parser<'c> {
                 let attr_name = ident_name(attr_ident);
 
                 if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                    match target {
+                    let result = match target {
                         AttrTarget::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
@@ -256,18 +263,20 @@ impl<'c> Parser<'c> {
                                 panic_not_derived(def.name(), &attr_name, derive.trait_name());
                             }
 
-                            derive.parse_variant_attr(&attr_name, &attr.meta, def, variant_index);
+                            derive.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
                         }
                         AttrTarget::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_variant_attr(
-                                &attr_name,
-                                &attr.meta,
-                                def,
-                                variant_index,
-                            );
+                            generator.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
                         }
-                    }
+                    };
+
+                    assert!(
+                        result.is_ok(),
+                        "Invalid use of `#[{attr_name}]` on `{}::{}` enum variant",
+                        def.name(),
+                        def.variant(variant_index).name(),
+                    );
                 }
             }
         }
@@ -409,7 +418,7 @@ impl<'c> Parser<'c> {
             let attr_name = ident_name(attr_ident);
 
             if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                match target {
+                let result = match target {
                     AttrTarget::Derive(derive_id) => {
                         // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                         let derive = DERIVES[derive_id];
@@ -417,13 +426,15 @@ impl<'c> Parser<'c> {
                             panic_not_derived(def.name(), &attr_name, derive.trait_name());
                         }
 
-                        derive.parse_type_attr(&attr_name, &attr.meta, def);
+                        derive.parse_type_attr(&attr_name, &attr.meta, def)
                     }
                     AttrTarget::Generator(generator_id) => {
                         let generator = GENERATORS[generator_id];
-                        generator.parse_type_attr(&attr_name, &attr.meta, def);
+                        generator.parse_type_attr(&attr_name, &attr.meta, def)
                     }
-                }
+                };
+
+                assert!(result.is_ok(), "Invalid use of `#[{attr_name}]` on `{}` type", def.name());
             }
         }
     }

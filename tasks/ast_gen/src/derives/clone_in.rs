@@ -3,7 +3,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Meta, Path};
 
-use crate::schema::{Def, EnumDef, Schema, StructDef, TypeDef};
+use crate::{
+    schema::{Def, EnumDef, Schema, StructDef, TypeDef},
+    Result,
+};
 
 use super::{define_derive, Derive};
 
@@ -23,25 +26,21 @@ impl Derive for DeriveCloneIn {
     /// Parse `#[clone_in(default)]` on struct field.
     fn parse_field_attr(
         &self,
-        attr_name: &str,
+        _attr_name: &str,
         meta: &Meta,
         def: &mut StructDef,
         field_index: usize,
-    ) {
+    ) -> Result<()> {
         if let Meta::List(list) = meta {
             if let Ok(path) = list.parse_args::<Path>() {
                 if path.is_ident("default") {
                     def.field_mut(field_index).clone_in_default = true;
-                    return;
+                    return Ok(());
                 }
             }
         }
 
-        panic!(
-            "Invalid use of `#[{attr_name}]` on {}::{} struct field",
-            def.name(),
-            &def.field(field_index).name_or_unnamed()
-        );
+        Err(String::new())
     }
 
     fn prelude(&self) -> TokenStream {

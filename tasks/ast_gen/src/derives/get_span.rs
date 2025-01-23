@@ -2,7 +2,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Meta};
 
-use crate::schema::{Def, EnumDef, Schema, StructDef, TypeDef};
+use crate::{
+    schema::{Def, EnumDef, Schema, StructDef, TypeDef},
+    Result,
+};
 
 use super::{define_derive, Derive};
 
@@ -22,23 +25,17 @@ impl Derive for DeriveGetSpan {
     /// Parse `#[span]` on struct field.
     fn parse_field_attr(
         &self,
-        attr_name: &str,
+        _attr_name: &str,
         meta: &Meta,
         def: &mut StructDef,
         field_index: usize,
-    ) {
-        assert_eq!(attr_name, "span");
-
+    ) -> Result<()> {
         if matches!(meta, Meta::Path(_)) {
             def.span_field_index = Some(field_index);
-            return;
+            Ok(())
+        } else {
+            Err(String::new())
         }
-
-        panic!(
-            "Invalid use of `#[span]` attribute on {}::{} struct field",
-            def.name(),
-            &def.field(field_index).name_or_unnamed()
-        );
     }
 
     fn prelude(&self) -> TokenStream {
