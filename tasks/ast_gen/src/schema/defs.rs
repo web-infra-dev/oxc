@@ -1,5 +1,3 @@
-#![expect(dead_code)]
-
 use std::iter::FusedIterator;
 
 use convert_case::{Case, Casing};
@@ -427,6 +425,7 @@ impl EnumDef {
         &self.variants[variant_index]
     }
 
+    #[expect(dead_code)]
     pub fn variant_mut(&mut self, variant_index: usize) -> &mut VariantDef {
         &mut self.variants[variant_index]
     }
@@ -529,6 +528,7 @@ pub struct VariantDef {
 
 impl VariantDef {
     /// Get variant name as an `Ident`.
+    #[expect(dead_code)]
     pub fn ident(&self) -> Ident {
         create_ident(&self.name)
     }
@@ -570,7 +570,7 @@ impl FieldDef {
 
     /// Get field name, or "unnamed" if it's not named.
     pub fn name_or_unnamed(&self) -> &str {
-        self.name.as_deref().unwrap_or("unnamed")
+        self.name().unwrap_or("unnamed")
     }
 
     /// Get field name as an `Ident`.
