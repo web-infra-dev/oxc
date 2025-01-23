@@ -395,7 +395,7 @@ impl<'a> LegacyDecorators<'a, '_> {
             PropertyKey::TemplateLiteral(literal) if literal.expressions.is_empty() => {
                 ctx.ast.expression_template_literal(
                     SPAN,
-                    ctx.ast.vec_from_iter(literal.quasis.iter().copied()),
+                    ctx.ast.vec_from_iter(literal.quasis.iter().cloned()),
                     ctx.ast.vec(),
                 )
             }
