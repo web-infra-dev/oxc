@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::schema::{Schema, TypeDef};
+use crate::schema::{Def, EnumDef, Schema, TypeDef};
 
 use super::{define_derive, Derive};
 
@@ -23,9 +23,38 @@ impl Derive for DeriveGetAddress {
         }
     }
 
-    fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
-        quote! {
-            const TODO: u64 = 123;
+    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
+        if let TypeDef::Enum(def) = def {
+            derive_enum(def, schema)
+        } else {
+            panic!("`GetAddress` can only be implemented with `#[generate_derive]` on enums");
+        }
+    }
+}
+
+fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
+    let ty = def.ty_anon(schema);
+
+    let matches = def.all_variants(schema).map(|variant| {
+        let variant_type = variant.field().unwrap().def(schema);
+        assert!(
+            matches!(variant_type, TypeDef::Box(_)),
+            "`GetAddress` can only be derived on enums where all variants are boxed"
+        );
+
+        let ident = variant.ident();
+        quote!( Self::#ident(it) => GetAddress::address(it) )
+    });
+
+    quote! {
+        impl GetAddress for #ty {
+            ///@ `#[inline]` because compiler should boil this down to a single assembly instruction
+            #[inline]
+            fn address(&self) -> Address {
+                match self {
+                    #(#matches),*
+                }
+            }
         }
     }
 }

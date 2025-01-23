@@ -102,8 +102,14 @@ fn main() {
     }
 
     for runner in DERIVES {
-        if !["DeriveCloneIn", "DeriveGetSpan", "DeriveGetSpanMut", "DeriveContentEq"]
-            .contains(&runner.name())
+        if ![
+            "DeriveCloneIn",
+            "DeriveGetSpan",
+            "DeriveGetSpanMut",
+            "DeriveContentEq",
+            "DeriveGetAddress",
+        ]
+        .contains(&runner.name())
         {
             continue;
         }
