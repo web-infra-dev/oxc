@@ -3,13 +3,13 @@ use rustc_hash::FxHashMap;
 use syn::{
     parse_quote, punctuated::Punctuated, Attribute, Expr, ExprLit, Field, Fields, GenericArgument,
     Generics, Ident, Lit, Meta, Path, PathArguments, PathSegment, Token, Type, TypePath,
-    TypeReference, Variant,
+    TypeReference, Variant, Visibility as SynVisibility,
 };
 
 use crate::{
     schema::{
         BoxDef, CellDef, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
-        StructDef, TypeDef, TypeId, VariantDef, VecDef,
+        StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
     },
     Codegen,
 };
@@ -116,7 +116,7 @@ impl<'c> Parser<'c> {
                 self.get_file_id("oxc_ast::ast::literal"),
                 Derives::none(),
                 parse_quote! { struct RegExpFlags(u8); },
-                vec![FieldDef::new(None, self.type_id("u8"))],
+                vec![FieldDef::new(None, self.type_id("u8"), Visibility::Public)],
                 false,
             )),
             _ => panic!("Unknown type: {name}"),
@@ -202,7 +202,12 @@ impl<'c> Parser<'c> {
         let type_id = self
             .parse_type_name(ty)
             .unwrap_or_else(|| panic!("Cannot parse type reference: {}", ty.to_token_stream()));
-        FieldDef::new(name, type_id)
+        let visibility = match &field.vis {
+            SynVisibility::Public(_) => Visibility::Public,
+            SynVisibility::Restricted(_) => Visibility::Restricted,
+            SynVisibility::Inherited => Visibility::Private,
+        };
+        FieldDef::new(name, type_id, visibility)
     }
 
     /// Parse `Variant` to `VariantDef`.

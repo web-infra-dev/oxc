@@ -89,7 +89,7 @@ fn main() {
     let mut outputs = vec![];
 
     for runner in GENERATORS {
-        if !["GetIdGenerator", "AstKindGenerator"].contains(&runner.name()) {
+        if !["GetIdGenerator", "AstKindGenerator", "AssertLayouts"].contains(&runner.name()) {
             continue;
         }
 

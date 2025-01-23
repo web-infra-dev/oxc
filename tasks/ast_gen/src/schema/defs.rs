@@ -7,7 +7,7 @@ use syn::{Ident, ItemEnum, ItemStruct};
 
 use crate::{utils::create_ident, Schema};
 
-use super::{DeriveId, Derives, FileId, TypeId};
+use super::{DeriveId, Derives, FileId, Layout, Offset, TypeId};
 
 pub type Discriminant = u8;
 
@@ -70,6 +70,9 @@ pub trait Def {
             TokenStream::new()
         }
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout;
 }
 
 #[derive(Debug)]
@@ -81,6 +84,36 @@ pub enum TypeDef {
     Box(BoxDef),
     Vec(VecDef),
     Cell(CellDef),
+}
+
+impl TypeDef {
+    pub fn as_struct(&self) -> Option<&StructDef> {
+        match self {
+            Self::Struct(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_struct_mut(&mut self) -> Option<&mut StructDef> {
+        match self {
+            Self::Struct(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_enum(&self) -> Option<&EnumDef> {
+        match self {
+            Self::Enum(def) => Some(def),
+            _ => None,
+        }
+    }
+
+    pub fn as_enum_mut(&mut self) -> Option<&mut EnumDef> {
+        match self {
+            Self::Enum(def) => Some(def),
+            _ => None,
+        }
+    }
 }
 
 impl Def for TypeDef {
@@ -120,6 +153,19 @@ impl Def for TypeDef {
             TypeDef::Box(def) => def.ty_with_lifetime(schema, anon),
             TypeDef::Vec(def) => def.ty_with_lifetime(schema, anon),
             TypeDef::Cell(def) => def.ty_with_lifetime(schema, anon),
+        }
+    }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        match self {
+            TypeDef::Struct(def) => def.layout(),
+            TypeDef::Enum(def) => def.layout(),
+            TypeDef::Primitive(def) => def.layout(),
+            TypeDef::Option(def) => def.layout(),
+            TypeDef::Box(def) => def.layout(),
+            TypeDef::Vec(def) => def.layout(),
+            TypeDef::Cell(def) => def.layout(),
         }
     }
 }
@@ -169,6 +215,7 @@ pub struct StructDef {
     pub item: ItemStruct,
     pub fields: Vec<FieldDef>,
     pub is_visitable: bool,
+    pub layout: Layout,
 }
 
 impl StructDef {
@@ -181,7 +228,24 @@ impl StructDef {
         fields: Vec<FieldDef>,
         is_visitable: bool,
     ) -> Self {
-        Self { name, has_lifetime, file_id, generated_derives, item, fields, is_visitable }
+        Self {
+            name,
+            has_lifetime,
+            file_id,
+            generated_derives,
+            item,
+            fields,
+            is_visitable,
+            layout: Layout::default(),
+        }
+    }
+
+    pub fn field(&self, field_index: usize) -> &FieldDef {
+        &self.fields[field_index]
+    }
+
+    pub fn field_mut(&mut self, field_index: usize) -> &mut FieldDef {
+        &mut self.fields[field_index]
     }
 }
 
@@ -203,6 +267,11 @@ impl Def for StructDef {
         let lifetime = self.lifetime_maybe_anon(schema, anon);
         quote!( #ident #lifetime )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
@@ -216,6 +285,7 @@ pub struct EnumDef {
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
     pub is_visitable: bool,
+    pub layout: Layout,
 }
 
 impl EnumDef {
@@ -239,6 +309,7 @@ impl EnumDef {
             variants,
             inherits,
             is_visitable,
+            layout: Layout::default(),
         }
     }
 }
@@ -261,6 +332,11 @@ impl Def for EnumDef {
         let lifetime = self.lifetime_maybe_anon(schema, anon);
         quote!( #ident #lifetime )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
@@ -282,11 +358,13 @@ pub struct FieldDef {
     /// `None` if unnamed field
     pub name: Option<String>,
     pub type_id: TypeId,
+    pub visibility: Visibility,
+    pub offset: Offset,
 }
 
 impl FieldDef {
-    pub fn new(name: Option<String>, type_id: TypeId) -> Self {
-        Self { name, type_id }
+    pub fn new(name: Option<String>, type_id: TypeId, visibility: Visibility) -> Self {
+        Self { name, type_id, visibility, offset: Offset::default() }
     }
 }
 
@@ -302,14 +380,23 @@ impl FieldDef {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Visibility {
+    Public,
+    /// `pub(crate)` or `pub(super)`
+    Restricted,
+    Private,
+}
+
 #[derive(Debug)]
 pub struct PrimitiveDef {
     pub name: &'static str,
+    pub layout: Layout,
 }
 
 impl PrimitiveDef {
     pub fn new(name: &'static str) -> Self {
-        Self { name }
+        Self { name, layout: Layout::default() }
     }
 }
 
@@ -329,17 +416,23 @@ impl Def for PrimitiveDef {
         let ident = self.ident();
         quote!( #ident )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
 pub struct OptionDef {
     pub name: String,
     pub inner_type_id: TypeId,
+    pub layout: Layout,
 }
 
 impl OptionDef {
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
-        Self { name, inner_type_id }
+        Self { name, inner_type_id, layout: Layout::default() }
     }
 }
 
@@ -362,17 +455,23 @@ impl Def for OptionDef {
         let inner_ty = inner_type.ty_with_lifetime(schema, anon);
         quote!( Option<#inner_ty> )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
 pub struct BoxDef {
     pub name: String,
     pub inner_type_id: TypeId,
+    pub layout: Layout,
 }
 
 impl BoxDef {
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
-        Self { name, inner_type_id }
+        Self { name, inner_type_id, layout: Layout::default() }
     }
 }
 
@@ -395,17 +494,23 @@ impl Def for BoxDef {
         let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
         quote!( Box<#lifetime, #inner_ty> )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
 pub struct VecDef {
     pub name: String,
     pub inner_type_id: TypeId,
+    pub layout: Layout,
 }
 
 impl VecDef {
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
-        Self { name, inner_type_id }
+        Self { name, inner_type_id, layout: Layout::default() }
     }
 }
 
@@ -428,17 +533,23 @@ impl Def for VecDef {
         let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
         quote!( Vec<#lifetime, #inner_ty> )
     }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
+    }
 }
 
 #[derive(Debug)]
 pub struct CellDef {
     pub name: String,
     pub inner_type_id: TypeId,
+    pub layout: Layout,
 }
 
 impl CellDef {
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
-        Self { name, inner_type_id }
+        Self { name, inner_type_id, layout: Layout::default() }
     }
 }
 
@@ -461,5 +572,10 @@ impl Def for CellDef {
         let inner_ty = inner_type.ty_with_lifetime(schema, anon);
         let lifetime = if anon { quote!( '_ ) } else { quote!( 'a ) };
         quote!( Vec<#lifetime, #inner_ty> )
+    }
+
+    /// Get type's layout.
+    fn layout(&self) -> &Layout {
+        &self.layout
     }
 }
