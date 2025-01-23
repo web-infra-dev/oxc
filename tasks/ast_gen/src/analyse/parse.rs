@@ -158,7 +158,7 @@ impl<'c> Parser<'c> {
         let has_lifetime = check_generics(&item.generics, &name);
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
-        let is_visitable = check_ast_attr(&item.attrs);
+        let is_visited = check_ast_attr(&item.attrs);
         TypeDef::Struct(StructDef::new(
             name,
             has_lifetime,
@@ -166,7 +166,7 @@ impl<'c> Parser<'c> {
             generated_derives,
             item,
             fields,
-            is_visitable,
+            is_visited,
         ))
     }
 
@@ -177,7 +177,7 @@ impl<'c> Parser<'c> {
         let variants = item.variants.iter().map(|variant| self.parse_variant(variant)).collect();
         let inherits = inherits.into_iter().map(|name| self.type_id(&name)).collect();
         let generated_derives = self.get_generated_derives(&item.attrs);
-        let is_visitable = check_ast_attr(&item.attrs);
+        let is_visited = check_ast_attr(&item.attrs);
         TypeDef::Enum(EnumDef::new(
             name,
             has_lifetime,
@@ -186,7 +186,7 @@ impl<'c> Parser<'c> {
             item,
             variants,
             inherits,
-            is_visitable,
+            is_visited,
         ))
     }
 

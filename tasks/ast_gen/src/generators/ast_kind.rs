@@ -95,12 +95,12 @@ impl Generator for AstKindGenerator {
         for def in &mut schema.defs {
             match def {
                 TypeDef::Struct(def) => {
-                    if def.is_visitable() && !BLACK_LIST.contains(&def.name()) {
+                    if def.is_visited() && !BLACK_LIST.contains(&def.name()) {
                         def.has_kind = true;
                     }
                 }
                 TypeDef::Enum(def) => {
-                    if def.is_visitable() && !BLACK_LIST.contains(&def.name()) {
+                    if def.is_visited() && !BLACK_LIST.contains(&def.name()) {
                         def.has_kind = true;
                     }
                 }

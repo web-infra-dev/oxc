@@ -71,10 +71,10 @@ pub trait Def {
         }
     }
 
-    /// Get whether type is visitable.
+    /// Get whether type is visited.
     ///
     /// Returns `true` if type is tagged `#[ast(visit)]`.
-    fn is_visitable(&self) -> bool {
+    fn is_visited(&self) -> bool {
         false
     }
 
@@ -238,18 +238,18 @@ impl Def for TypeDef {
         }
     }
 
-    /// Get whether type is visitable.
+    /// Get whether type is visited.
     ///
     /// Returns `true` if type is tagged `#[ast(visit)]`.
-    fn is_visitable(&self) -> bool {
+    fn is_visited(&self) -> bool {
         match self {
-            TypeDef::Struct(def) => def.is_visitable(),
-            TypeDef::Enum(def) => def.is_visitable(),
-            TypeDef::Primitive(def) => def.is_visitable(),
-            TypeDef::Option(def) => def.is_visitable(),
-            TypeDef::Box(def) => def.is_visitable(),
-            TypeDef::Vec(def) => def.is_visitable(),
-            TypeDef::Cell(def) => def.is_visitable(),
+            TypeDef::Struct(def) => def.is_visited(),
+            TypeDef::Enum(def) => def.is_visited(),
+            TypeDef::Primitive(def) => def.is_visited(),
+            TypeDef::Option(def) => def.is_visited(),
+            TypeDef::Box(def) => def.is_visited(),
+            TypeDef::Vec(def) => def.is_visited(),
+            TypeDef::Cell(def) => def.is_visited(),
         }
     }
 
@@ -313,7 +313,7 @@ pub struct StructDef {
     pub generated_derives: Derives,
     pub item: ItemStruct,
     pub fields: Vec<FieldDef>,
-    pub is_visitable: bool,
+    pub is_visited: bool,
     pub has_kind: bool,
     pub layout: Layout,
 }
@@ -326,7 +326,7 @@ impl StructDef {
         generated_derives: Derives,
         item: ItemStruct,
         fields: Vec<FieldDef>,
-        is_visitable: bool,
+        is_visited: bool,
     ) -> Self {
         Self {
             name,
@@ -335,7 +335,7 @@ impl StructDef {
             generated_derives,
             item,
             fields,
-            is_visitable,
+            is_visited,
             has_kind: false,
             layout: Layout::default(),
         }
@@ -369,11 +369,11 @@ impl Def for StructDef {
         quote!( #ident #lifetime )
     }
 
-    /// Get whether type is visitable.
+    /// Get whether type is visited.
     ///
     /// Returns `true` if type is tagged `#[ast(visit)]`.
-    fn is_visitable(&self) -> bool {
-        self.is_visitable
+    fn is_visited(&self) -> bool {
+        self.is_visited
     }
 
     /// Get whether type has `AstKind`.
@@ -397,7 +397,7 @@ pub struct EnumDef {
     pub variants: Vec<VariantDef>,
     /// For `@inherits` inherited enum variants
     pub inherits: Vec<TypeId>,
-    pub is_visitable: bool,
+    pub is_visited: bool,
     pub has_kind: bool,
     pub layout: Layout,
 }
@@ -412,7 +412,7 @@ impl EnumDef {
         item: ItemEnum,
         variants: Vec<VariantDef>,
         inherits: Vec<TypeId>,
-        is_visitable: bool,
+        is_visited: bool,
     ) -> Self {
         Self {
             name,
@@ -422,7 +422,7 @@ impl EnumDef {
             item,
             variants,
             inherits,
-            is_visitable,
+            is_visited,
             has_kind: false,
             layout: Layout::default(),
         }
@@ -456,11 +456,11 @@ impl Def for EnumDef {
         quote!( #ident #lifetime )
     }
 
-    /// Get whether type is visitable.
+    /// Get whether type is visited.
     ///
     /// Returns `true` if type is tagged `#[ast(visit)]`.
-    fn is_visitable(&self) -> bool {
-        self.is_visitable
+    fn is_visited(&self) -> bool {
+        self.is_visited
     }
 
     /// Get whether type has `AstKind`.
