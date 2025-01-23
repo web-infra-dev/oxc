@@ -1,3 +1,9 @@
+//! Calculate memory layout of all types and generate const assertions for the correctness
+//! of those calculations.
+//!
+//! Memory layouts are different on 64-bit and 32-bit platforms.
+//! Calculate each separately, and generate assertions for each.
+
 use std::cmp::{max, min};
 
 use proc_macro2::TokenStream;
@@ -20,12 +26,14 @@ pub struct AssertLayouts;
 define_generator!(AssertLayouts);
 
 impl Generator for AssertLayouts {
+    /// Calculate layouts of all types.
     fn modify(&self, schema: &mut Schema) {
         for type_id in 0..schema.defs.len() {
             calculate_layout(type_id, schema);
         }
     }
 
+    /// Generate assertions that calculated layouts are correct.
     fn generate(&self, schema: &Schema) -> Output {
         let (assertions_64, assertions_32) = schema
             .defs
@@ -59,37 +67,55 @@ impl Generator for AssertLayouts {
     }
 }
 
+/// Calculate layout for a type.
+///
+/// If layout was calculated already, just return the existing `Layout`.
 fn calculate_layout(type_id: TypeId, schema: &mut Schema) -> &Layout {
     let def = schema.def(type_id);
     if !def.layout().is_initialized() {
         match def {
             TypeDef::Struct(_) => {
-                schema.def_struct_mut(type_id).layout = calculate_layout_struct(type_id, schema);
+                schema.def_struct_mut(type_id).layout =
+                    calculate_layout_for_struct(type_id, schema);
             }
             TypeDef::Enum(_) => {
-                schema.def_enum_mut(type_id).layout = calculate_layout_enum(type_id, schema);
+                schema.def_enum_mut(type_id).layout = calculate_layout_for_enum(type_id, schema);
             }
             TypeDef::Primitive(def) => {
-                schema.def_primitive_mut(type_id).layout = calculate_layout_primitive(def);
+                schema.def_primitive_mut(type_id).layout = calculate_layout_for_primitive(def);
             }
             TypeDef::Option(_) => {
-                schema.def_option_mut(type_id).layout = calculate_layout_option(type_id, schema);
+                schema.def_option_mut(type_id).layout =
+                    calculate_layout_for_option(type_id, schema);
             }
             TypeDef::Box(_) => {
-                schema.def_box_mut(type_id).layout = calculate_layout_box();
+                schema.def_box_mut(type_id).layout = calculate_layout_for_box();
             }
             TypeDef::Vec(_) => {
-                schema.def_vec_mut(type_id).layout = calculate_layout_vec();
+                schema.def_vec_mut(type_id).layout = calculate_layout_for_vec();
             }
             TypeDef::Cell(_) => {
-                schema.def_cell_mut(type_id).layout = calculate_layout_cell(type_id, schema);
+                schema.def_cell_mut(type_id).layout = calculate_layout_for_cell(type_id, schema);
             }
         }
     }
     schema.def(type_id).layout()
 }
 
-fn calculate_layout_struct(type_id: TypeId, schema: &mut Schema) -> Layout {
+/// Calculate layout for a struct.
+///
+/// All structs in AST are `#[repr(C)]`. In a `#[repr(C)]` struct, compiler does not re-order the fields,
+/// so they are stored in memory in same order as they're defined.
+///
+/// Each field is aligned to the alignment of the field type. Padding bytes are added between fields
+/// as neccesary to ensure this.
+///
+/// Alignment of the struct is the highest alignment of its fields (or 1 if no fields).
+/// Size of struct is a multiple of its alignment.
+///
+/// A struct has a niche if any of its fields has a niche. The niche will be the largest niche
+/// in any of its fields. Padding bytes are not used as niches.
+fn calculate_layout_for_struct(type_id: TypeId, schema: &mut Schema) -> Layout {
     let mut layout_64 = PlatformLayout::from_size_align(0, 1);
     let mut layout_32 = PlatformLayout::from_size_align(0, 1);
 
@@ -138,11 +164,19 @@ fn calculate_layout_struct(type_id: TypeId, schema: &mut Schema) -> Layout {
     Layout { layout_64, layout_32 }
 }
 
-fn calculate_layout_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
-    // `#[repr(C, u8)]` enums have alignment of highest-aligned variant.
-    // Size is size of largest variant + alignment of most-aligned variant.
-    // Fieldless `#[repr(u8)]` enums obey the same rules. Fieldless variants act as size 0, align 1.
-    // `#[repr(C, u8)]` and `#[repr(u8)]` enums must always have at least one variant.
+/// Calculate layout for an enum.
+///
+/// All enums in AST are `#[repr(C, u8)]` (if has fields) or `#[repr(u8)]` if fieldless.
+///
+/// `#[repr(C, u8)]` enums have alignment of highest-aligned variant.
+/// Size is size of largest variant + alignment of highest-aligned variant.
+///
+/// Fieldless `#[repr(u8)]` enums obey the same rules. Fieldless variants act as size 0, align 1.
+///
+/// `#[repr(C, u8)]` and `#[repr(u8)]` enums must always have at least one variant.
+///
+/// Any unused discriminant values at start of end of the range form a niche.
+fn calculate_layout_for_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
     struct State {
         min_discriminant: Discriminant,
         max_discriminant: Discriminant,
@@ -209,12 +243,19 @@ fn calculate_layout_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
     Layout { layout_64, layout_32 }
 }
 
-fn calculate_layout_option(type_id: TypeId, schema: &mut Schema) -> Layout {
+/// Calculate layout for an `Option`.
+///
+/// * If inner type has a niche:
+///   `Option` uses that niche to represent `None`.
+///   The `Option` is same size and alignment as the inner type.
+/// * If inner type has no niche:
+///   The `Option`'s size = inner type size + inner type alignment.
+///   `Some` / `None` discriminant is stored as a `bool` in first byte.
+///   This introduces a new niche, identical to a struct with `bool` as first field.
+fn calculate_layout_for_option(type_id: TypeId, schema: &mut Schema) -> Layout {
     let def = schema.def_option(type_id);
     let inner_layout = calculate_layout(def.inner_type_id, schema);
 
-    // `Option`s consume 1 niche if there is one, or add `bool` as discriminant before the inner type.
-    // The discriminant has same niche as a `bool`.
     #[expect(clippy::items_after_statements)]
     fn consume_niche(layout: &mut PlatformLayout) {
         if let Some(niche) = &mut layout.niche {
@@ -235,40 +276,54 @@ fn calculate_layout_option(type_id: TypeId, schema: &mut Schema) -> Layout {
     layout
 }
 
-fn calculate_layout_box() -> Layout {
-    // `Box`es are pointer-sized, with a single niche (like `NonNull`)
+/// Calculate layout for a `Box`.
+///
+/// All `Box`es have same layout, regardless of the inner type.
+/// `Box`es are pointer-sized, with a single niche (like `NonNull`).
+fn calculate_layout_for_box() -> Layout {
     Layout {
         layout_64: PlatformLayout::from_size_align_niche(8, 8, Niche::new(0, 8, true, 1)),
         layout_32: PlatformLayout::from_size_align_niche(4, 4, Niche::new(0, 4, true, 1)),
     }
 }
 
-fn calculate_layout_vec() -> Layout {
-    // `Vec`s contain 4 x pointer-sized fields.
-    // They have a single niche on the first field - the pointer which is `NonNull`.
+/// Calculate layout for a `Vec`.
+///
+/// All `Vec`s have same layout, regardless of the inner type.
+/// `Vec`s contain 4 x pointer-sized fields.
+/// They have a single niche on the first field - the pointer which is `NonNull`.
+fn calculate_layout_for_vec() -> Layout {
     Layout {
         layout_64: PlatformLayout::from_size_align_niche(32, 8, Niche::new(0, 8, true, 1)),
         layout_32: PlatformLayout::from_size_align_niche(16, 4, Niche::new(0, 4, true, 1)),
     }
 }
 
-fn calculate_layout_cell(type_id: TypeId, schema: &mut Schema) -> Layout {
+/// Calculate layout for a `Cell`.
+///
+/// `Cell`s have same layout as their inner type, but with no niche.
+fn calculate_layout_for_cell(type_id: TypeId, schema: &mut Schema) -> Layout {
     let def = schema.def_cell(type_id);
     let inner_layout = calculate_layout(def.inner_type_id, schema);
 
-    // `Cell`s have same layout as inner type, but with no niche
     let mut layout = inner_layout.clone();
     layout.layout_64.niche = None;
     layout.layout_32.niche = None;
     layout
 }
 
-fn calculate_layout_primitive(def: &PrimitiveDef) -> Layout {
+/// Calculate layout for a primitive.
+///
+/// Primitives have varying layouts. Some have niches, most don't.
+fn calculate_layout_for_primitive(def: &PrimitiveDef) -> Layout {
+    // `ScopeId`, `SymbolId` and `ReferenceId` are a `NonZeroU32`, with a niche for 0
     let semantic_id_layout = Layout::from_size_align_niche(4, 4, Niche::new(0, 4, true, 1));
+    // `&str` and `Atom` are a `NonNull` pointer + `usize` pair. Niche for 0 on the pointer field
     let str_layout = Layout {
         layout_64: PlatformLayout::from_size_align_niche(16, 8, Niche::new(0, 8, true, 1)),
         layout_32: PlatformLayout::from_size_align_niche(8, 4, Niche::new(0, 4, true, 1)),
     };
+    // `usize` and `isize` are pointer-sized, but with no niche
     let usize_layout = Layout {
         layout_64: PlatformLayout::from_size_align(8, 8),
         layout_32: PlatformLayout::from_size_align(4, 4),
@@ -282,7 +337,7 @@ fn calculate_layout_primitive(def: &PrimitiveDef) -> Layout {
         "u32" => Layout::from_type::<u32>(),
         "u64" => Layout::from_type::<u64>(),
         "u128" => {
-            panic!("Cannot calculate alignment for u128. It differs depending on Rust version.")
+            panic!("Cannot calculate alignment for `u128`. It differs depending on Rust version.")
         }
         "usize" => usize_layout.clone(),
         "i8" => Layout::from_type::<i8>(),
@@ -290,7 +345,7 @@ fn calculate_layout_primitive(def: &PrimitiveDef) -> Layout {
         "i32" => Layout::from_type::<i32>(),
         "i64" => Layout::from_type::<i64>(),
         "i128" => {
-            panic!("Cannot calculate alignment for i128. It differs depending on Rust version.")
+            panic!("Cannot calculate alignment for `i128`. It differs depending on Rust version.")
         }
         "isize" => usize_layout.clone(),
         "f32" => Layout::from_type::<f32>(),
@@ -308,7 +363,10 @@ fn calculate_layout_primitive(def: &PrimitiveDef) -> Layout {
     }
 }
 
-fn generate_layout_assertions(def: &TypeDef) -> (TokenStream, TokenStream) {
+/// Generate layout assertions for a type
+fn generate_layout_assertions(
+    def: &TypeDef,
+) -> (/* 64 bit */ TokenStream, /* 32 bit */ TokenStream) {
     match def {
         TypeDef::Struct(def) => generate_layout_assertions_for_struct(def),
         TypeDef::Enum(def) => generate_layout_assertions_for_enum(def),
@@ -316,8 +374,10 @@ fn generate_layout_assertions(def: &TypeDef) -> (TokenStream, TokenStream) {
     }
 }
 
+/// Generate layout assertions for a struct.
+/// This includes size and alignment assertions, plus assertions about offset of fields.
 fn generate_layout_assertions_for_struct(def: &StructDef) -> (TokenStream, TokenStream) {
-    fn generate_assertions(def: &StructDef, is_64: bool, struct_ident: &Ident) -> TokenStream {
+    fn gen(def: &StructDef, is_64: bool, struct_ident: &Ident) -> TokenStream {
         let layout = if is_64 { &def.layout.layout_64 } else { &def.layout.layout_32 };
 
         let size_align_assertions = generate_size_align_assertions(layout, struct_ident);
@@ -325,6 +385,8 @@ fn generate_layout_assertions_for_struct(def: &StructDef) -> (TokenStream, Token
         let offset_asserts = def.fields.iter().filter_map(|field| {
             let field_ident = field.ident()?;
             if field.visibility != Visibility::Public {
+                // Cannot create assertions for fields which are not public, as assertions
+                // are generated in `oxc_ast` crate, and those types are in other crates
                 return None;
             }
 
@@ -343,9 +405,11 @@ fn generate_layout_assertions_for_struct(def: &StructDef) -> (TokenStream, Token
 
     // TODO: Generate assertions for offsets
     let ident = def.ident();
-    (generate_assertions(def, true, &ident), generate_assertions(def, false, &ident))
+    (gen(def, true, &ident), gen(def, false, &ident))
 }
 
+/// Generate layout assertions for an enum.
+/// This is just size and alignment assertions.
 fn generate_layout_assertions_for_enum(def: &EnumDef) -> (TokenStream, TokenStream) {
     let ident = def.ident();
     (
@@ -354,6 +418,7 @@ fn generate_layout_assertions_for_enum(def: &EnumDef) -> (TokenStream, TokenStre
     )
 }
 
+/// Generate size and alignment assertions for a type.
 fn generate_size_align_assertions(layout: &PlatformLayout, ident: &Ident) -> TokenStream {
     let size = layout.size as usize;
     let align = layout.align as usize;
