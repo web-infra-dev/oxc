@@ -32,10 +32,19 @@ impl Def for PrimitiveDef {
         false
     }
 
-    /// Get type signature with lifetime.
-    fn ty_with_lifetime(&self, _schema: &Schema, _anon: bool) -> TokenStream {
-        let ident = self.ident();
-        quote!( #ident )
+    /// Get type signature (including lifetimes).
+    /// Lifetime is anonymous (`'_`) if `anon` is true.
+    fn ty_with_lifetime(&self, _schema: &Schema, anon: bool) -> TokenStream {
+        if self.name == "&str" {
+            if anon {
+                quote!(&str)
+            } else {
+                quote!(&'a str)
+            }
+        } else {
+            let ident = self.ident();
+            quote!( #ident )
+        }
     }
 
     /// Get type's layout.
