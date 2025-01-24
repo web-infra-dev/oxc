@@ -46,10 +46,12 @@ impl StructDef {
         }
     }
 
+    /// Get reference to [`FieldDef`] by its field index.
     pub fn field(&self, field_index: usize) -> &FieldDef {
         &self.fields[field_index]
     }
 
+    /// Get mutable reference to [`FieldDef`] by its field index.
     pub fn field_mut(&mut self, field_index: usize) -> &mut FieldDef {
         &mut self.fields[field_index]
     }
@@ -115,6 +117,7 @@ pub struct FieldDef {
 }
 
 impl FieldDef {
+    /// Create new [`FieldDef`].
     pub fn new(name: Option<String>, type_id: TypeId, visibility: Visibility) -> Self {
         Self { name, type_id, visibility, offset: Offset::default(), clone_in_default: false }
     }
@@ -129,7 +132,9 @@ impl FieldDef {
         self.name().unwrap_or("unnamed")
     }
 
-    /// Get field name as an `Ident`.
+    /// Get field name as an [`Ident`].
+    ///
+    /// [`Ident`]: struct@Ident
     pub fn ident(&self) -> Option<Ident> {
         self.name.as_ref().map(|name| create_ident(name))
     }
@@ -140,6 +145,7 @@ impl FieldDef {
     }
 }
 
+/// Visibility of a struct field.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Visibility {
     Public,

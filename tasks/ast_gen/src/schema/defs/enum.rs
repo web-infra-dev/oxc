@@ -53,10 +53,12 @@ impl EnumDef {
         }
     }
 
+    /// Get reference to [`VariantDef`] by its variant index.
     pub fn variant(&self, variant_index: usize) -> &VariantDef {
         &self.variants[variant_index]
     }
 
+    /// Get mutable reference to [`VariantDef`] by its variant index.
     #[expect(dead_code)]
     pub fn variant_mut(&mut self, variant_index: usize) -> &mut VariantDef {
         &mut self.variants[variant_index]
@@ -168,6 +170,7 @@ pub struct AllVariantsIter<'s> {
 }
 
 impl<'s> AllVariantsIter<'s> {
+    /// Create new [`AllVariantsIter`].
     fn new(def: &'s EnumDef, schema: &'s Schema) -> Self {
         let variants_iter = def.variants.iter();
         let inherits_iter = def.inherits.iter();
