@@ -117,6 +117,8 @@ fn get_import_path(file_path: &str) -> String {
 }
 
 /// Convert [`Ident`] to `String`, removing `r#` from start.
+///
+/// [`Ident`]: struct@Ident
 fn ident_name(ident: &Ident) -> String {
     ident.to_string().trim_start_matches("r#").to_string()
 }
