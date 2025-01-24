@@ -11,17 +11,17 @@ use oxc_traverse::{BoundIdentifier, Traverse, TraverseCtx};
 
 use crate::{utils::ast_builder::create_prototype_member, Helper, TransformCtx};
 
-pub struct LegacyDecorators<'a, 'ctx> {
+pub struct LegacyDecorator<'a, 'ctx> {
     ctx: &'ctx TransformCtx<'a>,
 }
 
-impl<'a, 'ctx> LegacyDecorators<'a, 'ctx> {
+impl<'a, 'ctx> LegacyDecorator<'a, 'ctx> {
     pub fn new(ctx: &'ctx TransformCtx<'a>) -> Self {
         Self { ctx }
     }
 }
 
-impl<'a> Traverse<'a> for LegacyDecorators<'a, '_> {
+impl<'a> Traverse<'a> for LegacyDecorator<'a, '_> {
     fn enter_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         match stmt {
             Statement::ClassDeclaration(_) => self.transform_class(stmt, ctx),
@@ -36,7 +36,7 @@ impl<'a> Traverse<'a> for LegacyDecorators<'a, '_> {
     }
 }
 
-impl<'a> LegacyDecorators<'a, '_> {
+impl<'a> LegacyDecorator<'a, '_> {
     #[inline]
     fn transform_class(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         let Statement::ClassDeclaration(class) = stmt else { unreachable!() };
@@ -54,7 +54,7 @@ impl<'a> LegacyDecorators<'a, '_> {
     ) {
         let Statement::ExportDefaultDeclaration(export) = stmt else { unreachable!() };
         let ExportDefaultDeclarationKind::ClassDeclaration(class) = &mut export.declaration else {
-            unreachable!()
+            return
         };
 
         let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };

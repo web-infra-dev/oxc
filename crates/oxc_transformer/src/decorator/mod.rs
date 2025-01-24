@@ -1,25 +1,24 @@
-mod legacy;
+mod legacy_decorator;
+mod options;
 
-use legacy::LegacyDecorators;
 use oxc_ast::ast::*;
 use oxc_traverse::{Traverse, TraverseCtx};
 
 use crate::TransformCtx;
 
-mod options;
-
+use legacy_decorator::LegacyDecorator;
 pub use options::DecoratorOptions;
 
 pub struct Decorator<'a, 'ctx> {
     options: DecoratorOptions,
 
     // Plugins
-    legacy_decorator: LegacyDecorators<'a, 'ctx>,
+    legacy_decorator: LegacyDecorator<'a, 'ctx>,
 }
 
 impl<'a, 'ctx> Decorator<'a, 'ctx> {
     pub fn new(options: DecoratorOptions, ctx: &'ctx TransformCtx<'a>) -> Self {
-        Self { legacy_decorator: LegacyDecorators::new(ctx), options }
+        Self { legacy_decorator: LegacyDecorator::new(ctx), options }
     }
 }
 
