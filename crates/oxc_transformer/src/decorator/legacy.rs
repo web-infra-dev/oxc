@@ -2,12 +2,12 @@
 
 use std::mem::swap;
 
-use oxc_allocator::{Address, Box as ArenaBox, GetAddress, Vec as ArenaVec};
-use oxc_ast::{ast::*, Visit, VisitMut};
+use oxc_allocator::{Address, Vec as ArenaVec};
+use oxc_ast::{ast::*, Visit, VisitMut, NONE};
 use oxc_semantic::{ScopeFlags, SymbolFlags};
 use oxc_span::SPAN;
 use oxc_syntax::operator::AssignmentOperator;
-use oxc_traverse::{Ancestor, BoundIdentifier, Traverse, TraverseCtx};
+use oxc_traverse::{BoundIdentifier, Traverse, TraverseCtx};
 
 use crate::{utils::ast_builder::create_prototype_member, Helper, TransformCtx};
 
@@ -23,16 +23,69 @@ impl<'a, 'ctx> LegacyDecorators<'a, 'ctx> {
 
 impl<'a> Traverse<'a> for LegacyDecorators<'a, '_> {
     fn enter_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
-        if matches!(stmt, Statement::ClassDeclaration(_)) {
-            self.transform_class(stmt, ctx);
-        }
+        match stmt {
+            Statement::ClassDeclaration(_) => self.transform_class(stmt, ctx),
+            Statement::ExportNamedDeclaration(_) => {
+                self.transform_export_named_class(stmt, ctx);
+            }
+            Statement::ExportDefaultDeclaration(_) => {
+                self.transform_export_default_class(stmt, ctx);
+            }
+            _ => {}
+        };
     }
 }
 
 impl<'a> LegacyDecorators<'a, '_> {
+    #[inline]
     fn transform_class(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         let Statement::ClassDeclaration(class) = stmt else { unreachable!() };
 
+        if let Some((_, new_stmt)) = self.transform_class_impl(class, ctx) {
+            *stmt = new_stmt;
+        }
+    }
+
+    #[inline]
+    fn transform_export_default_class(
+        &mut self,
+        stmt: &mut Statement<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        let Statement::ExportDefaultDeclaration(export) = stmt else { unreachable!() };
+        let ExportDefaultDeclarationKind::ClassDeclaration(class) = &mut export.declaration else {
+            unreachable!()
+        };
+
+        let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };
+        *stmt = new_stmt;
+
+        let export_default_class_reference =
+            Self::create_export_default_class_reference(&class_binding, ctx);
+        self.ctx.statement_injector.insert_after(stmt, export_default_class_reference);
+    }
+
+    #[inline]
+    fn transform_export_named_class(
+        &mut self,
+        stmt: &mut Statement<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        let Statement::ExportNamedDeclaration(export) = stmt else { unreachable!() };
+        let Some(Declaration::ClassDeclaration(class)) = &mut export.declaration else { return };
+
+        let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };
+        *stmt = new_stmt;
+
+        let export_class_reference = Self::create_export_named_class_reference(&class_binding, ctx);
+        self.ctx.statement_injector.insert_after(stmt, export_class_reference);
+    }
+
+    fn transform_class_impl(
+        &mut self,
+        class: &mut Class<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Option<(BoundIdentifier<'a>, Statement<'a>)> {
         let (
             class_or_constructor_parameter_is_decorated,
             child_is_decorated,
@@ -40,14 +93,11 @@ impl<'a> LegacyDecorators<'a, '_> {
         ) = self.check_class_decorators(class);
 
         if class_or_constructor_parameter_is_decorated {
-            let Statement::ClassDeclaration(class) = ctx.ast.move_statement(stmt) else {
-                unreachable!()
-            };
-            *stmt = self.transform_class_declaration_with_class_decorators(
+            return Some(self.transform_class_declaration_with_class_decorators(
                 class,
                 has_private_in_expression_in_decorator,
                 ctx,
-            );
+            ));
         } else if child_is_decorated {
             self.transform_class_declaration_without_class_decorators(
                 class,
@@ -55,16 +105,18 @@ impl<'a> LegacyDecorators<'a, '_> {
                 ctx,
             );
         }
+
+        None
     }
 
     /// Transforms a decorated class declaration and appends the resulting statements. If
     /// the class requires an alias to avoid issues with double-binding, the alias is returned.
     fn transform_class_declaration_with_class_decorators(
         &mut self,
-        mut class: ArenaBox<'a, Class<'a>>,
+        class: &mut Class<'a>,
         has_private_in_expression_in_decorator: bool,
         ctx: &mut TraverseCtx<'a>,
-    ) -> Statement<'a> {
+    ) -> (BoundIdentifier<'a>, Statement<'a>) {
         // When we emit an ES6 class that has a class decorator, we must tailor the
         // emit to certain specific cases.
         //
@@ -164,17 +216,17 @@ impl<'a> LegacyDecorators<'a, '_> {
             .unwrap_or_else(|| ctx.generate_uid_in_current_scope("default", SymbolFlags::Class));
 
         let constructor_decoration = self.generate_constructor_decoration_expression(
-            &mut class,
+            class,
             &class_binding,
             class_alias_binding.as_ref(),
             ctx,
         );
         let mut decoration_stmts =
-            self.transform_decorators_of_class_elements(&mut class, &class_binding, ctx);
+            self.transform_decorators_of_class_elements(class, &class_binding, ctx);
 
         if has_private_in_expression_in_decorator {
             let stmts = ctx.ast.vec_from_iter(decoration_stmts.drain(..));
-            Self::insert_decorations_into_class_static_block(&mut class, stmts, ctx);
+            Self::insert_decorations_into_class_static_block(class, stmts, ctx);
         }
 
         decoration_stmts.push(constructor_decoration);
@@ -182,7 +234,7 @@ impl<'a> LegacyDecorators<'a, '_> {
         // `class C {}` -> `let C = class {}`
         class.r#type = ClassType::ClassExpression;
         let initializer = Self::get_class_initializer(
-            Expression::ClassExpression(class),
+            Expression::ClassExpression(ctx.ast.alloc(ctx.ast.move_class(class))),
             class_alias_binding.as_ref(),
             ctx,
         );
@@ -203,7 +255,7 @@ impl<'a> LegacyDecorators<'a, '_> {
 
         self.ctx.statement_injector.insert_many_after(&statement, decoration_stmts);
 
-        statement
+        (class_binding, statement)
     }
 
     /// Transforms a non-decorated class declaration.
@@ -229,14 +281,8 @@ impl<'a> LegacyDecorators<'a, '_> {
         if has_private_in_expression_in_decorator {
             Self::insert_decorations_into_class_static_block(class, decoration_stmts, ctx);
         } else {
-            // Insert statements after class
-            let stmt_address = match ctx.parent() {
-                parent @ (Ancestor::ExportDefaultDeclarationDeclaration(_)
-                | Ancestor::ExportNamedDeclarationDeclaration(_)) => parent.address(),
-                // `Class` is always stored in a `Box`, so has a stable memory location
-                _ => Address::from_ptr(class),
-            };
-            self.ctx.statement_injector.insert_many_after(&stmt_address, decoration_stmts);
+            let address = Address::from_ptr(class);
+            self.ctx.statement_injector.insert_many_after(&address, decoration_stmts);
         }
     }
 
@@ -577,6 +623,36 @@ impl<'a> LegacyDecorators<'a, '_> {
         ]);
         let helper = self.ctx.helper_call_expr(Helper::Decorator, SPAN, arguments, ctx);
         ctx.ast.statement_expression(SPAN, helper)
+    }
+
+    /// `export default Class`
+    fn create_export_default_class_reference(
+        class_binding: &BoundIdentifier<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Statement<'a> {
+        let kind = ImportOrExportKind::Value;
+        let local = ModuleExportName::IdentifierReference(class_binding.create_read_reference(ctx));
+        let exported = ctx.ast.module_export_name_identifier_name(SPAN, class_binding.name);
+        let specifiers = ctx.ast.vec1(ctx.ast.export_specifier(SPAN, local, exported, kind));
+        let export_class_reference = ctx
+            .ast
+            .module_declaration_export_named_declaration(SPAN, None, specifiers, None, kind, NONE);
+        Statement::from(export_class_reference)
+    }
+
+    /// `export { Class }`
+    fn create_export_named_class_reference(
+        class_binding: &BoundIdentifier<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Statement<'a> {
+        let export_default_class_reference = ctx.ast.module_declaration_export_default_declaration(
+            SPAN,
+            ExportDefaultDeclarationKind::Identifier(
+                ctx.ast.alloc(class_binding.create_read_reference(ctx)),
+            ),
+            ctx.ast.module_export_name_identifier_name(SPAN, "default"),
+        );
+        Statement::from(export_default_class_reference)
     }
 }
 
