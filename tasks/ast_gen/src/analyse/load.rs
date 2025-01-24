@@ -24,7 +24,7 @@ use super::{
 /// * Name of type.
 /// * Inherits of enums wrapped in `inherit_variants!` macro.
 ///
-/// Inserts `TypeSkeleton`s into `skeletons` and adds mappings from type name to type ID.
+/// Inserts [`Skeleton`]s into `skeletons` and adds mappings from type name to type ID.
 ///
 /// This is the bare minimum to be able to "link up" types to each other in next pass.
 pub fn load_file(file_id: FileId, file_path: &str, skeletons: &mut FxIndexMap<String, Skeleton>) {
@@ -135,6 +135,7 @@ fn parse_macro(item: &ItemMacro, file_id: FileId) -> Option<EnumSkeleton> {
     Some(skeleton)
 }
 
+/// Returns `true` if type has an `#[ast]` attribute on it.
 fn has_ast_attr(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|attr| attr.path().is_ident("ast"))
 }

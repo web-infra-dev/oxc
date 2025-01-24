@@ -22,7 +22,7 @@ use super::{
     Derives, FxIndexMap, FxIndexSet,
 };
 
-/// Parse `Skeleton`s into `TypeDef`s.
+/// Parse [`Skeleton`]s into [`TypeDef`]s.
 pub fn parse(
     skeletons: FxIndexMap<String, Skeleton>,
     files: IndexVec<FileId, File>,
@@ -37,10 +37,20 @@ pub fn parse(
 
 /// Types parser.
 struct Parser<'c> {
+    /// Index hash set indexed by type ID, containing type names
     type_names: FxIndexSet<String>,
+    /// Source files
     files: IndexVec<FileId, File>,
+    /// Reference to `CodeGen`
     codegen: &'c Codegen,
+    /// Extra types which don't have type definitions in the source files
+    /// e.g. primitives (`u8` etc), `Option`s, `Box`es, `Vec`s, `Cell`s
     extra_types: Vec<TypeDef>,
+    // These `FxHashMap`s:
+    // * Key: Inner type's `TypeId`.
+    // * Value: Outer type's (`Option`/`Box`/`Vec`/`Cell`) `TypeId`.
+    // i.e. if `Expression` has ID 1, and `Option<Expression>` has ID 2, then key is 1 and value is 2
+    // `options` hash map.
     options: FxHashMap<TypeId, TypeId>,
     boxes: FxHashMap<TypeId, TypeId>,
     vecs: FxHashMap<TypeId, TypeId>,
@@ -48,7 +58,7 @@ struct Parser<'c> {
 }
 
 impl<'c> Parser<'c> {
-    /// Create `Parser`.
+    /// Create [`Parser`].
     fn new(
         type_names: FxIndexSet<String>,
         files: IndexVec<FileId, File>,
@@ -66,7 +76,7 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Parse all `Skeleton`s into `TypeDef`s and return `Schema`.
+    /// Parse all [`Skeleton`]s into [`TypeDef`]s and return [`Schema`].
     fn parse_all(mut self, skeletons: IndexVec<TypeId, Skeleton>) -> Schema {
         let mut types = skeletons
             .into_iter()
@@ -76,7 +86,7 @@ impl<'c> Parser<'c> {
         Schema { types, files: self.files }
     }
 
-    /// Get `TypeId` for type name.
+    /// Get [`TypeId`] for type name.
     fn type_id(&mut self, name: &str) -> TypeId {
         // Get type ID if already known
         if let Some(type_id) = self.type_names.get_index_of(name) {
@@ -125,12 +135,12 @@ impl<'c> Parser<'c> {
         self.create_new_type(name.to_string(), type_def)
     }
 
-    /// Get type name for `TypeId`.
+    /// Get type name for a [`TypeId`].
     fn type_name(&mut self, type_id: TypeId) -> &str {
         &self.type_names[type_id.index()]
     }
 
-    /// Create a new type definition.
+    /// Create a new type definition and return its [`TypeId`].
     fn create_new_type(&mut self, name: String, def: TypeDef) -> TypeId {
         let type_id = TypeId::from_usize(self.type_names.len());
         let was_inserted = self.type_names.insert(name);
@@ -139,7 +149,7 @@ impl<'c> Parser<'c> {
         type_id
     }
 
-    /// Get `FileId` for file with provided import path.
+    /// Get [`FileId`] for file with provided import path.
     fn get_file_id(&self, import_path: &str) -> FileId {
         let file_and_id =
             self.files.iter_enumerated().find(|(_, file)| file.import_path == import_path);
@@ -149,7 +159,7 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Parse `Skeleton` to yield a `TypeDef`.
+    /// Parse [`Skeleton`] to yield a [`TypeDef`].
     fn parse_type(&mut self, skeleton: Skeleton) -> TypeDef {
         match skeleton {
             Skeleton::Struct(skeleton) => self.parse_struct(skeleton),
@@ -157,7 +167,7 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Parse `StructSkeleton` to yield a `TypeDef`.
+    /// Parse [`StructSkeleton`] to yield a [`TypeDef`].
     fn parse_struct(&mut self, skeleton: StructSkeleton) -> TypeDef {
         let StructSkeleton { name, item, file_id } = skeleton;
         let has_lifetime = check_generics(&item.generics, &name);
@@ -180,6 +190,10 @@ impl<'c> Parser<'c> {
         def
     }
 
+    /// Parse attributes on struct's fields with parsers provided by [`Derive`]s and [`Generator`]s.
+    ///
+    /// [`Derive`]: crate::Derive
+    /// [`Generator`]: crate::Generator
     fn parse_field_attrs(&self, def: &mut TypeDef, item: &ItemStruct, generated_derives: Derives) {
         let TypeDef::Struct(def) = def else {
             panic!("A derive or generator mutated `TypeDef::Struct` to another kind of `TypeDef`");
@@ -221,7 +235,7 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Parse `EnumSkeleton` to yield a `TypeDef`.
+    /// Parse [`EnumSkeleton`] to yield a [`TypeDef`].
     fn parse_enum(&mut self, skeleton: EnumSkeleton) -> TypeDef {
         let EnumSkeleton { name, item, inherits, file_id } = skeleton;
         let has_lifetime = check_generics(&item.generics, &name);
@@ -246,6 +260,10 @@ impl<'c> Parser<'c> {
         def
     }
 
+    /// Parse attributes on enum's variants with parsers provided by [`Derive`]s and [`Generator`]s.
+    ///
+    /// [`Derive`]: crate::Derive
+    /// [`Generator`]: crate::Generator
     fn parse_variant_attrs(&self, def: &mut TypeDef, item: &ItemEnum, generated_derives: Derives) {
         let TypeDef::Enum(def) = def else {
             panic!("A derive or generator mutated `TypeDef::Enum` to another kind of `TypeDef`");
@@ -287,12 +305,14 @@ impl<'c> Parser<'c> {
         }
     }
 
-    /// Parse `Fields` to `Vec<FieldDef>`.
+    /// Parse struct fields to [`FieldDef`]s.
+    ///
+    /// [`Vec<FieldDef>`]: FieldDef
     fn parse_fields(&mut self, fields: &Fields) -> Vec<FieldDef> {
         fields.iter().map(|field| self.parse_field(field)).collect()
     }
 
-    /// Parse `Field` to `FieldDef`.
+    /// Parse struct field to [`FieldDef`].
     fn parse_field(&mut self, field: &Field) -> FieldDef {
         let name = field.ident.as_ref().map(ident_name);
         let ty = &field.ty;
@@ -307,7 +327,7 @@ impl<'c> Parser<'c> {
         FieldDef::new(name, type_id, visibility)
     }
 
-    /// Parse `Variant` to `VariantDef`.
+    /// Parse enum variant to [`VariantDef`].
     fn parse_variant(&mut self, variant: &Variant) -> VariantDef {
         let name = ident_name(&variant.ident);
         let fields = self.parse_fields(&variant.fields);
@@ -328,6 +348,7 @@ impl<'c> Parser<'c> {
         VariantDef { name, fields, discriminant }
     }
 
+    /// Resolve type name to its [`TypeId`].
     fn parse_type_name(&mut self, ty: &Type) -> Option<TypeId> {
         match ty {
             Type::Path(type_path) => self.parse_type_path(type_path),
@@ -414,6 +435,10 @@ impl<'c> Parser<'c> {
         Some(self.type_id("&str"))
     }
 
+    /// Parse attributes on struct or enum with parsers provided by [`Derive`]s and [`Generator`]s.
+    ///
+    /// [`Derive`]: crate::Derive
+    /// [`Generator`]: crate::Generator
     fn parse_type_attrs(&mut self, def: &mut TypeDef, attrs: &[Attribute]) {
         for attr in attrs {
             if !matches!(attr.style, AttrStyle::Outer) {
