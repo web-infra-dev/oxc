@@ -90,7 +90,7 @@ impl<'a> LegacyDecorators<'a, '_> {
             class_or_constructor_parameter_is_decorated,
             child_is_decorated,
             has_private_in_expression_in_decorator,
-        ) = self.check_class_decorators(class);
+        ) = Self::check_class_decorators(class);
 
         if class_or_constructor_parameter_is_decorated {
             return Some(self.transform_class_declaration_with_class_decorators(
@@ -477,7 +477,7 @@ impl<'a> LegacyDecorators<'a, '_> {
         }
     }
 
-    fn check_class_decorators(&self, class: &Class<'a>) -> (bool, bool, bool) {
+    fn check_class_decorators(class: &Class<'a>) -> (bool, bool, bool) {
         let mut class_or_constructor_parameter_is_decorated = !class.decorators.is_empty();
         let mut child_is_decorated = false;
         let mut has_private_in_expression_in_decorator = false;
