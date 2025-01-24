@@ -3,6 +3,7 @@ use quote::quote;
 
 use super::{Def, Layout, Schema, TypeId};
 
+/// Type definition for a `Vec`.
 #[derive(Debug)]
 pub struct VecDef {
     pub name: String,
@@ -11,6 +12,7 @@ pub struct VecDef {
 }
 
 impl VecDef {
+    /// Create new [`VecDef`].
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
         Self { name, inner_type_id, layout: Layout::default() }
     }

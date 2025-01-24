@@ -3,6 +3,11 @@ use quote::quote;
 
 use super::{Def, Layout, Schema};
 
+/// Type definition for a primitive type.
+///
+/// Includes:
+/// * Built-ins e.g. `u8`, `&str`.
+/// * Special Oxc types e.g. `ScopeId`, `Atom`.
 #[derive(Debug)]
 pub struct PrimitiveDef {
     pub name: &'static str,
@@ -10,6 +15,7 @@ pub struct PrimitiveDef {
 }
 
 impl PrimitiveDef {
+    /// Create new [`PrimitiveDef`].
     pub fn new(name: &'static str) -> Self {
         Self { name, layout: Layout::default() }
     }
@@ -26,7 +32,7 @@ impl Def for PrimitiveDef {
         false
     }
 
-    /// Get type signature.
+    /// Get type signature with lifetime.
     fn ty_with_lifetime(&self, _schema: &Schema, _anon: bool) -> TokenStream {
         let ident = self.ident();
         quote!( #ident )

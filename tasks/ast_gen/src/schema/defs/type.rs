@@ -5,6 +5,7 @@ use super::{
     Schema, StructDef, VecDef,
 };
 
+/// Type definition for a type.
 #[derive(Debug)]
 pub enum TypeDef {
     Struct(StructDef),

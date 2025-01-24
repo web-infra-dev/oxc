@@ -3,6 +3,7 @@ use quote::quote;
 
 use super::{Def, Layout, Schema, TypeId};
 
+/// Type definition for an `Option`.
 #[derive(Debug)]
 pub struct OptionDef {
     pub name: String,
@@ -11,6 +12,7 @@ pub struct OptionDef {
 }
 
 impl OptionDef {
+    /// Create new [`OptionDef`].
     pub fn new(name: String, inner_type_id: TypeId) -> Self {
         Self { name, inner_type_id, layout: Layout::default() }
     }

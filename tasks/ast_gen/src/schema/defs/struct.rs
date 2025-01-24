@@ -6,6 +6,7 @@ use crate::utils::create_ident;
 
 use super::{Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId};
 
+/// Type definition for a struct.
 #[derive(Debug)]
 pub struct StructDef {
     pub name: String,
@@ -20,6 +21,7 @@ pub struct StructDef {
 }
 
 impl StructDef {
+    /// Create new [`StructDef`].
     pub fn new(
         name: String,
         has_lifetime: bool,

@@ -10,6 +10,7 @@ use super::{Def, Derives, FieldDef, FileId, Layout, Schema, TypeId};
 
 pub type Discriminant = u8;
 
+/// Type definition for an enum.
 #[derive(Debug)]
 pub struct EnumDef {
     pub name: String,
@@ -25,6 +26,7 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
+    /// Create new [`EnumDef`].
     pub fn new(
         name: String,
         has_lifetime: bool,
