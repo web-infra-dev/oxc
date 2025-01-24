@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
@@ -54,6 +56,11 @@ impl StructDef {
     /// Get mutable reference to [`FieldDef`] by its field index.
     pub fn field_mut(&mut self, field_index: usize) -> &mut FieldDef {
         &mut self.fields[field_index]
+    }
+
+    /// Get iterator over field indexes.
+    pub fn field_indices(&self) -> Range<usize> {
+        0..self.fields.len()
     }
 }
 

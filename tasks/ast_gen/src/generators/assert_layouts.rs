@@ -119,8 +119,7 @@ fn calculate_layout_for_struct(type_id: TypeId, schema: &mut Schema) -> Layout {
     let mut layout_64 = PlatformLayout::from_size_align(0, 1);
     let mut layout_32 = PlatformLayout::from_size_align(0, 1);
 
-    let struct_def = schema.struct_def(type_id);
-    for field_index in 0..struct_def.fields.len() {
+    for field_index in schema.struct_def(type_id).field_indices() {
         let field_type_id = schema.struct_def(type_id).field(field_index).type_id;
         let field_layout = calculate_layout(field_type_id, schema);
 
@@ -187,8 +186,7 @@ fn calculate_layout_for_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
     fn process_variants(type_id: TypeId, state: &mut State, schema: &mut Schema) {
         let State { min_discriminant, max_discriminant, layout_64, layout_32 } = state;
 
-        let enum_def = schema.enum_def(type_id);
-        for variant_index in 0..enum_def.variants.len() {
+        for variant_index in schema.enum_def(type_id).variant_indices() {
             let variant = schema.enum_def(type_id).variant(variant_index);
 
             *min_discriminant = min(*min_discriminant, variant.discriminant);
@@ -204,8 +202,7 @@ fn calculate_layout_for_enum(type_id: TypeId, schema: &mut Schema) -> Layout {
             }
         }
 
-        let enum_def = schema.enum_def(type_id);
-        for inherits_index in 0..enum_def.inherits.len() {
+        for inherits_index in schema.enum_def(type_id).inherits_indices() {
             let inherits_type_id = schema.enum_def(type_id).inherits[inherits_index];
             process_variants(inherits_type_id, state, schema);
         }

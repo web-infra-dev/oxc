@@ -1,4 +1,4 @@
-use std::iter::FusedIterator;
+use std::{iter::FusedIterator, ops::Range};
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -62,6 +62,18 @@ impl EnumDef {
     #[expect(dead_code)]
     pub fn variant_mut(&mut self, variant_index: usize) -> &mut VariantDef {
         &mut self.variants[variant_index]
+    }
+
+    /// Get iterator over variant indexes.
+    ///
+    /// Only includes own variant, not inherited.
+    pub fn variant_indices(&self) -> Range<usize> {
+        0..self.variants.len()
+    }
+
+    /// Get iterator over inherits indexes.
+    pub fn inherits_indices(&self) -> Range<usize> {
+        0..self.inherits.len()
     }
 
     /// Get iterator over all enum's variants (including inherited)
