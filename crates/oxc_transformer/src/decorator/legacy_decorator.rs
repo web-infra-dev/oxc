@@ -54,7 +54,7 @@ impl<'a> LegacyDecorator<'a, '_> {
     ) {
         let Statement::ExportDefaultDeclaration(export) = stmt else { unreachable!() };
         let ExportDefaultDeclarationKind::ClassDeclaration(class) = &mut export.declaration else {
-            return
+            return;
         };
 
         let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };
@@ -404,7 +404,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                 ]);
                 // __decoratorParam(index, decorator)
                 ArrayExpressionElement::from(self.ctx.helper_call_expr(
-                    Helper::DecoratorParam,
+                    Helper::DecorateParam,
                     decorator.span,
                     arguments,
                     ctx,
@@ -453,7 +453,7 @@ impl<'a> LegacyDecorator<'a, '_> {
 
         let left = class_binding.create_write_target(ctx);
         let right = Self::get_class_initializer(
-            self.ctx.helper_call_expr(Helper::Decorator, SPAN, arguments, ctx),
+            self.ctx.helper_call_expr(Helper::Decorate, SPAN, arguments, ctx),
             class_alias_binding,
             ctx,
         );
@@ -621,7 +621,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             Argument::from(key),
             Argument::from(descriptor),
         ]);
-        let helper = self.ctx.helper_call_expr(Helper::Decorator, SPAN, arguments, ctx);
+        let helper = self.ctx.helper_call_expr(Helper::Decorate, SPAN, arguments, ctx);
         ctx.ast.statement_expression(SPAN, helper)
     }
 
