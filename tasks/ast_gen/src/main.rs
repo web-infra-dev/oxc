@@ -114,7 +114,7 @@ fn main() {
             continue;
         }
 
-        log!("Derive {}... ", runner.name());
+        log!("Derive {}... ", runner.trait_name());
         let result = runner.run(&schema, &codegen);
         log_result!(result);
         let runner_outputs = result.unwrap();
