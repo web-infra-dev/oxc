@@ -37,11 +37,6 @@ impl Layout {
             layout_32: PlatformLayout::from_size_align_niche(size, align, niche),
         }
     }
-
-    /// Returns `true` if this [`Layout`] has been initialized (calculated).
-    pub fn is_initialized(&self) -> bool {
-        self.layout_64.align != 0
-    }
 }
 
 /// The layout of a type on a specific platform type (64 bit or 32 bit).

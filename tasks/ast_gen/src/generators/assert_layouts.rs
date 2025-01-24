@@ -71,8 +71,13 @@ impl Generator for AssertLayouts {
 ///
 /// If layout was calculated already, just return the existing `Layout`.
 fn calculate_layout(type_id: TypeId, schema: &mut Schema) -> &Layout {
+    fn is_not_calculated(layout: &Layout) -> bool {
+        // `align` field is set to 0 initially, but that's an illegal value
+        layout.layout_64.align == 0
+    }
+
     let type_def = schema.type_def(type_id);
-    if !type_def.layout().is_initialized() {
+    if is_not_calculated(type_def.layout()) {
         match type_def {
             TypeDef::Struct(_) => {
                 schema.struct_def_mut(type_id).layout =
