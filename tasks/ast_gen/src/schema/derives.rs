@@ -1,4 +1,7 @@
-use std::fmt::{self, Debug};
+use std::{
+    fmt::{self, Debug},
+    iter::FusedIterator,
+};
 
 use crate::{codegen::DeriveId, DERIVES};
 
@@ -93,12 +96,12 @@ impl IntoIterator for &Derives {
 /// i.e. yields the [`DeriveId`]s for traits which a type derives.
 pub struct DerivesIter {
     derives: Derives,
-    id: DeriveId,
+    next_id: DeriveId,
 }
 
 impl DerivesIter {
     fn new(derives: Derives) -> Self {
-        Self { derives, id: 0 }
+        Self { derives, next_id: 0 }
     }
 }
 
@@ -106,9 +109,9 @@ impl Iterator for DerivesIter {
     type Item = DeriveId;
 
     fn next(&mut self) -> Option<DeriveId> {
-        while self.id < DERIVES.len() {
-            let id = self.id;
-            self.id += 1;
+        while self.next_id < DERIVES.len() {
+            let id = self.next_id;
+            self.next_id += 1;
 
             if self.derives.has(id) {
                 return Some(id);
@@ -117,7 +120,13 @@ impl Iterator for DerivesIter {
 
         None
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(DERIVES.len() - self.next_id))
+    }
 }
+
+impl FusedIterator for DerivesIter {}
 
 impl Debug for Derives {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
