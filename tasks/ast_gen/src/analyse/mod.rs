@@ -61,9 +61,6 @@ use load::load_file;
 use parse::parse;
 use skeleton::Skeleton;
 
-#[expect(dead_code)]
-pub type DeriveId = usize;
-
 type FxIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<FxHasher>>;
 type FxIndexSet<K> = IndexSet<K, BuildHasherDefault<FxHasher>>;
 

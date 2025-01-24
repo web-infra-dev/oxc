@@ -6,9 +6,9 @@ mod file;
 mod ids;
 mod layout;
 pub use defs::*;
-pub use derives::{DeriveId, Derives};
+pub use derives::Derives;
 pub use file::File;
-pub use ids::*;
+pub use ids::{FileId, IdIter, TypeId};
 pub use layout::*;
 
 /// Schema of all AST types.

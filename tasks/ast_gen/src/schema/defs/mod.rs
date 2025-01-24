@@ -3,9 +3,9 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-use crate::{utils::create_ident, Schema};
+use crate::{codegen::DeriveId, utils::create_ident, Schema};
 
-use super::{DeriveId, Derives, FileId, Layout, Offset, TypeId};
+use super::{Derives, FileId, Layout, Offset, TypeId};
 
 mod r#box;
 mod cell;
