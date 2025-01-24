@@ -630,21 +630,6 @@ impl<'a> LegacyDecorator<'a, '_> {
         class_binding: &BoundIdentifier<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> Statement<'a> {
-        let kind = ImportOrExportKind::Value;
-        let local = ModuleExportName::IdentifierReference(class_binding.create_read_reference(ctx));
-        let exported = ctx.ast.module_export_name_identifier_name(SPAN, class_binding.name);
-        let specifiers = ctx.ast.vec1(ctx.ast.export_specifier(SPAN, local, exported, kind));
-        let export_class_reference = ctx
-            .ast
-            .module_declaration_export_named_declaration(SPAN, None, specifiers, None, kind, NONE);
-        Statement::from(export_class_reference)
-    }
-
-    /// `export { Class }`
-    fn create_export_named_class_reference(
-        class_binding: &BoundIdentifier<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) -> Statement<'a> {
         let export_default_class_reference = ctx.ast.module_declaration_export_default_declaration(
             SPAN,
             ExportDefaultDeclarationKind::Identifier(
@@ -653,6 +638,21 @@ impl<'a> LegacyDecorator<'a, '_> {
             ctx.ast.module_export_name_identifier_name(SPAN, "default"),
         );
         Statement::from(export_default_class_reference)
+    }
+
+    /// `export { Class }`
+    fn create_export_named_class_reference(
+        class_binding: &BoundIdentifier<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Statement<'a> {
+        let kind = ImportOrExportKind::Value;
+        let local = ModuleExportName::IdentifierReference(class_binding.create_read_reference(ctx));
+        let exported = ctx.ast.module_export_name_identifier_name(SPAN, class_binding.name);
+        let specifiers = ctx.ast.vec1(ctx.ast.export_specifier(SPAN, local, exported, kind));
+        let export_class_reference = ctx
+            .ast
+            .module_declaration_export_named_declaration(SPAN, None, specifiers, None, kind, NONE);
+        Statement::from(export_class_reference)
     }
 }
 
