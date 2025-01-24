@@ -26,6 +26,9 @@ pub use vec::VecDef;
 
 /// Trait for type defs.
 pub trait Def {
+    /// Get [`TypeId`] for type.
+    fn id(&self) -> TypeId;
+
     /// Get type name.
     fn name(&self) -> &str;
 
@@ -81,6 +84,31 @@ pub trait Def {
             quote!( <'_> )
         } else {
             TokenStream::new()
+        }
+    }
+
+    /// Get inner type.
+    ///
+    /// This is the direct inner type e.g. `Cell<Option<ScopeId>>` -> `Option<ScopeId>`.
+    /// Use [`innermost_type`] method if you want `ScopeId` in this example.
+    ///
+    /// Returns `None` for types which don't have a single inner type (structs, enums, and primitives).
+    ///
+    /// [`innermost_type`]: Def::innermost_type
+    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef>;
+
+    /// Get innermost type.
+    ///
+    /// e.g. `ScopeId` in `Cell<Option<ScopeId>>`.
+    ///
+    /// Use [`inner_type`] method if you want the direct inner type (`Option<ScopeId>` in this example).
+    ///
+    /// [`inner_type`]: Def::innermost_type
+    fn innermost_type<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
+        if let Some(inner_type) = self.inner_type(schema) {
+            inner_type.innermost_type(schema)
+        } else {
+            schema.type_def(self.id())
         }
     }
 

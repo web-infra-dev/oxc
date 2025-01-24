@@ -79,8 +79,8 @@ impl<'c> Parser<'c> {
     /// Parse all [`Skeleton`]s into [`TypeDef`]s and return [`Schema`].
     fn parse_all(mut self, skeletons: IndexVec<TypeId, Skeleton>) -> Schema {
         let mut types = skeletons
-            .into_iter()
-            .map(|skeleton| self.parse_type(skeleton))
+            .into_iter_enumerated()
+            .map(|(type_id, skeleton)| self.parse_type(type_id, skeleton))
             .collect::<IndexVec<_, _>>();
         types.extend(self.extra_types);
         Schema { types, files: self.files }
@@ -94,45 +94,46 @@ impl<'c> Parser<'c> {
         }
 
         // Generate new type for known primitives/special cases
-        let primitive = |name| TypeDef::Primitive(PrimitiveDef::new(name));
+        self.create_new_type(|type_id, parser| {
+            let primitive = |name| TypeDef::Primitive(PrimitiveDef::new(type_id, name));
 
-        let type_def = match name {
-            "bool" => primitive("bool"),
-            "u8" => primitive("u8"),
-            "u16" => primitive("u16"),
-            "u32" => primitive("u32"),
-            "u64" => primitive("u64"),
-            "u128" => primitive("u128"),
-            "usize" => primitive("usize"),
-            "i8" => primitive("i8"),
-            "i16" => primitive("i16"),
-            "i32" => primitive("i32"),
-            "i64" => primitive("i64"),
-            "i128" => primitive("i128"),
-            "isize" => primitive("isize"),
-            "f32" => primitive("f32"),
-            "f64" => primitive("f64"),
-            "&str" => primitive("&str"),
-            "Atom" => primitive("Atom"),
-            "ScopeId" => primitive("ScopeId"),
-            "SymbolId" => primitive("SymbolId"),
-            "ReferenceId" => primitive("ReferenceId"),
-            "PointerAlign" => primitive("PointerAlign"),
-            // Cannot be parsed normally as is defined inside `bitflags!` macro.
-            // TODO: Find a way to encode this in the actual file.
-            // e.g. `#[ast(alias_for(RegExpFlags))] struct RegExpFlagsAlias(u8);`
-            "RegExpFlags" => TypeDef::Struct(StructDef::new(
-                "RegExpFlags".to_string(),
-                false,
-                self.get_file_id("oxc_ast::ast::literal"),
-                Derives::none(),
-                vec![FieldDef::new(None, self.type_id("u8"), Visibility::Public)],
-                false,
-            )),
-            _ => panic!("Unknown type: {name}"),
-        };
-
-        self.create_new_type(name.to_string(), type_def)
+            match name {
+                "bool" => primitive("bool"),
+                "u8" => primitive("u8"),
+                "u16" => primitive("u16"),
+                "u32" => primitive("u32"),
+                "u64" => primitive("u64"),
+                "u128" => primitive("u128"),
+                "usize" => primitive("usize"),
+                "i8" => primitive("i8"),
+                "i16" => primitive("i16"),
+                "i32" => primitive("i32"),
+                "i64" => primitive("i64"),
+                "i128" => primitive("i128"),
+                "isize" => primitive("isize"),
+                "f32" => primitive("f32"),
+                "f64" => primitive("f64"),
+                "&str" => primitive("&str"),
+                "Atom" => primitive("Atom"),
+                "ScopeId" => primitive("ScopeId"),
+                "SymbolId" => primitive("SymbolId"),
+                "ReferenceId" => primitive("ReferenceId"),
+                "PointerAlign" => primitive("PointerAlign"),
+                // Cannot be parsed normally as is defined inside `bitflags!` macro.
+                // TODO: Find a way to encode this in the actual file.
+                // e.g. `#[ast(alias_for(RegExpFlags))] struct RegExpFlagsAlias(u8);`
+                "RegExpFlags" => TypeDef::Struct(StructDef::new(
+                    type_id,
+                    "RegExpFlags".to_string(),
+                    false,
+                    parser.get_file_id("oxc_ast::ast::literal"),
+                    Derives::none(),
+                    vec![FieldDef::new(None, parser.type_id("u8"), Visibility::Public)],
+                    false,
+                )),
+                _ => panic!("Unknown type: {name}"),
+            }
+        })
     }
 
     /// Get type name for a [`TypeId`].
@@ -140,12 +141,16 @@ impl<'c> Parser<'c> {
         &self.type_names[type_id.index()]
     }
 
-    /// Create a new type definition and return its [`TypeId`].
-    fn create_new_type(&mut self, name: String, def: TypeDef) -> TypeId {
+    /// Create a new type definition.
+    ///
+    /// The `create` closure is passed [`TypeId`] for the new type, and `&mut Parser`.
+    /// The closure must not create any other types, or IDs will get mixed up.
+    fn create_new_type<C: Fn(TypeId, &mut Self) -> TypeDef>(&mut self, create: C) -> TypeId {
         let type_id = TypeId::from_usize(self.type_names.len());
-        let was_inserted = self.type_names.insert(name);
+        let type_def = create(type_id, self);
+        let was_inserted = self.type_names.insert(type_def.name().to_string());
         assert!(was_inserted);
-        self.extra_types.push(def);
+        self.extra_types.push(type_def);
         type_id
     }
 
@@ -160,21 +165,22 @@ impl<'c> Parser<'c> {
     }
 
     /// Parse [`Skeleton`] to yield a [`TypeDef`].
-    fn parse_type(&mut self, skeleton: Skeleton) -> TypeDef {
+    fn parse_type(&mut self, type_id: TypeId, skeleton: Skeleton) -> TypeDef {
         match skeleton {
-            Skeleton::Struct(skeleton) => self.parse_struct(skeleton),
-            Skeleton::Enum(skeleton) => self.parse_enum(skeleton),
+            Skeleton::Struct(skeleton) => self.parse_struct(type_id, skeleton),
+            Skeleton::Enum(skeleton) => self.parse_enum(type_id, skeleton),
         }
     }
 
     /// Parse [`StructSkeleton`] to yield a [`TypeDef`].
-    fn parse_struct(&mut self, skeleton: StructSkeleton) -> TypeDef {
+    fn parse_struct(&mut self, type_id: TypeId, skeleton: StructSkeleton) -> TypeDef {
         let StructSkeleton { name, item, file_id } = skeleton;
         let has_lifetime = check_generics(&item.generics, &name);
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
         let mut def = TypeDef::Struct(StructDef::new(
+            type_id,
             name,
             has_lifetime,
             file_id,
@@ -236,7 +242,7 @@ impl<'c> Parser<'c> {
     }
 
     /// Parse [`EnumSkeleton`] to yield a [`TypeDef`].
-    fn parse_enum(&mut self, skeleton: EnumSkeleton) -> TypeDef {
+    fn parse_enum(&mut self, type_id: TypeId, skeleton: EnumSkeleton) -> TypeDef {
         let EnumSkeleton { name, item, inherits, file_id } = skeleton;
         let has_lifetime = check_generics(&item.generics, &name);
         let variants = item.variants.iter().map(|variant| self.parse_variant(variant)).collect();
@@ -244,6 +250,7 @@ impl<'c> Parser<'c> {
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
         let mut def = TypeDef::Enum(EnumDef::new(
+            type_id,
             name,
             has_lifetime,
             file_id,
@@ -391,32 +398,32 @@ impl<'c> Parser<'c> {
 
         let type_id = match wrapper_name {
             "Option" => self.options.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Option<{}>", self.type_name(inner_type_id));
-                let type_def = TypeDef::Option(OptionDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, type_def);
-                self.options.insert(inner_type_id, type_id);
-                type_id
+                self.create_new_type(|type_id, parser| {
+                    parser.options.insert(inner_type_id, type_id);
+                    let name = format!("Option<{}>", parser.type_name(inner_type_id));
+                    TypeDef::Option(OptionDef::new(type_id, name, inner_type_id))
+                })
             }),
             "Box" => self.boxes.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Box<{}>", self.type_name(inner_type_id));
-                let type_def = TypeDef::Box(BoxDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, type_def);
-                self.boxes.insert(inner_type_id, type_id);
-                type_id
+                self.create_new_type(|type_id, parser| {
+                    parser.boxes.insert(inner_type_id, type_id);
+                    let name = format!("Box<{}>", parser.type_name(inner_type_id));
+                    TypeDef::Box(BoxDef::new(type_id, name, inner_type_id))
+                })
             }),
             "Vec" => self.vecs.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Vec<{}>", self.type_name(inner_type_id));
-                let type_def = TypeDef::Vec(VecDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, type_def);
-                self.vecs.insert(inner_type_id, type_id);
-                type_id
+                self.create_new_type(|type_id, parser| {
+                    parser.vecs.insert(inner_type_id, type_id);
+                    let name = format!("Vec<{}>", parser.type_name(inner_type_id));
+                    TypeDef::Vec(VecDef::new(type_id, name, inner_type_id))
+                })
             }),
             "Cell" => self.cells.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Cell<{}>", self.type_name(inner_type_id));
-                let type_def = TypeDef::Cell(CellDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, type_def);
-                self.cells.insert(inner_type_id, type_id);
-                type_id
+                self.create_new_type(|type_id, parser| {
+                    parser.cells.insert(inner_type_id, type_id);
+                    let name = format!("Cell<{}>", parser.type_name(inner_type_id));
+                    TypeDef::Cell(CellDef::new(type_id, name, inner_type_id))
+                })
             }),
             _ => return None,
         };

@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 
 use super::{
     BoxDef, CellDef, Def, DeriveId, Derives, EnumDef, FileId, Layout, OptionDef, PrimitiveDef,
-    Schema, StructDef, VecDef,
+    Schema, StructDef, TypeId, VecDef,
 };
 
 /// Type definition for a type.
@@ -18,6 +18,19 @@ pub enum TypeDef {
 }
 
 impl Def for TypeDef {
+    /// Get [`TypeId`] for type.
+    fn id(&self) -> TypeId {
+        match self {
+            TypeDef::Struct(def) => def.id(),
+            TypeDef::Enum(def) => def.id(),
+            TypeDef::Primitive(def) => def.id(),
+            TypeDef::Option(def) => def.id(),
+            TypeDef::Box(def) => def.id(),
+            TypeDef::Vec(def) => def.id(),
+            TypeDef::Cell(def) => def.id(),
+        }
+    }
+
     /// Get type name.
     fn name(&self) -> &str {
         match self {
@@ -54,6 +67,26 @@ impl Def for TypeDef {
             TypeDef::Box(def) => def.ty_with_lifetime(schema, anon),
             TypeDef::Vec(def) => def.ty_with_lifetime(schema, anon),
             TypeDef::Cell(def) => def.ty_with_lifetime(schema, anon),
+        }
+    }
+
+    /// Get inner type.
+    ///
+    /// This is the direct inner type e.g. `Cell<Option<ScopeId>>` -> `Option<ScopeId>`.
+    /// Use [`innermost_type`] method if you want `ScopeId` in this example.
+    ///
+    /// Returns `None` for types which don't have a single inner type (structs, enums, and primitives).
+    ///
+    /// [`innermost_type`]: Self::innermost_type
+    fn inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
+        match self {
+            TypeDef::Struct(def) => def.inner_type(schema),
+            TypeDef::Enum(def) => def.inner_type(schema),
+            TypeDef::Primitive(def) => def.inner_type(schema),
+            TypeDef::Option(def) => def.inner_type(schema),
+            TypeDef::Box(def) => def.inner_type(schema),
+            TypeDef::Vec(def) => def.inner_type(schema),
+            TypeDef::Cell(def) => def.inner_type(schema),
         }
     }
 

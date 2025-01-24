@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use super::{Def, Layout, Schema};
+use super::{Def, Layout, Schema, TypeDef, TypeId};
 
 /// Type definition for a primitive type.
 ///
@@ -10,18 +10,24 @@ use super::{Def, Layout, Schema};
 /// * Special Oxc types e.g. `ScopeId`, `Atom`.
 #[derive(Debug)]
 pub struct PrimitiveDef {
+    pub id: TypeId,
     pub name: &'static str,
     pub layout: Layout,
 }
 
 impl PrimitiveDef {
     /// Create new [`PrimitiveDef`].
-    pub fn new(name: &'static str) -> Self {
-        Self { name, layout: Layout::default() }
+    pub fn new(id: TypeId, name: &'static str) -> Self {
+        Self { id, name, layout: Layout::default() }
     }
 }
 
 impl Def for PrimitiveDef {
+    /// Get [`TypeId`] for type.
+    fn id(&self) -> TypeId {
+        self.id
+    }
+
     /// Get type name.
     fn name(&self) -> &str {
         self.name
@@ -45,6 +51,13 @@ impl Def for PrimitiveDef {
             let ident = self.ident();
             quote!( #ident )
         }
+    }
+
+    /// Get inner type.
+    ///
+    /// Primitives don't have an inner type, so returns `None`.
+    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
+        None
     }
 
     /// Get type's layout.

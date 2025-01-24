@@ -6,13 +6,7 @@ use crate::schema::{Def, EnumDef, Schema, StructDef, TypeDef};
 
 use super::{define_derive, Derive};
 
-const IGNORE_FIELD_TYPES: [/* type name */ &str; 5] = [
-    "Span",
-    "Option<Span>",
-    "Cell<Option<ScopeId>>",
-    "Cell<Option<SymbolId>>",
-    "Cell<Option<ReferenceId>>",
-];
+const IGNORE_FIELD_TYPES: [&str; 4] = ["Span", "ScopeId", "SymbolId", "ReferenceId"];
 
 pub struct DeriveContentEq;
 
@@ -46,7 +40,10 @@ fn derive_struct(def: &StructDef, schema: &Schema) -> TokenStream {
     let fields = def
         .fields
         .iter()
-        .filter(|field| !IGNORE_FIELD_TYPES.contains(&field.type_def(schema).name()))
+        .filter(|field| {
+            let innermost_type = field.type_def(schema).innermost_type(schema);
+            !IGNORE_FIELD_TYPES.contains(&innermost_type.name())
+        })
         .map(|field| {
             let ident = field.ident();
             quote!(ContentEq::content_eq(&self.#ident, &other.#ident))

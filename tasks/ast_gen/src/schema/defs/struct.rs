@@ -9,6 +9,7 @@ use super::{Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId};
 /// Type definition for a struct.
 #[derive(Debug)]
 pub struct StructDef {
+    pub id: TypeId,
     pub name: String,
     pub has_lifetime: bool,
     pub file_id: FileId,
@@ -23,6 +24,7 @@ pub struct StructDef {
 impl StructDef {
     /// Create new [`StructDef`].
     pub fn new(
+        id: TypeId,
         name: String,
         has_lifetime: bool,
         file_id: FileId,
@@ -31,6 +33,7 @@ impl StructDef {
         is_visited: bool,
     ) -> Self {
         Self {
+            id,
             name,
             has_lifetime,
             file_id,
@@ -53,6 +56,11 @@ impl StructDef {
 }
 
 impl Def for StructDef {
+    /// Get [`TypeId`] for type.
+    fn id(&self) -> TypeId {
+        self.id
+    }
+
     /// Get type name.
     fn name(&self) -> &str {
         &self.name
@@ -69,6 +77,13 @@ impl Def for StructDef {
         let ident = self.ident();
         let lifetime = self.lifetime_maybe_anon(schema, anon);
         quote!( #ident #lifetime )
+    }
+
+    /// Get inner type.
+    ///
+    /// Structs don't have a single inner type, so returns `None`.
+    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
+        None
     }
 
     /// Get whether type is visited.

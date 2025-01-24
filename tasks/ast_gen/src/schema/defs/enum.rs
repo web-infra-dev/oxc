@@ -6,13 +6,14 @@ use syn::Ident;
 
 use crate::utils::create_ident;
 
-use super::{Def, Derives, FieldDef, FileId, Layout, Schema, TypeId};
+use super::{Def, Derives, FieldDef, FileId, Layout, Schema, TypeDef, TypeId};
 
 pub type Discriminant = u8;
 
 /// Type definition for an enum.
 #[derive(Debug)]
 pub struct EnumDef {
+    pub id: TypeId,
     pub name: String,
     pub has_lifetime: bool,
     pub file_id: FileId,
@@ -27,7 +28,9 @@ pub struct EnumDef {
 
 impl EnumDef {
     /// Create new [`EnumDef`].
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
+        id: TypeId,
         name: String,
         has_lifetime: bool,
         file_id: FileId,
@@ -37,6 +40,7 @@ impl EnumDef {
         is_visited: bool,
     ) -> Self {
         Self {
+            id,
             name,
             has_lifetime,
             file_id,
@@ -73,6 +77,11 @@ impl EnumDef {
 }
 
 impl Def for EnumDef {
+    /// Get [`TypeId`] for type.
+    fn id(&self) -> TypeId {
+        self.id
+    }
+
     /// Get type name.
     fn name(&self) -> &str {
         &self.name
@@ -89,6 +98,13 @@ impl Def for EnumDef {
         let ident = self.ident();
         let lifetime = self.lifetime_maybe_anon(schema, anon);
         quote!( #ident #lifetime )
+    }
+
+    /// Get inner type.
+    ///
+    /// Enums don't have a single inner type, so returns `None`.
+    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
+        None
     }
 
     /// Get whether type is visited.
