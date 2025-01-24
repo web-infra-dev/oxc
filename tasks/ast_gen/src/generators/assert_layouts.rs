@@ -28,7 +28,7 @@ define_generator!(AssertLayouts);
 impl Generator for AssertLayouts {
     /// Calculate layouts of all types.
     fn modify(&self, schema: &mut Schema) {
-        for type_id in 0..schema.defs.len() {
+        for type_id in schema.type_ids() {
             calculate_layout(type_id, schema);
         }
     }

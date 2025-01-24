@@ -1,3 +1,4 @@
+use oxc_index::IndexVec;
 use quote::ToTokens;
 use rustc_hash::FxHashMap;
 use syn::{
@@ -24,7 +25,7 @@ use super::{
 /// Parse `Skeleton`s into `TypeDef`s.
 pub fn parse(
     skeletons: FxIndexMap<String, Skeleton>,
-    files: Vec<File>,
+    files: IndexVec<FileId, File>,
     codegen: &Codegen,
 ) -> Schema {
     // Split `skeletons` into a `IndexSet<String>` (type names) and `Vec<Skeleton>` (skeletons)
@@ -44,7 +45,7 @@ pub fn parse(
 /// Types parser.
 struct Parser<'c> {
     type_names: FxIndexSet<String>,
-    files: Vec<File>,
+    files: IndexVec<FileId, File>,
     codegen: &'c Codegen,
     extra_types: Vec<TypeDef>,
     options: FxHashMap<TypeId, TypeId>,
@@ -55,7 +56,11 @@ struct Parser<'c> {
 
 impl<'c> Parser<'c> {
     /// Create `Parser`.
-    fn new(type_names: FxIndexSet<String>, files: Vec<File>, codegen: &'c Codegen) -> Self {
+    fn new(
+        type_names: FxIndexSet<String>,
+        files: IndexVec<FileId, File>,
+        codegen: &'c Codegen,
+    ) -> Self {
         Self {
             type_names,
             files,
@@ -70,8 +75,10 @@ impl<'c> Parser<'c> {
 
     /// Parse all `Skeleton`s into `TypeDef`s and return `Schema`.
     fn parse_all(mut self, skeletons: Vec<Skeleton>) -> Schema {
-        let mut defs =
-            skeletons.into_iter().map(|skeleton| self.parse_type(skeleton)).collect::<Vec<_>>();
+        let mut defs = skeletons
+            .into_iter()
+            .map(|skeleton| self.parse_type(skeleton))
+            .collect::<IndexVec<_, _>>();
         defs.extend(self.extra_types);
         Schema { defs, files: self.files }
     }
@@ -80,7 +87,7 @@ impl<'c> Parser<'c> {
     fn type_id(&mut self, name: &str) -> TypeId {
         // Get type ID if already known
         if let Some(type_id) = self.type_names.get_index_of(name) {
-            return type_id;
+            return TypeId::from_usize(type_id);
         }
 
         // Generate new type for known primitives/special cases
@@ -125,9 +132,14 @@ impl<'c> Parser<'c> {
         self.create_new_type(name.to_string(), def)
     }
 
+    /// Get type name for `TypeId`.
+    fn type_name(&mut self, type_id: TypeId) -> &str {
+        &self.type_names[type_id.index()]
+    }
+
     /// Create a new type definition.
     fn create_new_type(&mut self, name: String, def: TypeDef) -> TypeId {
-        let type_id = self.type_names.len();
+        let type_id = TypeId::from_usize(self.type_names.len());
         let was_inserted = self.type_names.insert(name);
         assert!(was_inserted);
         self.extra_types.push(def);
@@ -137,7 +149,7 @@ impl<'c> Parser<'c> {
     /// Get `FileId` for file with provided import path.
     fn get_file_id(&self, import_path: &str) -> FileId {
         let file_and_id =
-            self.files.iter().enumerate().find(|(_, file)| file.import_path == import_path);
+            self.files.iter_enumerated().find(|(_, file)| file.import_path == import_path);
         match file_and_id {
             Some((file_id, _)) => file_id,
             None => panic!("Could not find file with import path: {import_path}"),
@@ -365,28 +377,28 @@ impl<'c> Parser<'c> {
 
         let type_id = match wrapper_name {
             "Option" => self.options.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Option<{}>", &self.type_names[inner_type_id]);
+                let name = format!("Option<{}>", self.type_name(inner_type_id));
                 let def = TypeDef::Option(OptionDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.options.insert(inner_type_id, type_id);
                 type_id
             }),
             "Box" => self.boxes.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Box<{}>", &self.type_names[inner_type_id]);
+                let name = format!("Box<{}>", self.type_name(inner_type_id));
                 let def = TypeDef::Box(BoxDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.boxes.insert(inner_type_id, type_id);
                 type_id
             }),
             "Vec" => self.vecs.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Vec<{}>", &self.type_names[inner_type_id]);
+                let name = format!("Vec<{}>", self.type_name(inner_type_id));
                 let def = TypeDef::Vec(VecDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.vecs.insert(inner_type_id, type_id);
                 type_id
             }),
             "Cell" => self.cells.get(&inner_type_id).copied().unwrap_or_else(|| {
-                let name = format!("Cell<{}>", &self.type_names[inner_type_id]);
+                let name = format!("Cell<{}>", self.type_name(inner_type_id));
                 let def = TypeDef::Cell(CellDef::new(name.clone(), inner_type_id));
                 let type_id = self.create_new_type(name, def);
                 self.cells.insert(inner_type_id, type_id);

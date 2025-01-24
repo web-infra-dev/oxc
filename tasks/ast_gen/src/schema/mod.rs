@@ -1,17 +1,18 @@
+use oxc_index::IndexVec;
+
 mod defs;
 mod derives;
+mod ids;
 mod layout;
 pub use defs::*;
 pub use derives::{DeriveId, Derives};
+pub use ids::*;
 pub use layout::*;
-
-pub type FileId = usize;
-pub type TypeId = usize;
 
 #[derive(Debug)]
 pub struct Schema {
-    pub defs: Vec<TypeDef>,
-    pub files: Vec<File>,
+    pub defs: IndexVec<TypeId, TypeDef>,
+    pub files: IndexVec<FileId, File>,
 }
 
 impl Schema {
@@ -22,6 +23,17 @@ impl Schema {
     #[expect(dead_code)]
     pub fn def_mut(&mut self, type_id: TypeId) -> &mut TypeDef {
         &mut self.defs[type_id]
+    }
+
+    /// Get iterator over all `TypeId`s.
+    pub fn type_ids(&self) -> IdIter<TypeId> {
+        IdIter::new(&self.defs)
+    }
+
+    /// Get iterator over all `FileId`s.
+    #[expect(dead_code)]
+    pub fn file_ids(&self) -> IdIter<FileId> {
+        IdIter::new(&self.files)
     }
 
     pub fn def_struct(&self, type_id: TypeId) -> &StructDef {

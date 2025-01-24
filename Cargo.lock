@@ -1618,11 +1618,13 @@ dependencies = [
  "indexmap",
  "itertools",
  "lazy_static",
+ "oxc_index",
  "prettyplease",
  "proc-macro2",
  "quote",
  "regex",
  "rustc-hash",
+ "serde",
  "syn",
 ]
 

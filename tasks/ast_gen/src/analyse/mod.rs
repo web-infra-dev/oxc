@@ -43,6 +43,7 @@ use std::hash::BuildHasherDefault;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use oxc_index::IndexVec;
 use rustc_hash::FxHasher;
 use syn::Ident;
 
@@ -75,8 +76,11 @@ pub fn analyse(file_paths: &[&str], codegen: &Codegen) -> Schema {
     let files = file_paths
         .iter()
         .enumerate()
-        .map(|(file_id, &file_path)| analyse_file(file_id, file_path, &mut skeletons))
-        .collect::<Vec<_>>();
+        .map(|(file_id, &file_path)| {
+            let file_id = FileId::from_usize(file_id);
+            analyse_file(file_id, file_path, &mut skeletons)
+        })
+        .collect::<IndexVec<_, _>>();
 
     // Convert skeletons into schema
     parse(skeletons, files, codegen)
