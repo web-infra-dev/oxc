@@ -3,41 +3,44 @@
 //! Analysis proceeds in 2 phases:
 //!
 //! 1. Parse Rust source files and build list of all type definitions.
-//! 2. Parse all the types into `TypeDef`s.
+//! 2. Parse all the types into [`TypeDef`]s.
 //!
 //! ## Phase 1
 //!
 //! 1st phase involves minimal parsing, just enough to identify structs/enums with `#[ast]` attr,
 //! and to get names of types.
 //!
-//! Each type gets assigned a `TypeId`, and is represented by a `Skeleton`.
-//! An indexed hash map is built, mapping type names to their `TypeId`s and `Skeleton`s.
+//! Each type gets assigned a [`TypeId`], and is represented by a [`Skeleton`].
+//! An indexed hash map is built, mapping type names to their [`TypeId`]s and [`Skeleton`]s.
 //!
 //! ## Phase 2
 //!
 //! 2nd phase involves full parsing of each type, and linking types to each other.
 //!
-//! A `TypeDef` is generated for each type. The `Vec<TypeDef>` that is created is indexed by `TypeId`
-//! - same order of entries as the `FxIndexMap<Skeleton>` from phase 1.
+//! A [`TypeDef`] is generated for each type. The `IndexVec<TypeId, TypeDef>` that is created is indexed
+//! by [`TypeId`] - same order of entries as the `FxIndexMap<Skeleton>` from phase 1.
 //!
-//! `TypeDef`s are also created for other types which are found within the type definitions:
+//! [`TypeDef`]s are also created for other types which are found within the type definitions:
 //!
 //! * Primitives (e.g. `f64`, `&str`).
 //! * Known types (`Vec`, `Box`, `Option`, `Cell`).
 //! * Special cases (`Atom`, `RegExpFlags`, `ScopeId`, `SymbolId`, `ReferenceId`).
 //!
-//! Each `TypeDef` contains a `FileId`, indicating which file the type was defined in.
+//! Each [`TypeDef`] contains a [`FileId`], indicating which file the type was defined in.
 //!
-//! Note: Individual `TypeDef`s are created for every different `Vec`, `Box`, `Option` and `Cell`.
-//! i.e. There are separate `TypeDef`s for `Vec<Statement>` and `Vec<Expression>`,
-//! not a single `TypeDef` for `Vec`.
+//! Note: Individual [`TypeDef`]s are created for every different `Vec`, `Box`, `Option` and `Cell`.
+//! i.e. There are separate [`TypeDef`]s for `Vec<Statement>` and `Vec<Expression>`,
+//! not a single [`TypeDef`] for `Vec`.
 //!
 //! ## Schema
 //!
-//! `Schema` contains all the `TypeDef`s and `File`s.
+//! [`Schema`] contains all the [`TypeDef`]s and [`File`]s.
 //!
-//! * `defs: Vec<TypeDef>` is indexed by `TypeId`.
-//! * `files: Vec<File>` is indexed by `FileId`.
+//! * `types: IndexVec<TypeId, TypeDef>` is indexed by [`TypeId`].
+//! * `files: IndexVec<FileId, File>` is indexed by [`FileId`].
+//!
+//! [`TypeId`]: crate::schema::TypeId
+//! [`TypeDef`]: crate::schema::TypeDef
 
 use std::hash::BuildHasherDefault;
 
