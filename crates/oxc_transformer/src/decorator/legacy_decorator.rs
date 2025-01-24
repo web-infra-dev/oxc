@@ -322,6 +322,18 @@ impl<'a> LegacyDecorator<'a, '_> {
 
                     (prop.r#static, &mut prop.key, descriptor, decorations)
                 }
+                ClassElement::AccessorProperty(accessor) => {
+                    let decorations = Self::convert_decorators_to_array_expression(
+                        accessor.decorators.drain(..),
+                        ctx,
+                    );
+
+                    // We emit `null` here to indicate to `__decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
+                    // We have this extra argument here so that we can inject an explicit property descriptor at a later date.
+                    let descriptor = ctx.ast.expression_null_literal(SPAN);
+
+                    (accessor.r#static, &mut accessor.key, descriptor, decorations)
+                }
                 _ => {
                     continue;
                 }
@@ -514,6 +526,16 @@ impl<'a> LegacyDecorator<'a, '_> {
                             );
                     }
                 }
+                ClassElement::AccessorProperty(accessor) => {
+                    child_is_decorated |= !accessor.decorators.is_empty();
+
+                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                        has_private_in_expression_in_decorator =
+                            PrivateInExpressionDetector::has_private_in_expression(
+                                &accessor.decorators,
+                            );
+                    }
+                }
                 _ => {}
             }
         }
@@ -553,7 +575,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             PropertyKey::StaticIdentifier(ident) => {
                 ctx.ast.expression_string_literal(SPAN, ident.name, None)
             }
-            // Legacy decorators do not support private properties/methods
+            // Legacy decorators do not support private properties/methods/accessors
             PropertyKey::PrivateIdentifier(_) => ctx.ast.expression_string_literal(SPAN, "", None),
             // Copiable literals
             PropertyKey::NumericLiteral(literal) => {
