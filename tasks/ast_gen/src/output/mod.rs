@@ -43,6 +43,9 @@ pub enum Output {
 }
 
 impl Output {
+    /// Convert [`Output`] to [`RawOutput`].
+    ///
+    /// This involves printing and formatting the output.
     pub fn into_raw(self, generator_path: &str) -> RawOutput {
         let generator_path = generator_path.cow_replace('\\', "/");
 
@@ -67,7 +70,7 @@ impl Output {
 
 /// A raw output from codegen.
 ///
-/// Content is formatted, and converted to bytes.
+/// Content is formatted, and in byte array form, ready to write to file.
 #[derive(Debug)]
 pub struct RawOutput {
     pub path: String,
@@ -75,7 +78,7 @@ pub struct RawOutput {
 }
 
 impl RawOutput {
-    /// Write output to file
+    /// Write [`RawOutput`] to file
     pub fn write_to_file(&self) -> io::Result<()> {
         log!("Write {}... ", &self.path);
         let result = write_to_file_impl(&self.content, &self.path);
