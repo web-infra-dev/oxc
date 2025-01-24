@@ -66,7 +66,7 @@ fn parse_struct(item: ItemStruct, file_id: FileId) -> Option<StructSkeleton> {
     }
 
     let name = ident_name(&item.ident);
-    Some(StructSkeleton { name, item, file_id })
+    Some(StructSkeleton { name, file_id, item })
 }
 
 fn parse_enum(item: ItemEnum, file_id: FileId) -> Option<EnumSkeleton> {
@@ -75,7 +75,7 @@ fn parse_enum(item: ItemEnum, file_id: FileId) -> Option<EnumSkeleton> {
     }
 
     let name = ident_name(&item.ident);
-    Some(EnumSkeleton { name, item, inherits: vec![], file_id })
+    Some(EnumSkeleton { name, file_id, item, inherits: vec![] })
 }
 
 fn parse_macro(item: &ItemMacro, file_id: FileId) -> Option<EnumSkeleton> {
@@ -128,7 +128,7 @@ fn parse_macro(item: &ItemMacro, file_id: FileId) -> Option<EnumSkeleton> {
             }
 
             let item = ItemEnum { attrs, vis, enum_token, ident, generics, brace_token, variants };
-            Ok(EnumSkeleton { name, item, inherits, file_id })
+            Ok(EnumSkeleton { name, file_id, item, inherits })
         })
         .expect("Failed to parse contents of `inherit_variants!` macro");
 
