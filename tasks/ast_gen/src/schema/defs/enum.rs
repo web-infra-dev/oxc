@@ -166,7 +166,7 @@ impl<'s> Iterator for AllVariantsIter<'s> {
             return Some(variant);
         }
 
-        // Yield from inner iterator (iterating over inheritee's variants)
+        // Yield from inner iterator (iterating over inherited type's variants)
         if let Some(inner_iter) = &mut self.inner_iter {
             if let Some(variant) = inner_iter.next() {
                 return Some(variant);
@@ -174,10 +174,10 @@ impl<'s> Iterator for AllVariantsIter<'s> {
             self.inner_iter = None;
         }
 
-        // No current inner iterator. Start iterating over next inheritee.
+        // No current inner iterator. Start iterating over next inherited type.
         if let Some(&inherits_type_id) = self.inherits_iter.next() {
-            let inner_type = self.schema.def_enum(inherits_type_id);
-            let inner_iter = inner_type.all_variants(self.schema);
+            let inherited_type = self.schema.enum_def(inherits_type_id);
+            let inner_iter = inherited_type.all_variants(self.schema);
             self.inner_iter = Some(Box::new(inner_iter));
             Some(self.inner_iter.as_mut().unwrap().next().unwrap())
         } else {

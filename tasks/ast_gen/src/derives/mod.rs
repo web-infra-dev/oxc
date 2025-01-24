@@ -135,7 +135,7 @@ pub trait Derive: Runner {
         let derive_id = codegen.get_derive_id_by_name(trait_name);
 
         let output = schema
-            .defs
+            .types
             .iter()
             .filter(|def| def.generates_derive(derive_id))
             .map(|def| (def, self.derive(def, schema)))

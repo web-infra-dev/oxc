@@ -75,12 +75,12 @@ impl<'c> Parser<'c> {
 
     /// Parse all `Skeleton`s into `TypeDef`s and return `Schema`.
     fn parse_all(mut self, skeletons: Vec<Skeleton>) -> Schema {
-        let mut defs = skeletons
+        let mut types = skeletons
             .into_iter()
             .map(|skeleton| self.parse_type(skeleton))
             .collect::<IndexVec<_, _>>();
-        defs.extend(self.extra_types);
-        Schema { defs, files: self.files }
+        types.extend(self.extra_types);
+        Schema { types, files: self.files }
     }
 
     /// Get `TypeId` for type name.
@@ -93,7 +93,7 @@ impl<'c> Parser<'c> {
         // Generate new type for known primitives/special cases
         let primitive = |name| TypeDef::Primitive(PrimitiveDef::new(name));
 
-        let def = match name {
+        let type_def = match name {
             "bool" => primitive("bool"),
             "u8" => primitive("u8"),
             "u16" => primitive("u16"),
@@ -129,7 +129,7 @@ impl<'c> Parser<'c> {
             _ => panic!("Unknown type: {name}"),
         };
 
-        self.create_new_type(name.to_string(), def)
+        self.create_new_type(name.to_string(), type_def)
     }
 
     /// Get type name for `TypeId`.
@@ -378,29 +378,29 @@ impl<'c> Parser<'c> {
         let type_id = match wrapper_name {
             "Option" => self.options.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Option<{}>", self.type_name(inner_type_id));
-                let def = TypeDef::Option(OptionDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, def);
+                let type_def = TypeDef::Option(OptionDef::new(name.clone(), inner_type_id));
+                let type_id = self.create_new_type(name, type_def);
                 self.options.insert(inner_type_id, type_id);
                 type_id
             }),
             "Box" => self.boxes.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Box<{}>", self.type_name(inner_type_id));
-                let def = TypeDef::Box(BoxDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, def);
+                let type_def = TypeDef::Box(BoxDef::new(name.clone(), inner_type_id));
+                let type_id = self.create_new_type(name, type_def);
                 self.boxes.insert(inner_type_id, type_id);
                 type_id
             }),
             "Vec" => self.vecs.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Vec<{}>", self.type_name(inner_type_id));
-                let def = TypeDef::Vec(VecDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, def);
+                let type_def = TypeDef::Vec(VecDef::new(name.clone(), inner_type_id));
+                let type_id = self.create_new_type(name, type_def);
                 self.vecs.insert(inner_type_id, type_id);
                 type_id
             }),
             "Cell" => self.cells.get(&inner_type_id).copied().unwrap_or_else(|| {
                 let name = format!("Cell<{}>", self.type_name(inner_type_id));
-                let def = TypeDef::Cell(CellDef::new(name.clone(), inner_type_id));
-                let type_id = self.create_new_type(name, def);
+                let type_def = TypeDef::Cell(CellDef::new(name.clone(), inner_type_id));
+                let type_id = self.create_new_type(name, type_def);
                 self.cells.insert(inner_type_id, type_id);
                 type_id
             }),

@@ -20,7 +20,7 @@ define_generator!(GetIdGenerator);
 
 impl Generator for GetIdGenerator {
     fn generate(&self, schema: &Schema) -> Output {
-        let impls = schema.defs.iter().filter_map(|def| generate_for_type(def, schema));
+        let impls = schema.types.iter().filter_map(|def| generate_for_type(def, schema));
 
         let output = quote! {
             use oxc_syntax::{reference::ReferenceId, scope::ScopeId, symbol::SymbolId};
@@ -46,7 +46,7 @@ fn generate_for_type(def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
         .filter_map(|field| {
             // TODO: Handle tuple structs
             let field_name = field.name.as_ref()?.as_str();
-            let field_type = field.def(schema);
+            let field_type = field.type_def(schema);
             let inner_type_name = match (field_name, field_type.name()) {
                 ("scope_id", "Cell<Option<ScopeId>>") => "ScopeId",
                 ("symbol_id", "Cell<Option<SymbolId>>") => "SymbolId",

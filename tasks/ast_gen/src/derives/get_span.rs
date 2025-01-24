@@ -195,7 +195,7 @@ where
         let variant_ident = variant.ident();
 
         let mut it = quote!(it);
-        let variant_type = variant.field().unwrap().def(schema);
+        let variant_type = variant.field().unwrap().type_def(schema);
         if variant_type.is_box() {
             it = unbox(it);
         }

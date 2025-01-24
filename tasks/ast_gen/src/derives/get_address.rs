@@ -36,7 +36,7 @@ fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
     let ty = def.ty_anon(schema);
 
     let matches = def.all_variants(schema).map(|variant| {
-        let variant_type = variant.field().unwrap().def(schema);
+        let variant_type = variant.field().unwrap().type_def(schema);
         assert!(
             variant_type.is_box(),
             "`GetAddress` can only be derived on enums where all variants are boxed"

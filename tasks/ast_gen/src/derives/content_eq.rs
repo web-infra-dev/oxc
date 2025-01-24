@@ -46,7 +46,7 @@ fn derive_struct(def: &StructDef, schema: &Schema) -> TokenStream {
     let fields = def
         .fields
         .iter()
-        .filter(|field| !IGNORE_FIELD_TYPES.contains(&field.def(schema).name()))
+        .filter(|field| !IGNORE_FIELD_TYPES.contains(&field.type_def(schema).name()))
         .map(|field| {
             let ident = field.ident();
             quote!(ContentEq::content_eq(&self.#ident, &other.#ident))

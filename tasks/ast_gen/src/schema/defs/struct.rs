@@ -118,8 +118,8 @@ impl FieldDef {
     }
 
     /// Get field type.
-    pub fn def<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
-        schema.def(self.type_id)
+    pub fn type_def<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
+        schema.type_def(self.type_id)
     }
 }
 

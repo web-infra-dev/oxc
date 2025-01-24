@@ -92,8 +92,8 @@ pub const BLACK_LIST: [&str; 62] = [
 impl Generator for AstKindGenerator {
     /// Set `has_kind` for structs and enums which are not on blacklist.
     fn modify(&self, schema: &mut Schema) {
-        for def in &mut schema.defs {
-            match def {
+        for type_def in &mut schema.types {
+            match type_def {
                 TypeDef::Struct(def) => {
                     if def.is_visited() && !BLACK_LIST.contains(&def.name()) {
                         def.has_kind = true;
@@ -117,13 +117,13 @@ impl Generator for AstKindGenerator {
         let mut as_methods = vec![];
 
         let mut next_index = 0usize;
-        for def in &schema.defs {
-            if !def.has_kind() {
+        for type_def in &schema.types {
+            if !type_def.has_kind() {
                 continue;
             }
 
-            let type_ident = def.ident();
-            let type_ty = def.ty(schema);
+            let type_ident = type_def.ident();
+            let type_ty = type_def.ty(schema);
 
             let index = u8::try_from(next_index).unwrap();
             let index = LitInt::new(&index.to_string(), Span::call_site());
@@ -132,7 +132,7 @@ impl Generator for AstKindGenerator {
 
             span_match_arms.push(quote!( Self::#type_ident(it) => it.span() ));
 
-            let as_method_name = format_ident!("as_{}", def.snake_name());
+            let as_method_name = format_ident!("as_{}", type_def.snake_name());
             as_methods.push(quote! {
                 ///@@line_break
                 #[inline]
