@@ -1,15 +1,23 @@
-use oxc_index::IndexVec;
+use oxc_index::{define_index_type, IndexVec};
 
 mod defs;
 mod derives;
 mod file;
-mod ids;
 mod layout;
 pub use defs::*;
 pub use derives::Derives;
 pub use file::File;
-pub use ids::{FileId, IdIter, TypeId};
 pub use layout::*;
+
+define_index_type! {
+    /// ID of type in the AST
+    pub struct TypeId = u32;
+}
+
+define_index_type! {
+    /// ID of source file
+    pub struct FileId = u32;
+}
 
 /// Schema of all AST types.
 #[derive(Debug)]
@@ -22,14 +30,14 @@ pub struct Schema {
 
 impl Schema {
     /// Get iterator over all [`TypeId`]s.
-    pub fn type_ids(&self) -> IdIter<TypeId> {
-        IdIter::new(&self.types)
+    pub fn type_ids(&self) -> impl Iterator<Item = TypeId> {
+        self.types.indices()
     }
 
     /// Get iterator over all [`FileId`]s.
     #[expect(dead_code)]
-    pub fn file_ids(&self) -> IdIter<FileId> {
-        IdIter::new(&self.files)
+    pub fn file_ids(&self) -> impl Iterator<Item = FileId> {
+        self.files.indices()
     }
 
     /// Get reference to [`File`] for a [`FileId`].
