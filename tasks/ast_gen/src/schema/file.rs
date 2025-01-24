@@ -1,4 +1,4 @@
-/// Represents a Rust source file.
+/// A Rust source file.
 #[derive(Debug)]
 pub struct File {
     /// File path e.g. `crates/oxc_ast/src/ast/js.rs`

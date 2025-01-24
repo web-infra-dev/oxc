@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::{codegen::DeriveId, DERIVES};
 
-/// Number of bytes required for bit set which can represent all `DeriveId`s.
+/// Number of bytes required for bit set which can represent all [`DeriveId`]s.
 const NUM_BYTES: usize = (DERIVES.len() + 7) / 8;
 
 /// Bit set with a bit for each [`DeriveId`].
