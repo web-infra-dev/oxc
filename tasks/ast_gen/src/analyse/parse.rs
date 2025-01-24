@@ -28,15 +28,8 @@ pub fn parse(
     files: IndexVec<FileId, File>,
     codegen: &Codegen,
 ) -> Schema {
-    // Split `skeletons` into a `IndexSet<String>` (type names) and `Vec<Skeleton>` (skeletons)
-    let mut skeletons_vec = Vec::with_capacity(skeletons.len());
-    let type_names = skeletons
-        .into_iter()
-        .map(|(name, skeleton)| {
-            skeletons_vec.push(skeleton);
-            name
-        })
-        .collect();
+    // Split `skeletons` into a `IndexSet<String>` (type names) and `IndexVec<TypeId, Skeleton>` (skeletons)
+    let (type_names, skeletons_vec) = skeletons.into_iter().unzip();
 
     let parser = Parser::new(type_names, files, codegen);
     parser.parse_all(skeletons_vec)
@@ -74,7 +67,7 @@ impl<'c> Parser<'c> {
     }
 
     /// Parse all `Skeleton`s into `TypeDef`s and return `Schema`.
-    fn parse_all(mut self, skeletons: Vec<Skeleton>) -> Schema {
+    fn parse_all(mut self, skeletons: IndexVec<TypeId, Skeleton>) -> Schema {
         let mut types = skeletons
             .into_iter()
             .map(|skeleton| self.parse_type(skeleton))
