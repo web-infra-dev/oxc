@@ -10,7 +10,7 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// Create `Layout` from a Rust type.
+    /// Create [`Layout`] from a Rust type.
     pub fn from_type<T>() -> Self {
         Self::from_size_align(
             u32::try_from(size_of::<T>()).unwrap(),
@@ -18,7 +18,7 @@ impl Layout {
         )
     }
 
-    /// Create `Layout` from `size` and `align` pair, with no niche.
+    /// Create [`Layout`] from `size` and `align` pair, with no niche.
     ///
     /// Layout is same for both 64-bit and 32-bit platforms.
     pub fn from_size_align(size: u32, align: u32) -> Self {
@@ -28,7 +28,7 @@ impl Layout {
         }
     }
 
-    /// Create `Layout` from `size` and `align` pair, and `Niche`.
+    /// Create [`Layout`] from `size` and `align` pair, and [`Niche`].
     ///
     /// Layout is same for both 64-bit and 32-bit platforms.
     pub fn from_size_align_niche(size: u32, align: u32, niche: Niche) -> Self {
@@ -38,7 +38,7 @@ impl Layout {
         }
     }
 
-    /// Returns `true` if this `Layout` has been initialized (calculated).
+    /// Returns `true` if this [`Layout`] has been initialized (calculated).
     pub fn is_initialized(&self) -> bool {
         self.layout_64.align != 0
     }
@@ -53,17 +53,18 @@ pub struct PlatformLayout {
 }
 
 impl PlatformLayout {
-    /// Create `PlatformLayout` from `size` and `align` pair, with no niche.
+    /// Create [`PlatformLayout`] from `size` and `align` pair, with no niche.
     pub fn from_size_align(size: u32, align: u32) -> Self {
         Self { size, align, niche: None }
     }
 
-    /// Create `PlatformLayout` from `size` and `align` pair, and `Niche`.
+    /// Create [`PlatformLayout`] from `size` and `align` pair, and [`Niche`].
     pub fn from_size_align_niche(size: u32, align: u32, niche: Niche) -> Self {
         Self { size, align, niche: Some(niche) }
     }
 }
 
+/// Niche that a type has.
 #[derive(Clone, Debug)]
 pub struct Niche {
     /// Byte offset of the niche from start of type
@@ -80,7 +81,7 @@ pub struct Niche {
 }
 
 impl Niche {
-    /// Create new `Niche`.
+    /// Create new [`Niche`].
     pub fn new(offset: u32, size: u32, is_range_start: bool, count: u32) -> Self {
         Self { offset, size, is_range_start, count }
     }

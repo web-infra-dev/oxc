@@ -4,11 +4,13 @@ use std::ops::Range;
 use oxc_index::{define_index_type, Idx, IndexVec};
 
 define_index_type! {
-    pub struct FileId = u32;
+    /// ID of type in the AST
+    pub struct TypeId = u32;
 }
 
 define_index_type! {
-    pub struct TypeId = u32;
+    /// ID of source file
+    pub struct FileId = u32;
 }
 
 /// Iterator over ID keys of an `IndexVec`.
