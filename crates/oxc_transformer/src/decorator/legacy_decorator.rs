@@ -204,10 +204,19 @@ impl<'a> LegacyDecorator<'a, '_> {
         //
 
         let span = class.span;
-        // TODO: In TypeScript, the class binding will keep it as-is, but our implementation will take it,
-        // this way we can avoid syncing semantic data, need to check if there is any runtime impact.
-        let class_binding =
-            class.id.take().map(|ident| BoundIdentifier::from_binding_ident(&ident));
+        // TODO(improve-on-babel): we can take the class id without keeping it as-is.
+        // Now: `class C {}` -> `let C = class C {}`
+        // After: `class C {}` -> `let C = class {}`
+        let class_binding = class.id.as_ref().map(|ident| {
+            let new_class_binding =
+                ctx.generate_binding(ident.name, class.scope_id(), SymbolFlags::Class);
+            let old_class_symbol_id = ident.symbol_id.replace(Some(new_class_binding.symbol_id));
+            let old_class_symbol_id = old_class_symbol_id.expect("class always has a symbol id");
+
+            *ctx.symbols_mut().get_flags_mut(old_class_symbol_id) =
+                SymbolFlags::BlockScopedVariable;
+            BoundIdentifier::new(ident.name, old_class_symbol_id)
+        });
         let class_alias_binding = class_binding.as_ref().and_then(|id| {
             ClassReferenceChanger::new(id.clone(), ctx, self.ctx)
                 .get_class_alias_if_needed(&mut class.body)

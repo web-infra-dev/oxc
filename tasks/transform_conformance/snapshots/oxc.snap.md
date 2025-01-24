@@ -1,6 +1,6 @@
 commit: acbc09a8
 
-Passed: 135/223
+Passed: 134/223
 
 # All Passed:
 * babel-plugin-transform-class-static-block
@@ -10,7 +10,6 @@ Passed: 135/223
 * babel-plugin-transform-optional-catch-binding
 * babel-plugin-transform-async-generator-functions
 * babel-plugin-transform-object-rest-spread
-* babel-plugin-transform-async-to-generator
 * babel-plugin-transform-exponentiation-operator
 * babel-plugin-transform-arrow-functions
 * babel-preset-typescript
@@ -45,6 +44,11 @@ rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(8), R
 Symbol reference IDs mismatch for "X":
 after transform: SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(9), ReferenceId(12)]
 rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(10)]
+
+
+# babel-plugin-transform-async-to-generator (24/25)
+* super/outer-super-in-nested-class/input.js
+x Output mismatch
 
 
 # babel-plugin-transform-typescript (2/14)
@@ -321,10 +325,20 @@ x Output mismatch
 
 # legacy-decorators (0/66)
 * typescript/accessor/decoratorOnClassAccessor1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/accessor/decoratorOnClassAccessor2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/accessor/decoratorOnClassAccessor3/input.ts
 
@@ -340,10 +354,20 @@ x Output mismatch
 
 
 * typescript/accessor/decoratorOnClassAccessor4/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/accessor/decoratorOnClassAccessor5/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/accessor/decoratorOnClassAccessor6/input.ts
 
@@ -362,25 +386,88 @@ x Output mismatch
 x Output mismatch
 
 * typescript/accessor/decoratorOnClassAccessor8/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(5), ScopeId(8), ScopeId(11), ScopeId(14), ScopeId(16)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(4), ScopeId(7), ScopeId(10), ScopeId(13), ScopeId(15)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/constructableDecoratorOnClass01/input.ts
-x Output mismatch
+Symbol span mismatch for "C":
+after transform: SymbolId(1): Span { start: 74, end: 75 }
+rebuilt        : SymbolId(1): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(2): Span { start: 74, end: 75 }
 
 * typescript/constructor/decoratorOnClassConstructor1/input.ts
 x Output mismatch
 
 * typescript/constructor/decoratorOnClassConstructor2/input.ts
-x Output mismatch
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 161, end: 162 }
+rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(4): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(3): Span { start: 161, end: 162 }
 
 * typescript/constructor/decoratorOnClassConstructor3/input.ts
-x Output mismatch
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 195, end: 196 }
+rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(4): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(3): Span { start: 195, end: 196 }
 
 * typescript/constructor/decoratorOnClassConstructor4/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["A", "B", "C", "dec"]
+rebuilt        : ScopeId(0): ["A", "B", "C"]
+Symbol span mismatch for "A":
+after transform: SymbolId(1): Span { start: 139, end: 140 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "A":
+after transform: SymbolId(5): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 139, end: 140 }
+Symbol span mismatch for "B":
+after transform: SymbolId(2): Span { start: 157, end: 158 }
+rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
+Symbol span mismatch for "B":
+after transform: SymbolId(6): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(3): Span { start: 157, end: 158 }
+Symbol span mismatch for "C":
+after transform: SymbolId(4): Span { start: 205, end: 206 }
+rebuilt        : SymbolId(5): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(7): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(6): Span { start: 205, end: 206 }
+Reference symbol mismatch for "dec":
+after transform: SymbolId(0) "dec"
+rebuilt        : <None>
+Reference symbol mismatch for "dec":
+after transform: SymbolId(0) "dec"
+rebuilt        : <None>
+Reference symbol mismatch for "dec":
+after transform: SymbolId(0) "dec"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/constructor/parameter/decoratorOnClassConstructorParameter1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(3): Span { start: 155, end: 156 }
+rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(5): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(3): Span { start: 155, end: 156 }
+Unresolved references mismatch:
+after transform: ["Function", "dec", "require"]
+rebuilt        : ["dec", "require"]
 
 * typescript/constructor/parameter/decoratorOnClassConstructorParameter4/input.ts
 
@@ -410,49 +497,174 @@ x Output mismatch
 x Output mismatch
 
 * typescript/decoratedClassExportsCommonJS2/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Something", "Testing123"]
+rebuilt        : ScopeId(0): ["Testing123"]
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(2)]
+Symbol span mismatch for "Testing123":
+after transform: SymbolId(2): Span { start: 241, end: 251 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "Testing123":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 241, end: 251 }
+Reference symbol mismatch for "Something":
+after transform: SymbolId(1) "Something"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["Something", "babelHelpers"]
 
 * typescript/decoratedClassExportsSystem1/input.ts
 x Output mismatch
 
 * typescript/decoratedClassExportsSystem2/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Something", "Testing123"]
+rebuilt        : ScopeId(0): ["Testing123"]
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(2)]
+Symbol span mismatch for "Testing123":
+after transform: SymbolId(2): Span { start: 239, end: 249 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "Testing123":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 239, end: 249 }
+Reference symbol mismatch for "Something":
+after transform: SymbolId(1) "Something"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["Something", "babelHelpers"]
 
 * typescript/decoratedClassFromExternalModule/input.ts
-x Output mismatch
+Symbol span mismatch for "Decorated":
+after transform: SymbolId(2): Span { start: 143, end: 152 }
+rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
+Symbol redeclarations mismatch for "Decorated":
+after transform: SymbolId(2): [Span { start: 194, end: 203 }]
+rebuilt        : SymbolId(2): []
+Symbol span mismatch for "Decorated":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(3): Span { start: 143, end: 152 }
 
 * typescript/decoratorChecksFunctionBodies/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(4)]
+Scope children mismatch:
+after transform: ScopeId(2): [ScopeId(3), ScopeId(4)]
+rebuilt        : ScopeId(2): [ScopeId(3)]
+Scope flags mismatch:
+after transform: ScopeId(3): ScopeFlags(StrictMode | Function | Arrow)
+rebuilt        : ScopeId(4): ScopeFlags(Function | Arrow)
+Scope parent mismatch:
+after transform: ScopeId(3): Some(ScopeId(2))
+rebuilt        : ScopeId(4): Some(ScopeId(0))
 
 * typescript/decoratorInstantiateModulesInFunctionBodies/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(3)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(3), ScopeId(5)]
+Scope children mismatch:
+after transform: ScopeId(3): [ScopeId(4), ScopeId(5)]
+rebuilt        : ScopeId(3): [ScopeId(4)]
+Scope flags mismatch:
+after transform: ScopeId(4): ScopeFlags(StrictMode | Function | Arrow)
+rebuilt        : ScopeId(5): ScopeFlags(Function | Arrow)
+Scope parent mismatch:
+after transform: ScopeId(4): Some(ScopeId(3))
+rebuilt        : ScopeId(5): Some(ScopeId(0))
 
 * typescript/decoratorOnClass1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 99, end: 100 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 99, end: 100 }
 
 * typescript/decoratorOnClass2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 127, end: 128 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 127, end: 128 }
 
 * typescript/decoratorOnClass3/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 127, end: 128 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(3): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 127, end: 128 }
 
 * typescript/decoratorOnClass4/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(1): Span { start: 107, end: 108 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 107, end: 108 }
 
 * typescript/decoratorOnClass5/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(1): Span { start: 107, end: 108 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(2): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 107, end: 108 }
 
 * typescript/decoratorOnClass8/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(0): Span { start: 134, end: 135 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(1): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 134, end: 135 }
+Unresolved references mismatch:
+after transform: ["Function", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/decoratorOnClass9/input.ts
 x Output mismatch
 
 * typescript/method/decoratorOnClassMethod1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod10/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Function", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod11/input.ts
 x Output mismatch
@@ -461,16 +673,45 @@ x Output mismatch
 x Output mismatch
 
 * typescript/method/decoratorOnClassMethod13/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod14/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Foo", "decorator"]
+rebuilt        : ScopeId(0): ["Foo"]
+Reference symbol mismatch for "decorator":
+after transform: SymbolId(0) "decorator"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["babelHelpers", "decorator"]
 
 * typescript/method/decoratorOnClassMethod15/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Foo", "decorator"]
+rebuilt        : ScopeId(0): ["Foo"]
+Reference symbol mismatch for "decorator":
+after transform: SymbolId(0) "decorator"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["babelHelpers", "decorator"]
 
 * typescript/method/decoratorOnClassMethod16/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Foo", "decorator"]
+rebuilt        : ScopeId(0): ["Foo"]
+Reference symbol mismatch for "decorator":
+after transform: SymbolId(0) "decorator"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["babelHelpers", "decorator"]
 
 * typescript/method/decoratorOnClassMethod17/input.ts
 
@@ -486,13 +727,26 @@ x Output mismatch
 
 
 * typescript/method/decoratorOnClassMethod18/input.ts
-x Output mismatch
+Bindings mismatch:
+after transform: ScopeId(0): ["Foo", "decorator"]
+rebuilt        : ScopeId(0): ["Foo"]
+Reference symbol mismatch for "decorator":
+after transform: SymbolId(0) "decorator"
+rebuilt        : <None>
+Unresolved references mismatch:
+after transform: ["babelHelpers"]
+rebuilt        : ["babelHelpers", "decorator"]
 
 * typescript/method/decoratorOnClassMethod19/input.ts
 x Output mismatch
 
 * typescript/method/decoratorOnClassMethod2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod3/input.ts
 
@@ -508,21 +762,46 @@ x Output mismatch
 
 
 * typescript/method/decoratorOnClassMethod4/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod5/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod6/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod7/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/decoratorOnClassMethod8/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/method/decoratorOnClassMethodOverload1/input.ts
+x Output mismatch
+
+* typescript/method/decoratorOnClassMethodOverload2/input.ts
 Scope children mismatch:
 after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
 rebuilt        : ScopeId(0): [ScopeId(1)]
@@ -530,20 +809,35 @@ Scope children mismatch:
 after transform: ScopeId(2): [ScopeId(3), ScopeId(4)]
 rebuilt        : ScopeId(1): [ScopeId(2)]
 Unresolved references mismatch:
-after transform: ["TypedPropertyDescriptor", "dec"]
-rebuilt        : []
-
-* typescript/method/decoratorOnClassMethodOverload2/input.ts
-x Output mismatch
+after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Object", "dec", "require"]
+rebuilt        : ["dec", "require"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol reference IDs mismatch for "C":
+after transform: SymbolId(3): [ReferenceId(1), ReferenceId(4)]
+rebuilt        : SymbolId(2): [ReferenceId(5)]
+Unresolved references mismatch:
+after transform: ["Object", "dec", "require"]
+rebuilt        : ["dec", "require"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter3/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Promise", "dec", "require"]
+rebuilt        : ["dec", "require"]
 
 * typescript/method/parameter/decoratorOnClassMethodThisParameter/input.ts
 
@@ -557,22 +851,37 @@ x Output mismatch
 
 
 * typescript/property/decoratorOnClassProperty1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/property/decoratorOnClassProperty10/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/property/decoratorOnClassProperty11/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/property/decoratorOnClassProperty12/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/property/decoratorOnClassProperty13/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["PropertyDescriptor", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/property/decoratorOnClassProperty2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/property/decoratorOnClassProperty3/input.ts
 
@@ -588,9 +897,19 @@ x Output mismatch
 
 
 * typescript/property/decoratorOnClassProperty6/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Function", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/property/decoratorOnClassProperty7/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Function", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 
