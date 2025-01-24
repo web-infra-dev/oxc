@@ -318,7 +318,7 @@ impl<'a> LegacyDecorator<'a, '_> {
 
                     // We emit `void 0` here to indicate to `__decorate` that it can invoke `Object.defineProperty` directly, but that it
                     // should not invoke `Object.getOwnPropertyDescriptor`.
-                    let descriptor = ctx.ast.expression_null_literal(SPAN);
+                    let descriptor = ctx.ast.void_0(SPAN);
 
                     (prop.r#static, &mut prop.key, descriptor, decorations)
                 }
