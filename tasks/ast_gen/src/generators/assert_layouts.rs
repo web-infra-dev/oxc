@@ -86,8 +86,9 @@ fn calculate_layout(type_id: TypeId, schema: &mut Schema) -> &Layout {
             TypeDef::Enum(_) => {
                 schema.enum_def_mut(type_id).layout = calculate_layout_for_enum(type_id, schema);
             }
-            TypeDef::Primitive(def) => {
-                schema.primitive_def_mut(type_id).layout = calculate_layout_for_primitive(def);
+            TypeDef::Primitive(primitive_def) => {
+                schema.primitive_def_mut(type_id).layout =
+                    calculate_layout_for_primitive(primitive_def);
             }
             TypeDef::Option(_) => {
                 schema.option_def_mut(type_id).layout =
@@ -315,7 +316,7 @@ fn calculate_layout_for_cell(type_id: TypeId, schema: &mut Schema) -> Layout {
 /// Calculate layout for a primitive.
 ///
 /// Primitives have varying layouts. Some have niches, most don't.
-fn calculate_layout_for_primitive(def: &PrimitiveDef) -> Layout {
+fn calculate_layout_for_primitive(primitive_def: &PrimitiveDef) -> Layout {
     // `ScopeId`, `SymbolId` and `ReferenceId` are a `NonZeroU32`, with a niche for 0
     let semantic_id_layout = Layout::from_size_align_niche(4, 4, Niche::new(0, 4, true, 1));
     // `&str` and `Atom` are a `NonNull` pointer + `usize` pair. Niche for 0 on the pointer field
@@ -330,7 +331,7 @@ fn calculate_layout_for_primitive(def: &PrimitiveDef) -> Layout {
     };
 
     #[expect(clippy::match_same_arms)]
-    match def.name() {
+    match primitive_def.name() {
         "bool" => Layout::from_size_align_niche(1, 1, Niche::new(0, 1, false, 254)),
         "u8" => Layout::from_type::<u8>(),
         "u16" => Layout::from_type::<u16>(),
@@ -365,24 +366,25 @@ fn calculate_layout_for_primitive(def: &PrimitiveDef) -> Layout {
 
 /// Generate layout assertions for a type
 fn generate_layout_assertions(
-    def: &TypeDef,
+    type_def: &TypeDef,
 ) -> (/* 64 bit */ TokenStream, /* 32 bit */ TokenStream) {
-    match def {
-        TypeDef::Struct(def) => generate_layout_assertions_for_struct(def),
-        TypeDef::Enum(def) => generate_layout_assertions_for_enum(def),
+    match type_def {
+        TypeDef::Struct(struct_def) => generate_layout_assertions_for_struct(struct_def),
+        TypeDef::Enum(enum_def) => generate_layout_assertions_for_enum(enum_def),
         _ => (TokenStream::new(), TokenStream::new()),
     }
 }
 
 /// Generate layout assertions for a struct.
 /// This includes size and alignment assertions, plus assertions about offset of fields.
-fn generate_layout_assertions_for_struct(def: &StructDef) -> (TokenStream, TokenStream) {
-    fn gen(def: &StructDef, is_64: bool, struct_ident: &Ident) -> TokenStream {
-        let layout = if is_64 { &def.layout.layout_64 } else { &def.layout.layout_32 };
+fn generate_layout_assertions_for_struct(struct_def: &StructDef) -> (TokenStream, TokenStream) {
+    fn gen(struct_def: &StructDef, is_64: bool, struct_ident: &Ident) -> TokenStream {
+        let layout =
+            if is_64 { &struct_def.layout.layout_64 } else { &struct_def.layout.layout_32 };
 
         let size_align_assertions = generate_size_align_assertions(layout, struct_ident);
 
-        let offset_asserts = def.fields.iter().filter_map(|field| {
+        let offset_asserts = struct_def.fields.iter().filter_map(|field| {
             let field_ident = field.ident()?;
             if field.visibility != Visibility::Public {
                 // Cannot create assertions for fields which are not public, as assertions
@@ -404,17 +406,17 @@ fn generate_layout_assertions_for_struct(def: &StructDef) -> (TokenStream, Token
     }
 
     // TODO: Generate assertions for offsets
-    let ident = def.ident();
-    (gen(def, true, &ident), gen(def, false, &ident))
+    let ident = struct_def.ident();
+    (gen(struct_def, true, &ident), gen(struct_def, false, &ident))
 }
 
 /// Generate layout assertions for an enum.
 /// This is just size and alignment assertions.
-fn generate_layout_assertions_for_enum(def: &EnumDef) -> (TokenStream, TokenStream) {
-    let ident = def.ident();
+fn generate_layout_assertions_for_enum(enum_def: &EnumDef) -> (TokenStream, TokenStream) {
+    let ident = enum_def.ident();
     (
-        generate_size_align_assertions(&def.layout.layout_64, &ident),
-        generate_size_align_assertions(&def.layout.layout_32, &ident),
+        generate_size_align_assertions(&enum_def.layout.layout_64, &ident),
+        generate_size_align_assertions(&enum_def.layout.layout_32, &ident),
     )
 }
 

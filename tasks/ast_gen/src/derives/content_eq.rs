@@ -27,17 +27,17 @@ impl Derive for DeriveContentEq {
         }
     }
 
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
-        match def {
-            TypeDef::Struct(def) => derive_struct(def, schema),
-            TypeDef::Enum(def) => derive_enum(def, schema),
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+        match type_def {
+            TypeDef::Struct(struct_def) => derive_struct(struct_def, schema),
+            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
             _ => unreachable!(),
         }
     }
 }
 
-fn derive_struct(def: &StructDef, schema: &Schema) -> TokenStream {
-    let fields = def
+fn derive_struct(struct_def: &StructDef, schema: &Schema) -> TokenStream {
+    let fields = struct_def
         .fields
         .iter()
         .filter(|field| {
@@ -53,15 +53,15 @@ fn derive_struct(def: &StructDef, schema: &Schema) -> TokenStream {
     let (other, body) =
         if fields.is_empty() { ("_", quote!(true)) } else { ("other", quote!(#(#fields)&&*)) };
 
-    generate_impl(&def.ty_anon(schema), other, &body)
+    generate_impl(&struct_def.ty_anon(schema), other, &body)
 }
 
-fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
-    let body = if def.is_fieldless() {
+fn derive_enum(enum_def: &EnumDef, schema: &Schema) -> TokenStream {
+    let body = if enum_def.is_fieldless() {
         // We assume fieldless enums implement `PartialEq`
         quote!(self == other)
     } else {
-        let matches = def.all_variants(schema).map(|variant| {
+        let matches = enum_def.all_variants(schema).map(|variant| {
             let ident = variant.ident();
             if variant.field().is_none() {
                 quote!( (Self::#ident, Self::#ident) => true )
@@ -78,7 +78,7 @@ fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
         }
     };
 
-    generate_impl(&def.ty_anon(schema), "other", &body)
+    generate_impl(&enum_def.ty_anon(schema), "other", &body)
 }
 
 fn generate_impl(ty: &TokenStream, other_name: &str, body: &TokenStream) -> TokenStream {

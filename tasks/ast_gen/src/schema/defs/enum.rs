@@ -183,9 +183,9 @@ pub struct AllVariantsIter<'s> {
 
 impl<'s> AllVariantsIter<'s> {
     /// Create new [`AllVariantsIter`].
-    fn new(def: &'s EnumDef, schema: &'s Schema) -> Self {
-        let variants_iter = def.variants.iter();
-        let inherits_iter = def.inherits.iter();
+    fn new(enum_def: &'s EnumDef, schema: &'s Schema) -> Self {
+        let variants_iter = enum_def.variants.iter();
+        let inherits_iter = enum_def.inherits.iter();
         Self { schema, variants_iter, inherits_iter, inner_iter: None }
     }
 }

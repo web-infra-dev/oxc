@@ -179,7 +179,7 @@ impl<'c> Parser<'c> {
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
-        let mut def = TypeDef::Struct(StructDef::new(
+        let mut type_def = TypeDef::Struct(StructDef::new(
             type_id,
             name,
             has_lifetime,
@@ -190,18 +190,23 @@ impl<'c> Parser<'c> {
         ));
 
         // Parse attrs on type and fields
-        self.parse_type_attrs(&mut def, &item.attrs);
-        self.parse_field_attrs(&mut def, &item, generated_derives);
+        self.parse_type_attrs(&mut type_def, &item.attrs);
+        self.parse_field_attrs(&mut type_def, &item, generated_derives);
 
-        def
+        type_def
     }
 
     /// Parse attributes on struct's fields with parsers provided by [`Derive`]s and [`Generator`]s.
     ///
     /// [`Derive`]: crate::Derive
     /// [`Generator`]: crate::Generator
-    fn parse_field_attrs(&self, def: &mut TypeDef, item: &ItemStruct, generated_derives: Derives) {
-        let TypeDef::Struct(def) = def else {
+    fn parse_field_attrs(
+        &self,
+        type_def: &mut TypeDef,
+        item: &ItemStruct,
+        generated_derives: Derives,
+    ) {
+        let TypeDef::Struct(struct_def) = type_def else {
             panic!("A derive or generator mutated `TypeDef::Struct` to another kind of `TypeDef`");
         };
 
@@ -217,7 +222,7 @@ impl<'c> Parser<'c> {
                 {
                     // Check attribute is legal in this position
                     if !positions.contains(AttrPositions::StructField) {
-                        panic_wrong_attr_position(def.name(), &attr_name, "struct field");
+                        panic_wrong_attr_position(struct_def.name(), &attr_name, "struct field");
                     }
 
                     let result = match processor {
@@ -225,22 +230,31 @@ impl<'c> Parser<'c> {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
                             if !generated_derives.has(derive_id) {
-                                panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                                panic_not_derived(
+                                    struct_def.name(),
+                                    &attr_name,
+                                    derive.trait_name(),
+                                );
                             }
 
-                            derive.parse_field_attr(&attr_name, &attr.meta, def, field_index)
+                            derive.parse_field_attr(&attr_name, &attr.meta, struct_def, field_index)
                         }
                         AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_field_attr(&attr_name, &attr.meta, def, field_index)
+                            generator.parse_field_attr(
+                                &attr_name,
+                                &attr.meta,
+                                struct_def,
+                                field_index,
+                            )
                         }
                     };
 
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` struct field",
-                        def.name(),
-                        def.field(field_index).name_or_unnamed()
+                        struct_def.name(),
+                        struct_def.field(field_index).name_or_unnamed()
                     );
                 }
             }
@@ -255,7 +269,7 @@ impl<'c> Parser<'c> {
         let inherits = inherits.into_iter().map(|name| self.type_id(&name)).collect();
         let generated_derives = self.get_generated_derives(&item.attrs);
         let is_visited = check_ast_attr(&item.attrs);
-        let mut def = TypeDef::Enum(EnumDef::new(
+        let mut type_def = TypeDef::Enum(EnumDef::new(
             type_id,
             name,
             has_lifetime,
@@ -267,18 +281,23 @@ impl<'c> Parser<'c> {
         ));
 
         // Parse attrs on type and variants
-        self.parse_type_attrs(&mut def, &item.attrs);
-        self.parse_variant_attrs(&mut def, &item, generated_derives);
+        self.parse_type_attrs(&mut type_def, &item.attrs);
+        self.parse_variant_attrs(&mut type_def, &item, generated_derives);
 
-        def
+        type_def
     }
 
     /// Parse attributes on enum's variants with parsers provided by [`Derive`]s and [`Generator`]s.
     ///
     /// [`Derive`]: crate::Derive
     /// [`Generator`]: crate::Generator
-    fn parse_variant_attrs(&self, def: &mut TypeDef, item: &ItemEnum, generated_derives: Derives) {
-        let TypeDef::Enum(def) = def else {
+    fn parse_variant_attrs(
+        &self,
+        type_def: &mut TypeDef,
+        item: &ItemEnum,
+        generated_derives: Derives,
+    ) {
+        let TypeDef::Enum(enum_def) = type_def else {
             panic!("A derive or generator mutated `TypeDef::Enum` to another kind of `TypeDef`");
         };
 
@@ -294,7 +313,7 @@ impl<'c> Parser<'c> {
                 {
                     // Check attribute is legal in this position
                     if !positions.contains(AttrPositions::EnumVariant) {
-                        panic_wrong_attr_position(def.name(), &attr_name, "enum variant");
+                        panic_wrong_attr_position(enum_def.name(), &attr_name, "enum variant");
                     }
 
                     let result = match processor {
@@ -302,22 +321,32 @@ impl<'c> Parser<'c> {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
                             if !generated_derives.has(derive_id) {
-                                panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                                panic_not_derived(enum_def.name(), &attr_name, derive.trait_name());
                             }
 
-                            derive.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
+                            derive.parse_variant_attr(
+                                &attr_name,
+                                &attr.meta,
+                                enum_def,
+                                variant_index,
+                            )
                         }
                         AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
+                            generator.parse_variant_attr(
+                                &attr_name,
+                                &attr.meta,
+                                enum_def,
+                                variant_index,
+                            )
                         }
                     };
 
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` enum variant",
-                        def.name(),
-                        def.variant(variant_index).name(),
+                        enum_def.name(),
+                        enum_def.variant(variant_index).name(),
                     );
                 }
             }
@@ -458,7 +487,7 @@ impl<'c> Parser<'c> {
     ///
     /// [`Derive`]: crate::Derive
     /// [`Generator`]: crate::Generator
-    fn parse_type_attrs(&mut self, def: &mut TypeDef, attrs: &[Attribute]) {
+    fn parse_type_attrs(&mut self, type_def: &mut TypeDef, attrs: &[Attribute]) {
         for attr in attrs {
             if !matches!(attr.style, AttrStyle::Outer) {
                 continue;
@@ -468,7 +497,7 @@ impl<'c> Parser<'c> {
 
             if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name) {
                 // Check attribute is legal in this position
-                match def {
+                match type_def {
                     TypeDef::Struct(struct_def) => {
                         if !positions.contains(AttrPositions::Struct) {
                             panic_wrong_attr_position(struct_def.name(), &attr_name, "struct");
@@ -486,19 +515,23 @@ impl<'c> Parser<'c> {
                     AttrProcessor::Derive(derive_id) => {
                         // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                         let derive = DERIVES[derive_id];
-                        if !def.generates_derive(derive_id) {
-                            panic_not_derived(def.name(), &attr_name, derive.trait_name());
+                        if !type_def.generates_derive(derive_id) {
+                            panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
                         }
 
-                        derive.parse_type_attr(&attr_name, &attr.meta, def)
+                        derive.parse_type_attr(&attr_name, &attr.meta, type_def)
                     }
                     AttrProcessor::Generator(generator_id) => {
                         let generator = GENERATORS[generator_id];
-                        generator.parse_type_attr(&attr_name, &attr.meta, def)
+                        generator.parse_type_attr(&attr_name, &attr.meta, type_def)
                     }
                 };
 
-                assert!(result.is_ok(), "Invalid use of `#[{attr_name}]` on `{}` type", def.name());
+                assert!(
+                    result.is_ok(),
+                    "Invalid use of `#[{attr_name}]` on `{}` type",
+                    type_def.name()
+                );
             }
         }
     }

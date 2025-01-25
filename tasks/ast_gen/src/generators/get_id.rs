@@ -20,7 +20,7 @@ define_generator!(GetIdGenerator);
 
 impl Generator for GetIdGenerator {
     fn generate(&self, schema: &Schema) -> Output {
-        let impls = schema.types.iter().filter_map(|def| generate_for_type(def, schema));
+        let impls = schema.types.iter().filter_map(|type_def| generate_for_type(type_def, schema));
 
         let output = quote! {
             use oxc_syntax::{reference::ReferenceId, scope::ScopeId, symbol::SymbolId};
@@ -35,12 +35,12 @@ impl Generator for GetIdGenerator {
     }
 }
 
-fn generate_for_type(def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
-    let TypeDef::Struct(def) = def else { return None };
+fn generate_for_type(type_def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
+    let TypeDef::Struct(struct_def) = type_def else { return None };
 
-    let struct_name = def.name();
+    let struct_name = struct_def.name();
 
-    let methods = def
+    let methods = struct_def
         .fields
         .iter()
         .filter_map(|field| {
@@ -100,7 +100,7 @@ fn generate_for_type(def: &TypeDef, schema: &Schema) -> Option<TokenStream> {
         return None;
     }
 
-    let struct_ty = def.ty_anon(schema);
+    let struct_ty = struct_def.ty_anon(schema);
     Some(quote! {
         ///@@line_break
         impl #struct_ty {

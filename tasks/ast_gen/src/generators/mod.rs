@@ -31,7 +31,7 @@ pub trait Generator: Runner {
 
     /// Process an attribute on a struct or enum.
     #[expect(unused_variables)]
-    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) -> Result<()> {
+    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, type_def: &mut TypeDef) -> Result<()> {
         Ok(())
     }
 
@@ -41,7 +41,7 @@ pub trait Generator: Runner {
         &self,
         attr_name: &str,
         meta: &Meta,
-        def: &mut StructDef,
+        struct_def: &mut StructDef,
         field_index: usize,
     ) -> Result<()> {
         Ok(())
@@ -53,7 +53,7 @@ pub trait Generator: Runner {
         &self,
         attr_name: &str,
         meta: &Meta,
-        def: &mut EnumDef,
+        enum_def: &mut EnumDef,
         variant_index: usize,
     ) -> Result<()> {
         Ok(())

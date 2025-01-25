@@ -23,19 +23,19 @@ impl Derive for DeriveGetAddress {
         }
     }
 
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
-        if let TypeDef::Enum(def) = def {
-            derive_enum(def, schema)
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+        if let TypeDef::Enum(enum_def) = type_def {
+            derive_enum(enum_def, schema)
         } else {
             panic!("`GetAddress` can only be implemented with `#[generate_derive]` on enums");
         }
     }
 }
 
-fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
-    let ty = def.ty_anon(schema);
+fn derive_enum(enum_def: &EnumDef, schema: &Schema) -> TokenStream {
+    let ty = enum_def.ty_anon(schema);
 
-    let matches = def.all_variants(schema).map(|variant| {
+    let matches = enum_def.all_variants(schema).map(|variant| {
         let variant_type = variant.field().unwrap().type_def(schema);
         assert!(
             variant_type.is_box(),

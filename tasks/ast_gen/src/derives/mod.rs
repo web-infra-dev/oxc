@@ -45,7 +45,7 @@ pub trait Derive: Runner {
 
     /// Process an attribute on a struct or enum.
     #[expect(unused_variables)]
-    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) -> Result<()> {
+    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, type_def: &mut TypeDef) -> Result<()> {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ pub trait Derive: Runner {
         &self,
         attr_name: &str,
         meta: &Meta,
-        def: &mut StructDef,
+        struct_def: &mut StructDef,
         field_index: usize,
     ) -> Result<()> {
         Ok(())
@@ -67,7 +67,7 @@ pub trait Derive: Runner {
         &self,
         attr_name: &str,
         meta: &Meta,
-        def: &mut EnumDef,
+        enum_def: &mut EnumDef,
         variant_index: usize,
     ) -> Result<()> {
         Ok(())
@@ -87,7 +87,7 @@ pub trait Derive: Runner {
     fn modify(&self, schema: &mut Schema) {}
 
     /// Generate trait implementation for a type.
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream;
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream;
 
     // Standard methods. Should not be overriden.
 
@@ -128,12 +128,12 @@ pub trait Derive: Runner {
         let output = schema
             .types
             .iter()
-            .filter(|def| def.generates_derive(derive_id))
-            .map(|def| (def, self.derive(def, schema)))
+            .filter(|type_def| type_def.generates_derive(derive_id))
+            .map(|type_def| (type_def, self.derive(type_def, schema)))
             .fold(
                 FxHashMap::<&str, (FxHashSet<&str>, Vec<TokenStream>)>::default(),
-                |mut acc, (def, tokens)| {
-                    let file = schema.file(def.file_id().unwrap());
+                |mut acc, (type_def, tokens)| {
+                    let file = schema.file(type_def.file_id().unwrap());
                     let import_path = file.import_path();
                     let krate = file.krate();
                     let streams = acc.entry(krate).or_default();

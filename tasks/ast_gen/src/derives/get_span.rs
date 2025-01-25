@@ -27,11 +27,11 @@ impl Derive for DeriveGetSpan {
         &self,
         _attr_name: &str,
         meta: &Meta,
-        def: &mut StructDef,
+        struct_def: &mut StructDef,
         field_index: usize,
     ) -> Result<()> {
         if matches!(meta, Meta::Path(_)) {
-            def.span_field_index = Some(field_index);
+            struct_def.span_field_index = Some(field_index);
             Ok(())
         } else {
             Err(())
@@ -47,9 +47,9 @@ impl Derive for DeriveGetSpan {
         }
     }
 
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
-        let self_type = quote!(&self);
-        let result_type = quote!(Span);
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+        let self_ty = quote!(&self);
+        let result_ty = quote!(Span);
         let result_expr = quote!(self.span);
         let unbox = |it| quote!( #it.as_ref() );
         let reference = |it| quote!( &#it );
@@ -57,10 +57,10 @@ impl Derive for DeriveGetSpan {
         derive(
             "GetSpan",
             "span",
-            &self_type,
-            &result_type,
+            &self_ty,
+            &result_ty,
             &result_expr,
-            def,
+            type_def,
             unbox,
             reference,
             schema,
@@ -86,9 +86,9 @@ impl Derive for DeriveGetSpanMut {
         }
     }
 
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
-        let self_type = quote!(&mut self);
-        let result_type = quote!(&mut Span);
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+        let self_ty = quote!(&mut self);
+        let result_ty = quote!(&mut Span);
         let result_expr = quote!(&mut self.span);
         let unbox = |it| quote!( &mut **#it );
         let reference = |it| quote!( &mut #it );
@@ -96,10 +96,10 @@ impl Derive for DeriveGetSpanMut {
         derive(
             "GetSpanMut",
             "span_mut",
-            &self_type,
-            &result_type,
+            &self_ty,
+            &result_ty,
             &result_expr,
-            def,
+            type_def,
             unbox,
             reference,
             schema,
@@ -111,10 +111,10 @@ impl Derive for DeriveGetSpanMut {
 fn derive<U, R>(
     trait_name: &str,
     method_name: &str,
-    self_type: &TokenStream,
-    result_type: &TokenStream,
+    self_ty: &TokenStream,
+    result_ty: &TokenStream,
     result_expr: &TokenStream,
-    def: &TypeDef,
+    type_def: &TypeDef,
     unbox: U,
     reference: R,
     schema: &Schema,
@@ -125,19 +125,19 @@ where
 {
     let trait_ident = format_ident!("{trait_name}");
     let method_ident = format_ident!("{method_name}");
-    match def {
-        TypeDef::Struct(def) => derive_struct(
-            def,
+    match type_def {
+        TypeDef::Struct(struct_def) => derive_struct(
+            struct_def,
             &trait_ident,
             &method_ident,
-            self_type,
-            result_type,
+            self_ty,
+            result_ty,
             result_expr,
             reference,
             schema,
         ),
-        TypeDef::Enum(def) => {
-            derive_enum(def, &trait_ident, &method_ident, self_type, result_type, unbox, schema)
+        TypeDef::Enum(enum_def) => {
+            derive_enum(enum_def, &trait_ident, &method_ident, self_ty, result_ty, unbox, schema)
         }
         _ => unreachable!(),
     }
@@ -145,11 +145,11 @@ where
 
 #[expect(clippy::too_many_arguments)]
 fn derive_struct<R>(
-    def: &StructDef,
+    struct_def: &StructDef,
     trait_name: &Ident,
     method_name: &Ident,
-    self_type: &TokenStream,
-    result_type: &TokenStream,
+    self_ty: &TokenStream,
+    result_ty: &TokenStream,
     result_expr: &TokenStream,
     reference: R,
     schema: &Schema,
@@ -157,10 +157,10 @@ fn derive_struct<R>(
 where
     R: Fn(TokenStream) -> TokenStream,
 {
-    let ty = def.ty_anon(schema);
+    let ty = struct_def.ty_anon(schema);
 
-    let result_expr = if let Some(field_index) = def.span_field_index {
-        let field_ident = def.field(field_index).ident().unwrap();
+    let result_expr = if let Some(field_index) = struct_def.span_field_index {
+        let field_ident = struct_def.field(field_index).ident().unwrap();
         let reference = reference(quote!( self.#field_ident ));
         quote!( #trait_name::#method_name(#reference) )
     } else {
@@ -170,7 +170,7 @@ where
     quote! {
         impl #trait_name for #ty {
             #[inline]
-            fn #method_name(#self_type) -> #result_type {
+            fn #method_name(#self_ty) -> #result_ty {
                 #result_expr
             }
         }
@@ -178,20 +178,20 @@ where
 }
 
 fn derive_enum<U>(
-    def: &EnumDef,
+    enum_def: &EnumDef,
     trait_ident: &Ident,
     method_ident: &Ident,
-    self_type: &TokenStream,
-    result_type: &TokenStream,
+    self_ty: &TokenStream,
+    result_ty: &TokenStream,
     unbox: U,
     schema: &Schema,
 ) -> TokenStream
 where
     U: Fn(TokenStream) -> TokenStream,
 {
-    let ty = def.ty_anon(schema);
+    let ty = enum_def.ty_anon(schema);
 
-    let matches = def.all_variants(schema).map(|variant| {
+    let matches = enum_def.all_variants(schema).map(|variant| {
         let variant_ident = variant.ident();
 
         let mut it = quote!(it);
@@ -205,7 +205,7 @@ where
 
     quote! {
         impl #trait_ident for #ty {
-            fn #method_ident(#self_type) -> #result_type {
+            fn #method_ident(#self_ty) -> #result_ty {
                 match self {
                     #(#matches),*
                 }

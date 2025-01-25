@@ -28,13 +28,13 @@ impl Derive for DeriveCloneIn {
         &self,
         _attr_name: &str,
         meta: &Meta,
-        def: &mut StructDef,
+        struct_def: &mut StructDef,
         field_index: usize,
     ) -> Result<()> {
         if let Meta::List(list) = meta {
             if let Ok(path) = list.parse_args::<Path>() {
                 if path.is_ident("default") {
-                    def.field_mut(field_index).clone_in_default = true;
+                    struct_def.field_mut(field_index).clone_in_default = true;
                     return Ok(());
                 }
             }
@@ -52,22 +52,22 @@ impl Derive for DeriveCloneIn {
         }
     }
 
-    fn derive(&self, def: &TypeDef, schema: &Schema) -> TokenStream {
-        match def {
-            TypeDef::Enum(def) => derive_enum(def, schema),
-            TypeDef::Struct(def) => derive_struct(def),
+    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+        match type_def {
+            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
+            TypeDef::Struct(struct_def) => derive_struct(struct_def),
             _ => unreachable!(),
         }
     }
 }
 
-fn derive_struct(def: &StructDef) -> TokenStream {
-    let type_ident = def.ident();
+fn derive_struct(struct_def: &StructDef) -> TokenStream {
+    let type_ident = struct_def.ident();
 
-    let (alloc_ident, body) = if def.fields.is_empty() {
+    let (alloc_ident, body) = if struct_def.fields.is_empty() {
         (format_ident!("_"), quote!(#type_ident))
     } else {
-        let fields = def.fields.iter().map(|field| {
+        let fields = struct_def.fields.iter().map(|field| {
             let field_ident = field.ident().unwrap();
             if field.clone_in_default {
                 quote!( #field_ident: Default::default() )
@@ -78,14 +78,14 @@ fn derive_struct(def: &StructDef) -> TokenStream {
         (format_ident!("allocator"), quote!(#type_ident { #(#fields),* }))
     };
 
-    generate_impl(&type_ident, def.has_lifetime, &alloc_ident, &body)
+    generate_impl(&type_ident, struct_def.has_lifetime, &alloc_ident, &body)
 }
 
-fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
-    let type_ident = def.ident();
+fn derive_enum(enum_def: &EnumDef, schema: &Schema) -> TokenStream {
+    let type_ident = enum_def.ident();
 
     let mut used_alloc = false;
-    let match_arms = def
+    let match_arms = enum_def
         .all_variants(schema)
         .map(|variant| {
             let ident = variant.ident();
@@ -105,7 +105,7 @@ fn derive_enum(def: &EnumDef, schema: &Schema) -> TokenStream {
         }
     };
 
-    generate_impl(&type_ident, def.has_lifetime, &alloc_ident, &body)
+    generate_impl(&type_ident, enum_def.has_lifetime, &alloc_ident, &body)
 }
 
 fn generate_impl(
