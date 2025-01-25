@@ -11,7 +11,7 @@ pub mod cli {
     pub use crate::{
         command::*,
         lint::LintRunner,
-        result::{CliRunResult, LintResult},
+        result::CliRunResult,
         runner::Runner,
     };
 }
