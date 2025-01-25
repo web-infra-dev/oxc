@@ -79,6 +79,15 @@ impl Runner for LintRunner {
             // If explicit paths were provided, but all have been
             // filtered, return early.
             if provided_path_count > 0 {
+                if let Some(end) = output_formatter.lint_command_info(&LintCommandInfo {
+                    number_of_files : 0,
+                    number_of_rules: 0,
+                    threads_count: rayon::current_num_threads(),
+                    start_time: now.elapsed(),
+                }) {
+                    stdout.write_all(end.as_bytes()).or_else(Self::check_for_writer_error).unwrap();
+                };
+
                 // ToDo: when oxc_linter (config) validates the configuration, we can use exit_code = 1 to fail
                 return CliRunResult::LintResult(LintResult::default());
             }
