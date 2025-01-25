@@ -54,8 +54,8 @@ impl Derive for DeriveCloneIn {
 
     fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
         match type_def {
-            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
             TypeDef::Struct(struct_def) => derive_struct(struct_def),
+            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
             _ => unreachable!(),
         }
     }
