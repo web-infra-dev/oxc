@@ -12,9 +12,9 @@ pub type GeneratorId = usize;
 pub struct Codegen {
     /// Mapping from derive name to `DeriveId`
     derive_name_to_id: FxHashMap<&'static str, DeriveId>,
-    /// Mapping from attr to ID of derive/generator which uses the attr,
-    /// and positions attr can appear in
-    pub attr_processors: FxHashMap<&'static str, (AttrProcessor, AttrPositions)>,
+    /// Mapping from attribute name to ID of derive/generator which uses the attr,
+    /// and legal positions for the attribute
+    attr_processors: FxHashMap<&'static str, (AttrProcessor, AttrPositions)>,
 }
 
 impl Codegen {
@@ -71,6 +71,11 @@ impl Codegen {
     #[expect(dead_code)]
     pub fn get_derive_by_name(&self, name: &str) -> &dyn Derive {
         self.get_derive(self.get_derive_id_by_name(name))
+    }
+
+    /// Get processor (derive or generator) for an attribute, and legal positions for the attribute
+    pub fn attr_processor(&self, attr_name: &str) -> Option<(AttrProcessor, AttrPositions)> {
+        self.attr_processors.get(attr_name).copied()
     }
 }
 

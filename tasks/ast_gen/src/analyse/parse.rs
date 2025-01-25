@@ -218,8 +218,7 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name)
-                {
+                if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                     // Check attribute is legal in this position
                     if !positions.contains(AttrPositions::StructField) {
                         panic_wrong_attr_position(struct_def.name(), &attr_name, "struct field");
@@ -306,8 +305,7 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name)
-                {
+                if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                     // Check attribute is legal in this position
                     if !positions.contains(AttrPositions::EnumVariant) {
                         panic_wrong_attr_position(enum_def.name(), &attr_name, "enum variant");
@@ -484,7 +482,7 @@ impl<'c> Parser<'c> {
             let Some(attr_ident) = attr.path().get_ident() else { continue };
             let attr_name = ident_name(attr_ident);
 
-            if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name) {
+            if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                 // Check attribute is legal in this position
                 match type_def {
                     TypeDef::Struct(struct_def) => {
