@@ -1,4 +1,7 @@
 use oxc_index::{define_index_type, IndexVec};
+// Have to import this even though don't use it, due to a bug in `define_index_type!` macro
+#[expect(unused_imports)]
+use serde::Serialize;
 
 mod defs;
 mod derives;
