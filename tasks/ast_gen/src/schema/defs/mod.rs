@@ -87,7 +87,7 @@ pub trait Def {
         }
     }
 
-    /// Get inner type.
+    /// Get inner type, if type has one.
     ///
     /// This is the direct inner type e.g. `Cell<Option<ScopeId>>` -> `Option<ScopeId>`.
     /// Use [`innermost_type`] method if you want `ScopeId` in this example.
@@ -95,7 +95,7 @@ pub trait Def {
     /// Returns `None` for types which don't have a single inner type (structs, enums, and primitives).
     ///
     /// [`innermost_type`]: Def::innermost_type
-    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef>;
+    fn maybe_inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef>;
 
     /// Get innermost type.
     ///
@@ -105,7 +105,7 @@ pub trait Def {
     ///
     /// [`inner_type`]: Def::innermost_type
     fn innermost_type<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
-        if let Some(inner_type) = self.inner_type(schema) {
+        if let Some(inner_type) = self.maybe_inner_type(schema) {
             inner_type.innermost_type(schema)
         } else {
             schema.type_def(self.id())

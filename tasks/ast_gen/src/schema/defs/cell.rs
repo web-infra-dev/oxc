@@ -45,13 +45,15 @@ impl Def for CellDef {
         quote!( Vec<#lifetime, #inner_ty> )
     }
 
-    /// Get inner type.
+    /// Get inner type, if type has one.
+    ///
+    /// `Cell`s have an inner type, so always returns `Some`.
     ///
     /// This is the direct inner type e.g. `Cell<Option<ScopeId>>` -> `Option<ScopeId>`.
     /// Use [`innermost_type`] method if you want `ScopeId` in this example.
     ///
     /// [`innermost_type`]: Self::innermost_type
-    fn inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
+    fn maybe_inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
         Some(schema.type_def(self.inner_type_id))
     }
 

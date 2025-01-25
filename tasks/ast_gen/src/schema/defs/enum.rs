@@ -114,10 +114,10 @@ impl Def for EnumDef {
         quote!( #ident #lifetime )
     }
 
-    /// Get inner type.
+    /// Get inner type, if type has one.
     ///
     /// Enums don't have a single inner type, so returns `None`.
-    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
+    fn maybe_inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
         None
     }
 

@@ -53,10 +53,10 @@ impl Def for PrimitiveDef {
         }
     }
 
-    /// Get inner type.
+    /// Get inner type, if type has one.
     ///
     /// Primitives don't have an inner type, so returns `None`.
-    fn inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
+    fn maybe_inner_type<'s>(&self, _schema: &'s Schema) -> Option<&'s TypeDef> {
         None
     }
 

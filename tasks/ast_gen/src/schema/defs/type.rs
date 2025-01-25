@@ -70,7 +70,7 @@ impl Def for TypeDef {
         }
     }
 
-    /// Get inner type.
+    /// Get inner type, if type has one.
     ///
     /// This is the direct inner type e.g. `Cell<Option<ScopeId>>` -> `Option<ScopeId>`.
     /// Use [`innermost_type`] method if you want `ScopeId` in this example.
@@ -78,15 +78,15 @@ impl Def for TypeDef {
     /// Returns `None` for types which don't have a single inner type (structs, enums, and primitives).
     ///
     /// [`innermost_type`]: Self::innermost_type
-    fn inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
+    fn maybe_inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
         match self {
-            TypeDef::Struct(def) => def.inner_type(schema),
-            TypeDef::Enum(def) => def.inner_type(schema),
-            TypeDef::Primitive(def) => def.inner_type(schema),
-            TypeDef::Option(def) => def.inner_type(schema),
-            TypeDef::Box(def) => def.inner_type(schema),
-            TypeDef::Vec(def) => def.inner_type(schema),
-            TypeDef::Cell(def) => def.inner_type(schema),
+            TypeDef::Struct(def) => def.maybe_inner_type(schema),
+            TypeDef::Enum(def) => def.maybe_inner_type(schema),
+            TypeDef::Primitive(def) => def.maybe_inner_type(schema),
+            TypeDef::Option(def) => def.maybe_inner_type(schema),
+            TypeDef::Box(def) => def.maybe_inner_type(schema),
+            TypeDef::Vec(def) => def.maybe_inner_type(schema),
+            TypeDef::Cell(def) => def.maybe_inner_type(schema),
         }
     }
 
