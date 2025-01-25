@@ -12,12 +12,12 @@ pub struct Codegen {
     derive_name_to_id: FxHashMap<&'static str, DeriveId>,
     /// Mapping from type attr to ID of derive/generator which uses the attr
     #[expect(dead_code)]
-    pub type_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub type_attrs: FxHashMap<&'static str, AttrProcessor>,
     /// Mapping from struct field attr to ID of derive/generator which uses the attr
-    pub field_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub field_attrs: FxHashMap<&'static str, AttrProcessor>,
     /// Mapping from enum variant attr to ID of derive/generator which uses the attr
     #[expect(dead_code)]
-    pub variant_attrs: FxHashMap<&'static str, AttrTarget>,
+    pub variant_attrs: FxHashMap<&'static str, AttrProcessor>,
 }
 
 impl Codegen {
@@ -31,73 +31,73 @@ impl Codegen {
         for (id, &derive) in DERIVES.iter().enumerate() {
             derive_name_to_id.insert(derive.trait_name(), id);
 
-            let target = AttrTarget::Derive(id);
+            let processor = AttrProcessor::Derive(id);
             for &type_attr in derive.type_attrs() {
-                let old_target = type_attrs.insert(type_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = type_attrs.insert(type_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives expect same type attr {type_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
 
             for &field_attr in derive.field_attrs() {
-                let old_target = field_attrs.insert(field_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = field_attrs.insert(field_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives expect same struct field attr {field_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
 
             for &variant_attr in derive.variant_attrs() {
-                let old_target = variant_attrs.insert(variant_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = variant_attrs.insert(variant_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives expect same enum variant attr {variant_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
         }
 
         for (id, &generator) in GENERATORS.iter().enumerate() {
-            let target = AttrTarget::Generator(id);
+            let processor = AttrProcessor::Generator(id);
 
             for &type_attr in generator.type_attrs() {
-                let old_target = type_attrs.insert(type_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = type_attrs.insert(type_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives/generators expect same type attr {type_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
 
             for &field_attr in generator.field_attrs() {
-                let old_target = field_attrs.insert(field_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = field_attrs.insert(field_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives/generators expect same struct field attr {field_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
 
             for &variant_attr in generator.variant_attrs() {
-                let old_target = variant_attrs.insert(variant_attr, target);
-                if let Some(old_target) = old_target {
+                let existing_processor = variant_attrs.insert(variant_attr, processor);
+                if let Some(existing_processor) = existing_processor {
                     panic!(
                         "Two derives/generators expect same enum variant attr {variant_attr:?}: {} and {}",
-                        old_target.name(),
-                        target.name()
+                        existing_processor.name(),
+                        processor.name()
                     );
                 }
             }
@@ -123,13 +123,14 @@ impl Codegen {
     }
 }
 
+/// Processor of an attribute - either a derive or a generator.
 #[derive(Clone, Copy, Debug)]
-pub enum AttrTarget {
+pub enum AttrProcessor {
     Derive(DeriveId),
     Generator(GeneratorId),
 }
 
-impl AttrTarget {
+impl AttrProcessor {
     pub fn name(self) -> &'static str {
         match self {
             Self::Derive(id) => DERIVES[id].trait_name(),

@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    codegen::{AttrTarget, Codegen},
+    codegen::{AttrProcessor, Codegen},
     schema::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
@@ -213,9 +213,9 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                    let result = match target {
-                        AttrTarget::Derive(derive_id) => {
+                if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+                    let result = match processor {
+                        AttrProcessor::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
                             if !generated_derives.has(derive_id) {
@@ -224,7 +224,7 @@ impl<'c> Parser<'c> {
 
                             derive.parse_field_attr(&attr_name, &attr.meta, def, field_index)
                         }
-                        AttrTarget::Generator(generator_id) => {
+                        AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
                             generator.parse_field_attr(&attr_name, &attr.meta, def, field_index)
                         }
@@ -284,9 +284,9 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                    let result = match target {
-                        AttrTarget::Derive(derive_id) => {
+                if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+                    let result = match processor {
+                        AttrProcessor::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                             let derive = DERIVES[derive_id];
                             if !generated_derives.has(derive_id) {
@@ -295,7 +295,7 @@ impl<'c> Parser<'c> {
 
                             derive.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
                         }
-                        AttrTarget::Generator(generator_id) => {
+                        AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
                             generator.parse_variant_attr(&attr_name, &attr.meta, def, variant_index)
                         }
@@ -454,9 +454,9 @@ impl<'c> Parser<'c> {
             let Some(attr_ident) = attr.path().get_ident() else { continue };
             let attr_name = ident_name(attr_ident);
 
-            if let Some(&target) = self.codegen.field_attrs.get(&*attr_name) {
-                let result = match target {
-                    AttrTarget::Derive(derive_id) => {
+            if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+                let result = match processor {
+                    AttrProcessor::Derive(derive_id) => {
                         // Check this struct has the relevant trait `#[generate_derive]`-ed on it
                         let derive = DERIVES[derive_id];
                         if !def.generates_derive(derive_id) {
@@ -465,7 +465,7 @@ impl<'c> Parser<'c> {
 
                         derive.parse_type_attr(&attr_name, &attr.meta, def)
                     }
-                    AttrTarget::Generator(generator_id) => {
+                    AttrProcessor::Generator(generator_id) => {
                         let generator = GENERATORS[generator_id];
                         generator.parse_type_attr(&attr_name, &attr.meta, def)
                     }
