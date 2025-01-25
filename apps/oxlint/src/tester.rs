@@ -87,16 +87,13 @@ impl Tester {
 
         let full_args_list =
             multiple_args.iter().map(|args| args.join(" ")).collect::<Vec<String>>().join(" ");
-        
+
         let snapshot_file_name = format!("{}_{}", relative_dir.to_str().unwrap(), full_args_list);
-        
+
         // windows can not handle filenames with *
         let snapshot_file_name = snapshot_file_name.replace("*", "_");
         settings.bind(|| {
-            insta::assert_snapshot!(
-                snapshot_file_name,
-                output_string
-            );
+            insta::assert_snapshot!(snapshot_file_name, output_string);
         });
     }
 }
