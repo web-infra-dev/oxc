@@ -80,7 +80,7 @@ impl Runner for LintRunner {
             // filtered, return early.
             if provided_path_count > 0 {
                 if let Some(end) = output_formatter.lint_command_info(&LintCommandInfo {
-                    number_of_files : 0,
+                    number_of_files: 0,
                     number_of_rules: 0,
                     threads_count: rayon::current_num_threads(),
                     start_time: now.elapsed(),
