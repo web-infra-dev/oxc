@@ -15,8 +15,8 @@ define_generator!(VisitGenerator);
 impl Generator for VisitGenerator {
     fn attrs(&self) -> &[(&'static str, AttrPositions)] {
         &[
-            ("scope", AttrPositions::TypeOrStructField),
             ("visit", AttrPositions::StructFieldOrEnumVariant),
+            ("scope", AttrPositions::TypeOrStructField),
         ]
     }
 
