@@ -6,12 +6,18 @@ use std::{
 #[derive(Debug)]
 pub enum CliRunResult {
     None,
-    InvalidOptions { message: String },
-    PathNotFound { paths: Vec<PathBuf> },
+    InvalidOptions {
+        message: String,
+    },
+    PathNotFound {
+        paths: Vec<PathBuf>,
+    },
     /// The exit unix code for, in general 0 or 1 (from `--deny-warnings` or `--max-warnings` for example)
     LintResult(ExitCode),
     PrintConfigResult,
-    ConfigFileInitResult { message: String },
+    ConfigFileInitResult {
+        message: String,
+    },
 }
 
 impl Termination for CliRunResult {
