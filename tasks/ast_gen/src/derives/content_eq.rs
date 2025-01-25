@@ -2,9 +2,9 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::schema::{Def, EnumDef, Schema, StructDef, TypeDef};
+use crate::schema::{Def, EnumDef, Schema, StructDef};
 
-use super::{define_derive, Derive};
+use super::{define_derive, Derive, StructOrEnum};
 
 const IGNORE_FIELD_TYPES: [&str; 4] = ["Span", "ScopeId", "SymbolId", "ReferenceId"];
 
@@ -27,11 +27,10 @@ impl Derive for DeriveContentEq {
         }
     }
 
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+    fn derive(&self, type_def: StructOrEnum, schema: &Schema) -> TokenStream {
         match type_def {
-            TypeDef::Struct(struct_def) => derive_struct(struct_def, schema),
-            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
-            _ => unreachable!(),
+            StructOrEnum::Struct(struct_def) => derive_struct(struct_def, schema),
+            StructOrEnum::Enum(enum_def) => derive_enum(enum_def, schema),
         }
     }
 }

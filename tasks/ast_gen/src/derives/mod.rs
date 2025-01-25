@@ -8,7 +8,7 @@ use syn::{parse_str, ItemUse, Meta};
 use crate::{
     codegen::{AttrLocation, AttrPositions, Codegen},
     output::{output_path, Output},
-    schema::{Schema, TypeDef},
+    schema::{EnumDef, Schema, StructDef, TypeDef},
     Result, Runner,
 };
 
@@ -63,7 +63,7 @@ pub trait Derive: Runner {
     fn modify(&self, schema: &mut Schema) {}
 
     /// Generate trait implementation for a type.
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream;
+    fn derive(&self, type_def: StructOrEnum<'_>, schema: &Schema) -> TokenStream;
 
     // Standard methods. Should not be overriden.
 
@@ -105,7 +105,16 @@ pub trait Derive: Runner {
             .types
             .iter()
             .filter(|type_def| type_def.generates_derive(derive_id))
-            .map(|type_def| (type_def, self.derive(type_def, schema)))
+            .map(|type_def| {
+                let derived = match type_def {
+                    TypeDef::Struct(struct_def) => {
+                        self.derive(StructOrEnum::Struct(struct_def), schema)
+                    }
+                    TypeDef::Enum(enum_def) => self.derive(StructOrEnum::Enum(enum_def), schema),
+                    _ => unreachable!(),
+                };
+                (type_def, derived)
+            })
             .fold(
                 FxHashMap::<&str, (FxHashSet<&str>, Vec<TokenStream>)>::default(),
                 |mut acc, (type_def, tokens)| {
@@ -171,3 +180,12 @@ macro_rules! define_derive {
     };
 }
 pub(crate) use define_derive;
+
+/// Reference to a [`StructDef`] or [`EnumDef`].
+///
+/// This type is what's passed to `derive` method.
+#[derive(Clone, Copy)]
+pub enum StructOrEnum<'d> {
+    Struct(&'d StructDef),
+    Enum(&'d EnumDef),
+}

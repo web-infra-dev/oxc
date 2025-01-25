@@ -1,9 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::schema::{Schema, TypeDef};
+use crate::schema::Schema;
 
-use super::{define_derive, AttrPositions, Derive};
+use super::{define_derive, AttrPositions, Derive, StructOrEnum};
 
 pub struct DeriveESTree;
 
@@ -31,7 +31,7 @@ impl Derive for DeriveESTree {
         }
     }
 
-    fn derive(&self, _def: &TypeDef, _: &Schema) -> TokenStream {
+    fn derive(&self, _type_def: StructOrEnum, _schema: &Schema) -> TokenStream {
         quote! {
             const TODO: u64 = 123;
         }

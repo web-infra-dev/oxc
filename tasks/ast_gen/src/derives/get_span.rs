@@ -3,11 +3,11 @@ use quote::{format_ident, quote};
 use syn::{Ident, Meta};
 
 use crate::{
-    schema::{Def, EnumDef, Schema, StructDef, TypeDef},
+    schema::{Def, EnumDef, Schema, StructDef},
     Result,
 };
 
-use super::{define_derive, AttrLocation, AttrPositions, Derive};
+use super::{define_derive, AttrLocation, AttrPositions, Derive, StructOrEnum};
 
 pub struct DeriveGetSpan;
 
@@ -43,7 +43,7 @@ impl Derive for DeriveGetSpan {
         }
     }
 
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+    fn derive(&self, type_def: StructOrEnum, schema: &Schema) -> TokenStream {
         let self_ty = quote!(&self);
         let result_ty = quote!(Span);
         let result_expr = quote!(self.span);
@@ -82,7 +82,7 @@ impl Derive for DeriveGetSpanMut {
         }
     }
 
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+    fn derive(&self, type_def: StructOrEnum, schema: &Schema) -> TokenStream {
         let self_ty = quote!(&mut self);
         let result_ty = quote!(&mut Span);
         let result_expr = quote!(&mut self.span);
@@ -110,7 +110,7 @@ fn derive<U, R>(
     self_ty: &TokenStream,
     result_ty: &TokenStream,
     result_expr: &TokenStream,
-    type_def: &TypeDef,
+    type_def: StructOrEnum,
     unbox: U,
     reference: R,
     schema: &Schema,
@@ -122,7 +122,7 @@ where
     let trait_ident = format_ident!("{trait_name}");
     let method_ident = format_ident!("{method_name}");
     match type_def {
-        TypeDef::Struct(struct_def) => derive_struct(
+        StructOrEnum::Struct(struct_def) => derive_struct(
             struct_def,
             &trait_ident,
             &method_ident,
@@ -132,10 +132,9 @@ where
             reference,
             schema,
         ),
-        TypeDef::Enum(enum_def) => {
+        StructOrEnum::Enum(enum_def) => {
             derive_enum(enum_def, &trait_ident, &method_ident, self_ty, result_ty, unbox, schema)
         }
-        _ => unreachable!(),
     }
 }
 

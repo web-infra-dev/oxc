@@ -4,11 +4,11 @@ use quote::{format_ident, quote};
 use syn::{Ident, Meta, Path};
 
 use crate::{
-    schema::{Def, EnumDef, Schema, StructDef, TypeDef},
+    schema::{Def, EnumDef, Schema, StructDef},
     Result,
 };
 
-use super::{define_derive, AttrLocation, AttrPositions, Derive};
+use super::{define_derive, AttrLocation, AttrPositions, Derive, StructOrEnum};
 
 pub struct DeriveCloneIn;
 
@@ -48,11 +48,10 @@ impl Derive for DeriveCloneIn {
         }
     }
 
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
+    fn derive(&self, type_def: StructOrEnum, schema: &Schema) -> TokenStream {
         match type_def {
-            TypeDef::Struct(struct_def) => derive_struct(struct_def),
-            TypeDef::Enum(enum_def) => derive_enum(enum_def, schema),
-            _ => unreachable!(),
+            StructOrEnum::Struct(struct_def) => derive_struct(struct_def),
+            StructOrEnum::Enum(enum_def) => derive_enum(enum_def, schema),
         }
     }
 }

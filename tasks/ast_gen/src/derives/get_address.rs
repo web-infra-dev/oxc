@@ -1,9 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::schema::{Def, EnumDef, Schema, TypeDef};
+use crate::schema::{Def, EnumDef, Schema};
 
-use super::{define_derive, Derive};
+use super::{define_derive, Derive, StructOrEnum};
 
 pub struct DeriveGetAddress;
 
@@ -23,8 +23,8 @@ impl Derive for DeriveGetAddress {
         }
     }
 
-    fn derive(&self, type_def: &TypeDef, schema: &Schema) -> TokenStream {
-        if let TypeDef::Enum(enum_def) = type_def {
+    fn derive(&self, type_def: StructOrEnum, schema: &Schema) -> TokenStream {
+        if let StructOrEnum::Enum(enum_def) = type_def {
             derive_enum(enum_def, schema)
         } else {
             panic!("`GetAddress` can only be implemented with `#[generate_derive]` on enums");
