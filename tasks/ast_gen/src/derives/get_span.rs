@@ -7,7 +7,7 @@ use crate::{
     Result,
 };
 
-use super::{define_derive, AttrPositions, Derive};
+use super::{define_derive, AttrLocation, AttrPositions, Derive};
 
 pub struct DeriveGetSpan;
 
@@ -23,13 +23,9 @@ impl Derive for DeriveGetSpan {
     }
 
     /// Parse `#[span]` on struct field.
-    fn parse_field_attr(
-        &self,
-        _attr_name: &str,
-        meta: &Meta,
-        struct_def: &mut StructDef,
-        field_index: usize,
-    ) -> Result<()> {
+    fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
+        let (struct_def, field_index) = location.into_struct_field();
+
         if matches!(meta, Meta::Path(_)) {
             struct_def.span_field_index = Some(field_index);
             Ok(())

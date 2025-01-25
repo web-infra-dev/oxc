@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    codegen::{AttrPositions, AttrProcessor, Codegen},
+    codegen::{AttrLocation, AttrPositions, AttrProcessor, Codegen},
     schema::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
@@ -237,16 +237,13 @@ impl<'c> Parser<'c> {
                                 );
                             }
 
-                            derive.parse_field_attr(&attr_name, &attr.meta, struct_def, field_index)
+                            let location = AttrLocation::StructField(struct_def, field_index);
+                            derive.parse_attr(&attr_name, location, &attr.meta)
                         }
                         AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_field_attr(
-                                &attr_name,
-                                &attr.meta,
-                                struct_def,
-                                field_index,
-                            )
+                            let location = AttrLocation::StructField(struct_def, field_index);
+                            generator.parse_attr(&attr_name, location, &attr.meta)
                         }
                     };
 
@@ -324,21 +321,13 @@ impl<'c> Parser<'c> {
                                 panic_not_derived(enum_def.name(), &attr_name, derive.trait_name());
                             }
 
-                            derive.parse_variant_attr(
-                                &attr_name,
-                                &attr.meta,
-                                enum_def,
-                                variant_index,
-                            )
+                            let location = AttrLocation::EnumVariant(enum_def, variant_index);
+                            derive.parse_attr(&attr_name, location, &attr.meta)
                         }
                         AttrProcessor::Generator(generator_id) => {
                             let generator = GENERATORS[generator_id];
-                            generator.parse_variant_attr(
-                                &attr_name,
-                                &attr.meta,
-                                enum_def,
-                                variant_index,
-                            )
+                            let location = AttrLocation::EnumVariant(enum_def, variant_index);
+                            generator.parse_attr(&attr_name, location, &attr.meta)
                         }
                     };
 
@@ -519,11 +508,13 @@ impl<'c> Parser<'c> {
                             panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
                         }
 
-                        derive.parse_type_attr(&attr_name, &attr.meta, type_def)
+                        let location = AttrLocation::from_type_def(type_def);
+                        derive.parse_attr(&attr_name, location, &attr.meta)
                     }
                     AttrProcessor::Generator(generator_id) => {
                         let generator = GENERATORS[generator_id];
-                        generator.parse_type_attr(&attr_name, &attr.meta, type_def)
+                        let location = AttrLocation::from_type_def(type_def);
+                        generator.parse_attr(&attr_name, location, &attr.meta)
                     }
                 };
 

@@ -1,10 +1,9 @@
 use syn::Meta;
 
 use crate::{
-    codegen::AttrPositions,
+    codegen::{AttrLocation, AttrPositions},
     output::Output,
-    schema::{EnumDef, Schema, StructDef, TypeDef},
-    Result, Runner,
+    Result, Runner, Schema,
 };
 
 mod assert_layouts;
@@ -29,33 +28,9 @@ pub trait Generator: Runner {
         &[]
     }
 
-    /// Process an attribute on a struct or enum.
+    /// Parse an attribute and record information from it on struct or enum.
     #[expect(unused_variables)]
-    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, type_def: &mut TypeDef) -> Result<()> {
-        Ok(())
-    }
-
-    /// Process an attribute on a struct field.
-    #[expect(unused_variables)]
-    fn parse_field_attr(
-        &self,
-        attr_name: &str,
-        meta: &Meta,
-        struct_def: &mut StructDef,
-        field_index: usize,
-    ) -> Result<()> {
-        Ok(())
-    }
-
-    /// Process an attribute on an enum variant.
-    #[expect(unused_variables)]
-    fn parse_variant_attr(
-        &self,
-        attr_name: &str,
-        meta: &Meta,
-        enum_def: &mut EnumDef,
-        variant_index: usize,
-    ) -> Result<()> {
+    fn parse_attr(&self, attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
         Ok(())
     }
 

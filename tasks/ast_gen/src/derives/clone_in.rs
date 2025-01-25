@@ -8,7 +8,7 @@ use crate::{
     Result,
 };
 
-use super::{define_derive, AttrPositions, Derive};
+use super::{define_derive, AttrLocation, AttrPositions, Derive};
 
 pub struct DeriveCloneIn;
 
@@ -24,13 +24,9 @@ impl Derive for DeriveCloneIn {
     }
 
     /// Parse `#[clone_in(default)]` on struct field.
-    fn parse_field_attr(
-        &self,
-        _attr_name: &str,
-        meta: &Meta,
-        struct_def: &mut StructDef,
-        field_index: usize,
-    ) -> Result<()> {
+    fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
+        let (struct_def, field_index) = location.into_struct_field();
+
         if let Meta::List(list) = meta {
             if let Ok(path) = list.parse_args::<Path>() {
                 if path.is_ident("default") {

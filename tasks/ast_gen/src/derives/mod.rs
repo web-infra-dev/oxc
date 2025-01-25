@@ -6,9 +6,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use syn::{parse_str, ItemUse, Meta};
 
 use crate::{
-    codegen::{AttrPositions, Codegen},
+    codegen::{AttrLocation, AttrPositions, Codegen},
     output::{output_path, Output},
-    schema::{EnumDef, Schema, StructDef, TypeDef},
+    schema::{Schema, TypeDef},
     Result, Runner,
 };
 
@@ -43,33 +43,9 @@ pub trait Derive: Runner {
         &[]
     }
 
-    /// Process an attribute on a struct or enum.
+    /// Parse an attribute and record information from it on struct or enum.
     #[expect(unused_variables)]
-    fn parse_type_attr(&self, attr_name: &str, meta: &Meta, type_def: &mut TypeDef) -> Result<()> {
-        Ok(())
-    }
-
-    /// Process an attribute on a struct field.
-    #[expect(unused_variables)]
-    fn parse_field_attr(
-        &self,
-        attr_name: &str,
-        meta: &Meta,
-        struct_def: &mut StructDef,
-        field_index: usize,
-    ) -> Result<()> {
-        Ok(())
-    }
-
-    /// Process an attribute on an enum variant.
-    #[expect(unused_variables)]
-    fn parse_variant_attr(
-        &self,
-        attr_name: &str,
-        meta: &Meta,
-        enum_def: &mut EnumDef,
-        variant_index: usize,
-    ) -> Result<()> {
+    fn parse_attr(&self, attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
         Ok(())
     }
 
