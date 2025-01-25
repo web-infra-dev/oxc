@@ -2,9 +2,8 @@ use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    derives::Derive,
     schema::{EnumDef, StructDef, TypeDef},
-    Output, Result, Schema, DERIVES, GENERATORS,
+    Derive, Output, Result, Schema, DERIVES, GENERATORS,
 };
 
 pub type DeriveId = usize;
@@ -174,6 +173,11 @@ impl<'s> AttrLocation<'s> {
     }
 }
 
+/// Runner trait.
+///
+/// This is the super-trait of [`Derive`] and [`Generator`].
+///
+/// [`Generator`]: crate::Generator
 pub trait Runner {
     #[expect(dead_code)]
     fn verb(&self) -> &'static str;
