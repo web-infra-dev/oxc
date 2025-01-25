@@ -209,8 +209,8 @@ impl<'s> Iterator for AllVariantsIter<'s> {
 
         // No current inner iterator. Start iterating over next inherited type.
         if let Some(&inherits_type_id) = self.inherits_iter.next() {
-            let inherited_type = self.schema.enum_def(inherits_type_id);
-            let inner_iter = inherited_type.all_variants(self.schema);
+            let inherited = self.schema.enum_def(inherits_type_id);
+            let inner_iter = inherited.all_variants(self.schema);
             self.inner_iter = Some(Box::new(inner_iter));
             Some(self.inner_iter.as_mut().unwrap().next().unwrap())
         } else {
