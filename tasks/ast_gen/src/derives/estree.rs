@@ -3,7 +3,7 @@ use quote::quote;
 
 use crate::schema::{Schema, TypeDef};
 
-use super::{define_derive, Derive};
+use super::{define_derive, AttrPositions, Derive};
 
 pub struct DeriveESTree;
 
@@ -18,12 +18,8 @@ impl Derive for DeriveESTree {
         "estree".to_string()
     }
 
-    fn type_attrs(&self) -> &[&'static str] {
-        &["estree"]
-    }
-
-    fn field_attrs(&self) -> &[&'static str] {
-        &["estree"]
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
+        &[("estree", AttrPositions::Any)]
     }
 
     fn prelude(&self) -> TokenStream {

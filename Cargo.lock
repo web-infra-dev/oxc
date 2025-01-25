@@ -1612,6 +1612,7 @@ dependencies = [
 name = "oxc_ast_gen"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.7.0",
  "bpaf",
  "convert_case 0.7.1",
  "cow-utils",

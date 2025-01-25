@@ -8,7 +8,7 @@ use crate::{
     Result,
 };
 
-use super::{define_derive, Derive};
+use super::{define_derive, AttrPositions, Derive};
 
 pub struct DeriveCloneIn;
 
@@ -19,8 +19,8 @@ impl Derive for DeriveCloneIn {
         "CloneIn"
     }
 
-    fn field_attrs(&self) -> &[&'static str] {
-        &["clone_in"]
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
+        &[("clone_in", AttrPositions::StructField)]
     }
 
     /// Parse `#[clone_in(default)]` on struct field.

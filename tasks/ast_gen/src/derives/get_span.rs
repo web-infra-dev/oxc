@@ -7,7 +7,7 @@ use crate::{
     Result,
 };
 
-use super::{define_derive, Derive};
+use super::{define_derive, AttrPositions, Derive};
 
 pub struct DeriveGetSpan;
 
@@ -18,8 +18,8 @@ impl Derive for DeriveGetSpan {
         "GetSpan"
     }
 
-    fn field_attrs(&self) -> &[&'static str] {
-        &["span"]
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
+        &[("span", AttrPositions::StructField)]
     }
 
     /// Parse `#[span]` on struct field.

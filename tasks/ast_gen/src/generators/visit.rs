@@ -6,23 +6,18 @@ use crate::{
     Generator,
 };
 
-use super::define_generator;
+use super::{define_generator, AttrPositions};
 
 pub struct VisitGenerator;
 
 define_generator!(VisitGenerator);
 
 impl Generator for VisitGenerator {
-    fn type_attrs(&self) -> &[&'static str] {
-        &["scope"]
-    }
-
-    fn field_attrs(&self) -> &[&'static str] {
-        &["visit", "scope"]
-    }
-
-    fn variant_attrs(&self) -> &[&'static str] {
-        &["visit"]
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
+        &[
+            ("scope", AttrPositions::TypeOrStructField),
+            ("visit", AttrPositions::StructFieldOrEnumVariant),
+        ]
     }
 
     fn generate(&self, _schema: &Schema) -> Output {

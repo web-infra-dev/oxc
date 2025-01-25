@@ -6,9 +6,10 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use syn::{parse_str, ItemUse, Meta};
 
 use crate::{
+    codegen::{AttrPositions, Codegen},
     output::{output_path, Output},
     schema::{EnumDef, Schema, StructDef, TypeDef},
-    Codegen, Result, Runner,
+    Result, Runner,
 };
 
 mod clone_in;
@@ -37,8 +38,8 @@ pub trait Derive: Runner {
         self.trait_name().to_case(Case::Snake)
     }
 
-    /// Attributes on types that this derive uses.
-    fn type_attrs(&self) -> &[&'static str] {
+    /// Attributes that this derive uses.
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
         &[]
     }
 
@@ -46,11 +47,6 @@ pub trait Derive: Runner {
     #[expect(unused_variables)]
     fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) -> Result<()> {
         Ok(())
-    }
-
-    /// Attributes on struct fields that this derive uses.
-    fn field_attrs(&self) -> &[&'static str] {
-        &[]
     }
 
     /// Process an attribute on a struct field.
@@ -63,11 +59,6 @@ pub trait Derive: Runner {
         field_index: usize,
     ) -> Result<()> {
         Ok(())
-    }
-
-    /// Attributes on enum variants that this derive uses.
-    fn variant_attrs(&self) -> &[&'static str] {
-        &[]
     }
 
     /// Process an attribute on an enum variant.

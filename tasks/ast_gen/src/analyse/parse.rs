@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    codegen::{AttrProcessor, Codegen},
+    codegen::{AttrPositions, AttrProcessor, Codegen},
     schema::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
@@ -213,7 +213,13 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+                if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name)
+                {
+                    // Check attribute is legal in this position
+                    if !positions.contains(AttrPositions::StructField) {
+                        panic_wrong_attr_position(def.name(), &attr_name, "struct field");
+                    }
+
                     let result = match processor {
                         AttrProcessor::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
@@ -284,7 +290,13 @@ impl<'c> Parser<'c> {
                 let Some(attr_ident) = attr.path().get_ident() else { continue };
                 let attr_name = ident_name(attr_ident);
 
-                if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+                if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name)
+                {
+                    // Check attribute is legal in this position
+                    if !positions.contains(AttrPositions::EnumVariant) {
+                        panic_wrong_attr_position(def.name(), &attr_name, "enum variant");
+                    }
+
                     let result = match processor {
                         AttrProcessor::Derive(derive_id) => {
                             // Check this struct has the relevant trait `#[generate_derive]`-ed on it
@@ -454,7 +466,22 @@ impl<'c> Parser<'c> {
             let Some(attr_ident) = attr.path().get_ident() else { continue };
             let attr_name = ident_name(attr_ident);
 
-            if let Some(&processor) = self.codegen.field_attrs.get(&*attr_name) {
+            if let Some(&(processor, positions)) = self.codegen.attr_processors.get(&*attr_name) {
+                // Check attribute is legal in this position
+                match def {
+                    TypeDef::Struct(struct_def) => {
+                        if !positions.contains(AttrPositions::Struct) {
+                            panic_wrong_attr_position(struct_def.name(), &attr_name, "struct");
+                        }
+                    }
+                    TypeDef::Enum(enum_def) => {
+                        if !positions.contains(AttrPositions::Enum) {
+                            panic_wrong_attr_position(enum_def.name(), &attr_name, "enum");
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+
                 let result = match processor {
                     AttrProcessor::Derive(derive_id) => {
                         // Check this struct has the relevant trait `#[generate_derive]`-ed on it
@@ -561,5 +588,13 @@ fn panic_not_derived(type_name: &str, attr_name: &str, trait_name: &str) {
         "`{type_name}` type has `#[{attr_name}]` attribute, but `{trait_name}` trait \
         that handles `#[{attr_name}]` is not derived on `{type_name}`.\n\
         Expected `#[generate_derive({trait_name})]` to be present."
+    );
+}
+
+/// Panic with message that attribute appears in wrong position
+fn panic_wrong_attr_position(type_name: &str, attr_name: &str, position: &str) {
+    panic!(
+        "`{type_name}` type has `#[{attr_name}]` attribute on a {position}, \
+        but `#[{attr_name}]` is not legal in this position."
     );
 }

@@ -1,6 +1,7 @@
 use syn::Meta;
 
 use crate::{
+    codegen::AttrPositions,
     output::Output,
     schema::{EnumDef, Schema, StructDef, TypeDef},
     Result, Runner,
@@ -23,8 +24,8 @@ pub use visit::{VisitGenerator, VisitMutGenerator};
 pub trait Generator: Runner {
     // Methods which can/must be defined by implementer.
 
-    /// Attributes on types that this derive uses.
-    fn type_attrs(&self) -> &[&'static str] {
+    /// Attributes that this generator uses.
+    fn attrs(&self) -> &[(&'static str, AttrPositions)] {
         &[]
     }
 
@@ -32,11 +33,6 @@ pub trait Generator: Runner {
     #[expect(unused_variables)]
     fn parse_type_attr(&self, attr_name: &str, meta: &Meta, def: &mut TypeDef) -> Result<()> {
         Ok(())
-    }
-
-    /// Attributes on struct fields that this derive uses.
-    fn field_attrs(&self) -> &[&'static str] {
-        &[]
     }
 
     /// Process an attribute on a struct field.
@@ -49,11 +45,6 @@ pub trait Generator: Runner {
         field_index: usize,
     ) -> Result<()> {
         Ok(())
-    }
-
-    /// Attributes on enum variants that this derive uses.
-    fn variant_attrs(&self) -> &[&'static str] {
-        &[]
     }
 
     /// Process an attribute on an enum variant.

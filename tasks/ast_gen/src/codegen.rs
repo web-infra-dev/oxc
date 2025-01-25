@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 
 use crate::{derives::Derive, Output, Result, Schema, DERIVES, GENERATORS};
@@ -5,60 +6,29 @@ use crate::{derives::Derive, Output, Result, Schema, DERIVES, GENERATORS};
 pub type DeriveId = usize;
 pub type GeneratorId = usize;
 
-// TODO: Move `derive_name_to_id` into `Schema`?
-
 pub struct Codegen {
     /// Mapping from derive name to `DeriveId`
     derive_name_to_id: FxHashMap<&'static str, DeriveId>,
-    /// Mapping from type attr to ID of derive/generator which uses the attr
-    #[expect(dead_code)]
-    pub type_attrs: FxHashMap<&'static str, AttrProcessor>,
-    /// Mapping from struct field attr to ID of derive/generator which uses the attr
-    pub field_attrs: FxHashMap<&'static str, AttrProcessor>,
-    /// Mapping from enum variant attr to ID of derive/generator which uses the attr
-    #[expect(dead_code)]
-    pub variant_attrs: FxHashMap<&'static str, AttrProcessor>,
+    /// Mapping from attr to ID of derive/generator which uses the attr,
+    /// and positions attr can appear in
+    pub attr_processors: FxHashMap<&'static str, (AttrProcessor, AttrPositions)>,
 }
 
 impl Codegen {
     pub fn new() -> Self {
         let mut derive_name_to_id = FxHashMap::default();
 
-        let mut type_attrs = FxHashMap::default();
-        let mut field_attrs = FxHashMap::default();
-        let mut variant_attrs = FxHashMap::default();
+        let mut attr_processors = FxHashMap::default();
 
         for (id, &derive) in DERIVES.iter().enumerate() {
             derive_name_to_id.insert(derive.trait_name(), id);
 
             let processor = AttrProcessor::Derive(id);
-            for &type_attr in derive.type_attrs() {
-                let existing_processor = type_attrs.insert(type_attr, processor);
-                if let Some(existing_processor) = existing_processor {
+            for &(name, positions) in derive.attrs() {
+                let existing = attr_processors.insert(name, (processor, positions));
+                if let Some((existing_processor, _)) = existing {
                     panic!(
-                        "Two derives expect same type attr {type_attr:?}: {} and {}",
-                        existing_processor.name(),
-                        processor.name()
-                    );
-                }
-            }
-
-            for &field_attr in derive.field_attrs() {
-                let existing_processor = field_attrs.insert(field_attr, processor);
-                if let Some(existing_processor) = existing_processor {
-                    panic!(
-                        "Two derives expect same struct field attr {field_attr:?}: {} and {}",
-                        existing_processor.name(),
-                        processor.name()
-                    );
-                }
-            }
-
-            for &variant_attr in derive.variant_attrs() {
-                let existing_processor = variant_attrs.insert(variant_attr, processor);
-                if let Some(existing_processor) = existing_processor {
-                    panic!(
-                        "Two derives expect same enum variant attr {variant_attr:?}: {} and {}",
+                        "Two derives expect same attr `#[{name:?}]`: {} and {}",
                         existing_processor.name(),
                         processor.name()
                     );
@@ -69,33 +39,11 @@ impl Codegen {
         for (id, &generator) in GENERATORS.iter().enumerate() {
             let processor = AttrProcessor::Generator(id);
 
-            for &type_attr in generator.type_attrs() {
-                let existing_processor = type_attrs.insert(type_attr, processor);
-                if let Some(existing_processor) = existing_processor {
+            for &(name, positions) in generator.attrs() {
+                let existing_processor = attr_processors.insert(name, (processor, positions));
+                if let Some((existing_processor, _)) = existing_processor {
                     panic!(
-                        "Two derives/generators expect same type attr {type_attr:?}: {} and {}",
-                        existing_processor.name(),
-                        processor.name()
-                    );
-                }
-            }
-
-            for &field_attr in generator.field_attrs() {
-                let existing_processor = field_attrs.insert(field_attr, processor);
-                if let Some(existing_processor) = existing_processor {
-                    panic!(
-                        "Two derives/generators expect same struct field attr {field_attr:?}: {} and {}",
-                        existing_processor.name(),
-                        processor.name()
-                    );
-                }
-            }
-
-            for &variant_attr in generator.variant_attrs() {
-                let existing_processor = variant_attrs.insert(variant_attr, processor);
-                if let Some(existing_processor) = existing_processor {
-                    panic!(
-                        "Two derives/generators expect same enum variant attr {variant_attr:?}: {} and {}",
+                        "Two derives/generators expect same attr {name:?}: {} and {}",
                         existing_processor.name(),
                         processor.name()
                     );
@@ -103,7 +51,7 @@ impl Codegen {
             }
         }
 
-        Self { derive_name_to_id, type_attrs, field_attrs, variant_attrs }
+        Self { derive_name_to_id, attr_processors }
     }
 
     #[expect(clippy::unused_self)]
@@ -136,6 +84,22 @@ impl AttrProcessor {
             Self::Derive(id) => DERIVES[id].trait_name(),
             Self::Generator(_id) => "Unknown generator", // TODO
         }
+    }
+}
+
+bitflags! {
+    /// Attribute positions.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct AttrPositions: u8 {
+        const Struct = 1 << 0;
+        const Enum = 1 << 1;
+        const StructField = 1 << 2;
+        const EnumVariant = 1 << 3;
+
+        const Type = Self::Struct.bits() | Self::Enum.bits();
+        const TypeOrStructField = Self::Type.bits() | Self::StructField.bits();
+        const StructFieldOrEnumVariant = Self::StructField.bits() | Self::EnumVariant.bits();
+        const Any = Self::Type.bits() | Self::StructFieldOrEnumVariant.bits();
     }
 }
 
