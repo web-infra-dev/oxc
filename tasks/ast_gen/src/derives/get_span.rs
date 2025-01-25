@@ -157,7 +157,7 @@ fn derive_struct<R>(
 where
     R: Fn(TokenStream) -> TokenStream,
 {
-    let target_ty = def.ty_anon(schema);
+    let ty = def.ty_anon(schema);
 
     let result_expr = if let Some(field_index) = def.span_field_index {
         let field_ident = def.field(field_index).ident().unwrap();
@@ -168,7 +168,7 @@ where
     };
 
     quote! {
-        impl #trait_name for #target_ty {
+        impl #trait_name for #ty {
             #[inline]
             fn #method_name(#self_type) -> #result_type {
                 #result_expr
@@ -189,7 +189,7 @@ fn derive_enum<U>(
 where
     U: Fn(TokenStream) -> TokenStream,
 {
-    let target_ty = def.ty_anon(schema);
+    let ty = def.ty_anon(schema);
 
     let matches = def.all_variants(schema).map(|variant| {
         let variant_ident = variant.ident();
@@ -204,7 +204,7 @@ where
     });
 
     quote! {
-        impl #trait_ident for #target_ty {
+        impl #trait_ident for #ty {
             fn #method_ident(#self_type) -> #result_type {
                 match self {
                     #(#matches),*
