@@ -206,10 +206,7 @@ impl<'c> Parser<'c> {
         item: &ItemStruct,
         generated_derives: Derives,
     ) {
-        let TypeDef::Struct(struct_def) = type_def else {
-            panic!("A derive or generator mutated `TypeDef::Struct` to another kind of `TypeDef`");
-        };
-
+        let struct_def = type_def.as_struct_mut().unwrap();
         for (field_index, field) in item.fields.iter().enumerate() {
             for attr in &field.attrs {
                 if !matches!(attr.style, AttrStyle::Outer) {
@@ -293,10 +290,7 @@ impl<'c> Parser<'c> {
         item: &ItemEnum,
         generated_derives: Derives,
     ) {
-        let TypeDef::Enum(enum_def) = type_def else {
-            panic!("A derive or generator mutated `TypeDef::Enum` to another kind of `TypeDef`");
-        };
-
+        let enum_def = type_def.as_enum_mut().unwrap();
         for (variant_index, variant) in item.variants.iter().enumerate() {
             for attr in &variant.attrs {
                 if !matches!(attr.style, AttrStyle::Outer) {
