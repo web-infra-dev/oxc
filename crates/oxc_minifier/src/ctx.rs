@@ -1,7 +1,10 @@
 use std::ops::Deref;
 
 use oxc_ast::ast::*;
-use oxc_ecmascript::constant_evaluation::{ConstantEvaluation, ConstantValue};
+use oxc_ecmascript::{
+    constant_evaluation::{ConstantEvaluation, ConstantValue},
+    side_effects::MayHaveSideEffects,
+};
 use oxc_semantic::{IsGlobalReference, SymbolTable};
 use oxc_traverse::TraverseCtx;
 
@@ -16,8 +19,10 @@ impl<'a, 'b> Deref for Ctx<'a, 'b> {
     }
 }
 
-impl<'a> ConstantEvaluation<'a> for Ctx<'a, '_> {
-    fn is_global_reference(&self, ident: &oxc_ast::ast::IdentifierReference<'a>) -> bool {
+impl<'a> ConstantEvaluation<'a> for Ctx<'a, '_> {}
+
+impl MayHaveSideEffects for Ctx<'_, '_> {
+    fn is_global_reference(&self, ident: &IdentifierReference<'_>) -> bool {
         ident.is_global_reference(self.0.symbols())
     }
 }
@@ -29,6 +34,10 @@ pub fn is_exact_int64(num: f64) -> bool {
 impl<'a> Ctx<'a, '_> {
     fn symbols(&self) -> &SymbolTable {
         self.0.symbols()
+    }
+
+    pub fn is_global_reference(self, ident: &IdentifierReference<'a>) -> bool {
+        ident.is_global_reference(self.0.symbols())
     }
 
     pub fn eval_binary(self, e: &BinaryExpression<'a>) -> Option<Expression<'a>> {

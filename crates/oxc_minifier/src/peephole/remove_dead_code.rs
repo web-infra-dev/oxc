@@ -1,11 +1,11 @@
 use oxc_allocator::Vec;
 use oxc_ast::{ast::*, Visit};
 use oxc_ecmascript::{
-    constant_evaluation::{ConstantEvaluation, IsLiteralValue},
+    constant_evaluation::{ConstantEvaluation, IsLiteralValue, ValueType},
     side_effects::MayHaveSideEffects,
 };
 use oxc_span::GetSpan;
-use oxc_traverse::{Ancestor, TraverseCtx};
+use oxc_traverse::Ancestor;
 
 use crate::{ctx::Ctx, keep_var::KeepVar};
 
@@ -21,20 +21,15 @@ impl<'a, 'b> PeepholeOptimizations {
     pub fn remove_dead_code_exit_statements(
         &mut self,
         stmts: &mut Vec<'a, Statement<'a>>,
-        ctx: &mut TraverseCtx<'a>,
+        ctx: Ctx<'a, '_>,
     ) {
         if stmts.iter().any(|stmt| matches!(stmt, Statement::EmptyStatement(_))) {
             stmts.retain(|stmt| !matches!(stmt, Statement::EmptyStatement(_)));
         }
-        self.dead_code_elimination(stmts, Ctx(ctx));
+        self.dead_code_elimination(stmts, ctx);
     }
 
-    pub fn remove_dead_code_exit_statement(
-        &mut self,
-        stmt: &mut Statement<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-        let ctx = Ctx(ctx);
+    pub fn remove_dead_code_exit_statement(&mut self, stmt: &mut Statement<'a>, ctx: Ctx<'a, '_>) {
         if let Some(new_stmt) = match stmt {
             Statement::BlockStatement(s) => Self::try_optimize_block(s, ctx),
             Statement::IfStatement(s) => self.try_fold_if(s, ctx),
@@ -59,9 +54,8 @@ impl<'a, 'b> PeepholeOptimizations {
     pub fn remove_dead_code_exit_expression(
         &mut self,
         expr: &mut Expression<'a>,
-        ctx: &mut TraverseCtx<'a>,
+        ctx: Ctx<'a, '_>,
     ) {
-        let ctx = Ctx(ctx);
         if let Some(folded_expr) = match expr {
             Expression::ConditionalExpression(e) => Self::try_fold_conditional_expression(e, ctx),
             Expression::SequenceExpression(sequence_expression) => {
@@ -364,6 +358,51 @@ impl<'a, 'b> PeepholeOptimizations {
                     ctx.ast.move_expression(&mut unary_expr.argument),
                 ))
             }
+            Expression::NewExpression(e) => {
+                let Expression::Identifier(ident) = &e.callee else { return None };
+                let len = e.arguments.len();
+                if match ident.name.as_str() {
+                    "WeakSet" | "WeakMap" if ctx.is_global_reference(ident) => match len {
+                        0 => true,
+                        1 => match e.arguments[0].as_expression()? {
+                            Expression::NullLiteral(_) => true,
+                            Expression::ArrayExpression(e) => e.elements.is_empty(),
+                            e if ctx.is_expression_undefined(e) => true,
+                            _ => false,
+                        },
+                        _ => false,
+                    },
+                    "Date" if ctx.is_global_reference(ident) => match len {
+                        0 => true,
+                        1 => {
+                            let arg = e.arguments[0].as_expression()?;
+                            let ty = ValueType::from(arg);
+                            matches!(
+                                ty,
+                                ValueType::Null
+                                    | ValueType::Undefined
+                                    | ValueType::Boolean
+                                    | ValueType::Number
+                                    | ValueType::String
+                            ) && !ctx.expression_may_have_side_efffects(arg)
+                        }
+                        _ => false,
+                    },
+                    "Set" | "Map" if ctx.is_global_reference(ident) => match len {
+                        0 => true,
+                        1 => match e.arguments[0].as_expression()? {
+                            Expression::NullLiteral(_) => true,
+                            e if ctx.is_expression_undefined(e) => true,
+                            _ => false,
+                        },
+                        _ => false,
+                    },
+                    _ => false,
+                } {
+                    return Some(ctx.ast.statement_empty(e.span));
+                }
+                None
+            }
             _ => None,
         }
     }
@@ -482,7 +521,7 @@ impl<'a, 'b> PeepholeOptimizations {
 
         match ctx.get_boolean_value(&expr.test) {
             Some(v) => {
-                if expr.test.may_have_side_effects() {
+                if ctx.expression_may_have_side_efffects(&expr.test) {
                     let mut exprs = ctx.ast.vec_with_capacity(2);
                     exprs.push(ctx.ast.move_expression(&mut expr.test));
                     exprs.push(ctx.ast.move_expression(if v {
@@ -519,7 +558,9 @@ impl<'a, 'b> PeepholeOptimizations {
         let (should_fold, new_len) = sequence_expr.expressions.iter().enumerate().fold(
             (false, 0),
             |(mut should_fold, mut new_len), (i, expr)| {
-                if i == sequence_expr.expressions.len() - 1 || expr.may_have_side_effects() {
+                if i == sequence_expr.expressions.len() - 1
+                    || ctx.expression_may_have_side_efffects(expr)
+                {
                     new_len += 1;
                 } else {
                     should_fold = true;
@@ -536,7 +577,7 @@ impl<'a, 'b> PeepholeOptimizations {
             let mut new_exprs = ctx.ast.vec_with_capacity(new_len);
             let len = sequence_expr.expressions.len();
             for (i, expr) in sequence_expr.expressions.iter_mut().enumerate() {
-                if i == len - 1 || expr.may_have_side_effects() {
+                if i == len - 1 || ctx.expression_may_have_side_efffects(expr) {
                     new_exprs.push(ctx.ast.move_expression(expr));
                 }
             }
@@ -576,8 +617,19 @@ impl<'a, 'b> PeepholeOptimizations {
 }
 
 impl<'a> LatePeepholeOptimizations {
-    pub fn remove_dead_code_exit_class_body(body: &mut ClassBody<'a>, _ctx: &mut TraverseCtx<'a>) {
+    pub fn remove_dead_code_exit_class_body(body: &mut ClassBody<'a>, _ctx: Ctx<'a, '_>) {
         body.body.retain(|e| !matches!(e, ClassElement::StaticBlock(s) if s.body.is_empty()));
+    }
+
+    pub fn remove_empty_spread_arguments(args: &mut Vec<'a, Argument<'a>>) {
+        if args.len() != 1 {
+            return;
+        }
+        let Argument::SpreadElement(e) = &args[0] else { return };
+        let Expression::ArrayExpression(e) = &e.argument else { return };
+        if e.elements.is_empty() {
+            args.drain(..);
+        }
     }
 }
 
@@ -755,7 +807,7 @@ mod test {
         test("try {} catch (e) { foo() } finally { var x = bar() }", "{ var x = bar() }");
         test("try {} finally { let x = foo() }", "{ let x = foo() }");
         test("try {} catch (e) { foo() } finally { let x = bar() }", "{ let x = bar();}");
-        test("try {} catch () { } finally {}", "");
+        test("try {} catch (e) { } finally {}", "");
     }
 
     #[test]
@@ -804,7 +856,7 @@ mod test {
     #[test]
     fn test_remove_empty_static_block() {
         test("class Foo { static {}; foo }", "class Foo { foo }");
-        test_same("class Foo { static { foo() }");
+        test_same("class Foo { static { foo() } }");
     }
 
     #[test]
@@ -816,8 +868,51 @@ mod test {
     }
 
     #[test]
+    fn test_new_constructor_side_effect() {
+        test("new WeakSet()", "");
+        test("new WeakSet(null)", "");
+        test("new WeakSet(void 0)", "");
+        test("new WeakSet([])", "");
+        test_same("new WeakSet([x])");
+        test_same("new WeakSet(x)");
+        test("new WeakMap()", "");
+        test("new WeakMap(null)", "");
+        test("new WeakMap(void 0)", "");
+        test("new WeakMap([])", "");
+        test_same("new WeakMap([x])");
+        test_same("new WeakMap(x)");
+        test("new Date()", "");
+        test("new Date('')", "");
+        test("new Date(0)", "");
+        test("new Date(null)", "");
+        test("new Date(true)", "");
+        test("new Date(false)", "");
+        test("new Date(undefined)", "");
+        test_same("new Date(x)");
+        test("new Set()", "");
+        // test("new Set([a, b, c])", "");
+        test("new Set(null)", "");
+        test("new Set(undefined)", "");
+        test("new Set(void 0)", "");
+        test_same("new Set(x)");
+        test("new Map()", "");
+        test("new Map(null)", "");
+        test("new Map(undefined)", "");
+        test("new Map(void 0)", "");
+        // test_same("new Map([x])");
+        test_same("new Map(x)");
+        // test("new Map([[a, b], [c, d]])", "");
+    }
+
+    #[test]
     fn keep_module_syntax() {
         test_same("throw foo; export let bar");
         test_same("throw foo; export default bar");
+    }
+
+    #[test]
+    fn remove_empty_spread_arguments() {
+        test("foo(...[])", "foo()");
+        test("new Foo(...[])", "new Foo()");
     }
 }

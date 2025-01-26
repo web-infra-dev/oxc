@@ -1,5 +1,4 @@
-use std::iter;
-use std::ops::Deref;
+use std::{iter, ops::Deref};
 
 use fixedbitset::FixedBitSet;
 use itertools::Itertools;
@@ -180,23 +179,17 @@ impl Mangler {
         let allocator = Allocator::default();
 
         // All symbols with their assigned slots. Keyed by symbol id.
-        let mut slots: Vec<'_, Slot> = Vec::with_capacity_in(symbol_table.len(), &allocator);
-        for _ in 0..symbol_table.len() {
-            slots.push(0);
-        }
+        let mut slots: Vec<'_, Slot> =
+            Vec::from_iter_in(iter::repeat_n(0, symbol_table.len()), &allocator);
 
         // Stores the lived scope ids for each slot. Keyed by slot number.
         let mut slot_liveness: std::vec::Vec<FixedBitSet> = vec![];
 
-        let mut tmp_bindings = std::vec::Vec::with_capacity(100);
         let mut reusable_slots = std::vec::Vec::new();
         // Walk down the scope tree and assign a slot number for each symbol.
         // It is possible to do this in a loop over the symbol list,
         // but walking down the scope tree seems to generate a better code.
-        for scope_id in iter::once(scope_tree.root_scope_id())
-            .chain(scope_tree.iter_all_child_ids(scope_tree.root_scope_id()))
-        {
-            let bindings = scope_tree.get_bindings(scope_id);
+        for (scope_id, bindings) in scope_tree.iter_bindings() {
             if bindings.is_empty() {
                 continue;
             }
@@ -224,36 +217,27 @@ impl Mangler {
             }
 
             // Sort `bindings` in declaration order.
-            tmp_bindings.clear();
-            tmp_bindings.extend(bindings.values().copied());
-            tmp_bindings.sort_unstable();
-            for (symbol_id, assigned_slot) in
-                tmp_bindings.iter().zip(reusable_slots.iter().copied())
-            {
+            let sorted_bindings = bindings.values().copied().sorted_unstable();
+            for (symbol_id, assigned_slot) in sorted_bindings.zip(reusable_slots.iter().copied()) {
                 slots[symbol_id.index()] = assigned_slot;
 
+                // If the symbol is declared by `var`, then it can be hoisted to
+                // parent, so we need to include the scope where it is declared.
+                // (for cases like `function foo() { { var x; let y; } }`)
                 let declared_scope_id =
-                    ast_nodes.get_node(symbol_table.get_declaration(*symbol_id)).scope_id();
+                    ast_nodes.get_node(symbol_table.get_declaration(symbol_id)).scope_id();
 
                 // Calculate the scope ids that this symbol is alive in.
                 let lived_scope_ids = symbol_table
-                    .get_resolved_references(*symbol_id)
-                    .flat_map(|reference| {
-                        let used_scope_id = ast_nodes.get_node(reference.node_id()).scope_id();
+                    .get_resolved_references(symbol_id)
+                    .map(|reference| ast_nodes.get_node(reference.node_id()).scope_id())
+                    .chain([scope_id, declared_scope_id])
+                    .flat_map(|used_scope_id| {
                         scope_tree.ancestors(used_scope_id).take_while(|s_id| *s_id != scope_id)
-                    })
-                    // also include scopes that this symbol was declared (for cases like `function foo() { { var x; let y; } }`)
-                    .chain(
-                        scope_tree
-                            .ancestors(declared_scope_id)
-                            .take_while(|s_id| *s_id != scope_id),
-                    )
-                    .chain(iter::once(scope_id));
+                    });
 
                 // Since the slot is now assigned to this symbol, it is alive in all the scopes that this symbol is alive in.
-                for scope_id in lived_scope_ids {
-                    slot_liveness[assigned_slot].insert(scope_id.index());
-                }
+                slot_liveness[assigned_slot].extend(lived_scope_ids.map(oxc_index::Idx::index));
             }
         }
 
