@@ -38,13 +38,13 @@ oxc_span = { workspace = true }
 bpaf = { workspace = true, features = ["autocomplete", "bright-color", "derive"] }
 ignore = { workspace = true, features = ["simd-accel"] }
 miette = { workspace = true }
+quick-junit = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
-tracing-subscriber = { workspace = true, features = [] } # Omit the `regex` feature 
-quick-junit = { workspace = true }
+tracing-subscriber = { workspace = true, features = [] } # Omit the `regex` feature
 
 [dev-dependencies]
 insta = { workspace = true }

@@ -1,5 +1,7 @@
-
-use oxc_diagnostics::{reporter::{DiagnosticReporter, DiagnosticResult, Info}, Error};
+use oxc_diagnostics::{
+    reporter::{DiagnosticReporter, DiagnosticResult, Info},
+    Error,
+};
 
 use super::InternalFormatter;
 use quick_junit::{NonSuccessKind, Report, TestCase, TestCaseStatus, TestSuite};
@@ -37,7 +39,7 @@ fn format_junit(diagnostics: &[Error]) -> String {
         let mut status = TestCaseStatus::non_success(NonSuccessKind::Failure);
         status.set_message(info.message);
         let rule = diagnostic.code().map_or_else(String::new, |code| code.to_string());
-        let test_case = TestCase::new(rule, status); 
+        let test_case = TestCase::new(rule, status);
         test_suite.add_test_case(test_case);
 
         report.add_test_suite(test_suite);
