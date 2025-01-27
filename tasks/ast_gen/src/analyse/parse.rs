@@ -214,11 +214,14 @@ impl<'c> Parser<'c> {
 
                 if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                     // Check attribute is legal in this position
-                    if !positions.contains(AttrPositions::StructField) {
-                        panic_wrong_attr_position(struct_def.name(), &attr_name, "struct field");
-                    }
-
-                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    // and has the relevant trait `#[generate_derive]`-ed on it
+                    check_attr_position(
+                        positions,
+                        AttrPositions::StructField,
+                        struct_def.name(),
+                        &attr_name,
+                        "struct field",
+                    );
                     check_attr_is_derived(
                         processor,
                         generated_derives,
@@ -284,11 +287,14 @@ impl<'c> Parser<'c> {
 
                 if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                     // Check attribute is legal in this position
-                    if !positions.contains(AttrPositions::EnumVariant) {
-                        panic_wrong_attr_position(enum_def.name(), &attr_name, "enum variant");
-                    }
-
-                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    // and has the relevant trait `#[generate_derive]`-ed on it
+                    check_attr_position(
+                        positions,
+                        AttrPositions::EnumVariant,
+                        enum_def.name(),
+                        &attr_name,
+                        "enum variant",
+                    );
                     check_attr_is_derived(
                         processor,
                         generated_derives,
@@ -460,14 +466,22 @@ impl<'c> Parser<'c> {
                 // Check attribute is legal in this position
                 match type_def {
                     TypeDef::Struct(struct_def) => {
-                        if !positions.contains(AttrPositions::Struct) {
-                            panic_wrong_attr_position(struct_def.name(), &attr_name, "struct");
-                        }
+                        check_attr_position(
+                            positions,
+                            AttrPositions::Struct,
+                            struct_def.name(),
+                            &attr_name,
+                            "struct",
+                        );
                     }
                     TypeDef::Enum(enum_def) => {
-                        if !positions.contains(AttrPositions::Enum) {
-                            panic_wrong_attr_position(enum_def.name(), &attr_name, "enum");
-                        }
+                        check_attr_position(
+                            positions,
+                            AttrPositions::Enum,
+                            enum_def.name(),
+                            &attr_name,
+                            "enum",
+                        );
                     }
                     _ => unreachable!(),
                 }
@@ -510,11 +524,14 @@ impl<'c> Parser<'c> {
                 let attr_name = meta.path.get_ident().unwrap().to_string();
                 if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                     // Check attribute is legal in this position
-                    if !positions.contains(AttrPositions::AstAttr) {
-                        panic_wrong_attr_position(type_def.name(), &attr_name, "`#[ast]` attr");
-                    }
-
-                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    // and has the relevant trait `#[generate_derive]`-ed on it
+                    check_attr_position(
+                        positions,
+                        AttrPositions::AstAttr,
+                        type_def.name(),
+                        &attr_name,
+                        "`#[ast]` attr",
+                    );
                     check_attr_is_derived(
                         processor,
                         type_def.generated_derives(),
@@ -638,10 +655,17 @@ fn check_attr_is_derived(
     );
 }
 
-/// Panic with message that attribute appears in wrong position
-fn panic_wrong_attr_position(type_name: &str, attr_name: &str, position: &str) {
-    panic!(
-        "`{type_name}` type has `#[{attr_name}]` attribute on a {position}, \
+/// Check attribute is in a legal position.
+fn check_attr_position(
+    expected_positions: AttrPositions,
+    found_in_position: AttrPositions,
+    type_name: &str,
+    attr_name: &str,
+    position_debug_str: &str,
+) {
+    assert!(
+        expected_positions.contains(found_in_position),
+        "`{type_name}` type has `#[{attr_name}]` attribute on a {position_debug_str}, \
         but `#[{attr_name}]` is not legal in this position."
     );
 }
