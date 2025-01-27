@@ -13,7 +13,7 @@ use crate::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
     },
-    DERIVES, GENERATORS,
+    Result, DERIVES, GENERATORS,
 };
 
 use super::{
@@ -227,14 +227,7 @@ impl<'c> Parser<'c> {
                     );
 
                     let location = AttrLocation::StructField(struct_def, field_index);
-                    let result = match processor {
-                        AttrProcessor::Derive(derive_id) => {
-                            DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
-                        }
-                        AttrProcessor::Generator(generator_id) => {
-                            GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
-                        }
-                    };
+                    let result = process_attr(processor, &attr_name, location, &attr.meta);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` struct field",
@@ -304,14 +297,7 @@ impl<'c> Parser<'c> {
                     );
 
                     let location = AttrLocation::EnumVariant(enum_def, variant_index);
-                    let result = match processor {
-                        AttrProcessor::Derive(derive_id) => {
-                            DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
-                        }
-                        AttrProcessor::Generator(generator_id) => {
-                            GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
-                        }
-                    };
+                    let result = process_attr(processor, &attr_name, location, &attr.meta);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` enum variant",
@@ -499,14 +485,7 @@ impl<'c> Parser<'c> {
                     TypeDef::Enum(enum_def) => AttrLocation::Enum(enum_def),
                     _ => unreachable!(),
                 };
-                let result = match processor {
-                    AttrProcessor::Derive(derive_id) => {
-                        DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
-                    }
-                    AttrProcessor::Generator(generator_id) => {
-                        GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
-                    }
-                };
+                let result = process_attr(processor, &attr_name, location, &attr.meta);
                 assert!(
                     result.is_ok(),
                     "Invalid use of `#[{attr_name}]` on `{}` type",
@@ -551,14 +530,7 @@ impl<'c> Parser<'c> {
                         TypeDef::Enum(enum_def) => AttrLocation::EnumAstAttr(enum_def),
                         _ => unreachable!(),
                     };
-                    let result = match processor {
-                        AttrProcessor::Derive(derive_id) => {
-                            DERIVES[derive_id].parse_attr(&attr_name, location, &meta)
-                        }
-                        AttrProcessor::Generator(generator_id) => {
-                            GENERATORS[generator_id].parse_attr(&attr_name, location, &meta)
-                        }
-                    };
+                    let result = process_attr(processor, &attr_name, location, &meta);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[ast({attr_name})]` on `{}` type",
@@ -627,6 +599,23 @@ fn type_path_segment(type_path: &TypePath) -> Option<&PathSegment> {
         return None;
     }
     segments.first()
+}
+
+/// Process attribute with a processor (derive or generator).
+fn process_attr(
+    processor: AttrProcessor,
+    attr_name: &str,
+    location: AttrLocation,
+    meta: &Meta,
+) -> Result<()> {
+    match processor {
+        AttrProcessor::Derive(derive_id) => {
+            DERIVES[derive_id].parse_attr(attr_name, location, meta)
+        }
+        AttrProcessor::Generator(generator_id) => {
+            GENERATORS[generator_id].parse_attr(attr_name, location, meta)
+        }
+    }
 }
 
 /// If attribute is processed by a derive, check that trait is derived on the type.
