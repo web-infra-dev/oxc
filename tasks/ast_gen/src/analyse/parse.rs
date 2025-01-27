@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    codegen::{AttrLocation, AttrPositions, AttrProcessor, Codegen, DeriveId},
+    codegen::{AttrLocation, AttrPositions, AttrProcessor, Codegen},
     schema::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
@@ -219,11 +219,12 @@ impl<'c> Parser<'c> {
                     }
 
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
-                    if let AttrProcessor::Derive(derive_id) = processor {
-                        if !generated_derives.has(derive_id) {
-                            panic_not_derived(struct_def.name(), &attr_name, derive_id);
-                        }
-                    }
+                    check_attr_is_derived(
+                        processor,
+                        generated_derives,
+                        struct_def.name(),
+                        &attr_name,
+                    );
 
                     let location = AttrLocation::StructField(struct_def, field_index);
                     let result = match processor {
@@ -295,11 +296,12 @@ impl<'c> Parser<'c> {
                     }
 
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
-                    if let AttrProcessor::Derive(derive_id) = processor {
-                        if !generated_derives.has(derive_id) {
-                            panic_not_derived(enum_def.name(), &attr_name, derive_id);
-                        }
-                    }
+                    check_attr_is_derived(
+                        processor,
+                        generated_derives,
+                        enum_def.name(),
+                        &attr_name,
+                    );
 
                     let location = AttrLocation::EnumVariant(enum_def, variant_index);
                     let result = match processor {
@@ -485,11 +487,12 @@ impl<'c> Parser<'c> {
                 }
 
                 // Check this type has the relevant trait `#[generate_derive]`-ed on it
-                if let AttrProcessor::Derive(derive_id) = processor {
-                    if !type_def.generates_derive(derive_id) {
-                        panic_not_derived(type_def.name(), &attr_name, derive_id);
-                    }
-                }
+                check_attr_is_derived(
+                    processor,
+                    type_def.generated_derives(),
+                    type_def.name(),
+                    &attr_name,
+                );
 
                 let location = match type_def {
                     TypeDef::Struct(struct_def) => AttrLocation::Struct(struct_def),
@@ -533,11 +536,12 @@ impl<'c> Parser<'c> {
                     }
 
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
-                    if let AttrProcessor::Derive(derive_id) = processor {
-                        if !type_def.generates_derive(derive_id) {
-                            panic_not_derived(type_def.name(), &attr_name, derive_id);
-                        }
-                    }
+                    check_attr_is_derived(
+                        processor,
+                        type_def.generated_derives(),
+                        type_def.name(),
+                        &attr_name,
+                    );
 
                     // TODO: Support more complex formulations e.g. `#[ast(foo(bar))]`
                     let meta = Meta::Path(meta.path);
@@ -625,8 +629,18 @@ fn type_path_segment(type_path: &TypePath) -> Option<&PathSegment> {
     segments.first()
 }
 
-/// Panic with message that expected trait is not derived
-fn panic_not_derived(type_name: &str, attr_name: &str, derive_id: DeriveId) {
+/// If attribute is processed by a derive, check that trait is derived on the type.
+fn check_attr_is_derived(
+    processor: AttrProcessor,
+    generated_derives: Derives,
+    type_name: &str,
+    attr_name: &str,
+) {
+    let AttrProcessor::Derive(derive_id) = processor else { return };
+    if generated_derives.has(derive_id) {
+        return;
+    }
+
     let trait_name = DERIVES[derive_id].trait_name();
     panic!(
         "`{type_name}` type has `#[{attr_name}]` attribute, but `{trait_name}` trait \
