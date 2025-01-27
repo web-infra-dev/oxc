@@ -218,28 +218,23 @@ impl<'c> Parser<'c> {
                         panic_wrong_attr_position(struct_def.name(), &attr_name, "struct field");
                     }
 
+                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    if let AttrProcessor::Derive(derive_id) = processor {
+                        if !generated_derives.has(derive_id) {
+                            let derive = DERIVES[derive_id];
+                            panic_not_derived(struct_def.name(), &attr_name, derive.trait_name());
+                        }
+                    }
+
+                    let location = AttrLocation::StructField(struct_def, field_index);
                     let result = match processor {
                         AttrProcessor::Derive(derive_id) => {
-                            // Check this struct has the relevant trait `#[generate_derive]`-ed on it
-                            let derive = DERIVES[derive_id];
-                            if !generated_derives.has(derive_id) {
-                                panic_not_derived(
-                                    struct_def.name(),
-                                    &attr_name,
-                                    derive.trait_name(),
-                                );
-                            }
-
-                            let location = AttrLocation::StructField(struct_def, field_index);
-                            derive.parse_attr(&attr_name, location, &attr.meta)
+                            DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
                         }
                         AttrProcessor::Generator(generator_id) => {
-                            let generator = GENERATORS[generator_id];
-                            let location = AttrLocation::StructField(struct_def, field_index);
-                            generator.parse_attr(&attr_name, location, &attr.meta)
+                            GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
                         }
                     };
-
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` struct field",
@@ -300,24 +295,23 @@ impl<'c> Parser<'c> {
                         panic_wrong_attr_position(enum_def.name(), &attr_name, "enum variant");
                     }
 
+                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    if let AttrProcessor::Derive(derive_id) = processor {
+                        if !generated_derives.has(derive_id) {
+                            let derive = DERIVES[derive_id];
+                            panic_not_derived(enum_def.name(), &attr_name, derive.trait_name());
+                        }
+                    }
+
+                    let location = AttrLocation::EnumVariant(enum_def, variant_index);
                     let result = match processor {
                         AttrProcessor::Derive(derive_id) => {
-                            // Check this struct has the relevant trait `#[generate_derive]`-ed on it
-                            let derive = DERIVES[derive_id];
-                            if !generated_derives.has(derive_id) {
-                                panic_not_derived(enum_def.name(), &attr_name, derive.trait_name());
-                            }
-
-                            let location = AttrLocation::EnumVariant(enum_def, variant_index);
-                            derive.parse_attr(&attr_name, location, &attr.meta)
+                            DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
                         }
                         AttrProcessor::Generator(generator_id) => {
-                            let generator = GENERATORS[generator_id];
-                            let location = AttrLocation::EnumVariant(enum_def, variant_index);
-                            generator.parse_attr(&attr_name, location, &attr.meta)
+                            GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
                         }
                     };
-
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` enum variant",
@@ -492,24 +486,27 @@ impl<'c> Parser<'c> {
                     _ => unreachable!(),
                 }
 
+                // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                if let AttrProcessor::Derive(derive_id) = processor {
+                    if !type_def.generates_derive(derive_id) {
+                        let derive = DERIVES[derive_id];
+                        panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
+                    }
+                }
+
+                let location = match type_def {
+                    TypeDef::Struct(struct_def) => AttrLocation::Struct(struct_def),
+                    TypeDef::Enum(enum_def) => AttrLocation::Enum(enum_def),
+                    _ => unreachable!(),
+                };
                 let result = match processor {
                     AttrProcessor::Derive(derive_id) => {
-                        // Check this struct has the relevant trait `#[generate_derive]`-ed on it
-                        let derive = DERIVES[derive_id];
-                        if !type_def.generates_derive(derive_id) {
-                            panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
-                        }
-
-                        let location = AttrLocation::from_type_def(type_def);
-                        derive.parse_attr(&attr_name, location, &attr.meta)
+                        DERIVES[derive_id].parse_attr(&attr_name, location, &attr.meta)
                     }
                     AttrProcessor::Generator(generator_id) => {
-                        let generator = GENERATORS[generator_id];
-                        let location = AttrLocation::from_type_def(type_def);
-                        generator.parse_attr(&attr_name, location, &attr.meta)
+                        GENERATORS[generator_id].parse_attr(&attr_name, location, &attr.meta)
                     }
                 };
-
                 assert!(
                     result.is_ok(),
                     "Invalid use of `#[{attr_name}]` on `{}` type",
@@ -538,27 +535,30 @@ impl<'c> Parser<'c> {
                         panic_wrong_attr_position(type_def.name(), &attr_name, "`#[ast]` attr");
                     }
 
+                    // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                    if let AttrProcessor::Derive(derive_id) = processor {
+                        if !type_def.generates_derive(derive_id) {
+                            let derive = DERIVES[derive_id];
+                            panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
+                        }
+                    }
+
                     // TODO: Support more complex formulations e.g. `#[ast(foo(bar))]`
                     let meta = Meta::Path(meta.path);
 
+                    let location = match type_def {
+                        TypeDef::Struct(struct_def) => AttrLocation::StructAstAttr(struct_def),
+                        TypeDef::Enum(enum_def) => AttrLocation::EnumAstAttr(enum_def),
+                        _ => unreachable!(),
+                    };
                     let result = match processor {
                         AttrProcessor::Derive(derive_id) => {
-                            // Check this type has the relevant trait `#[generate_derive]`-ed on it
-                            let derive = DERIVES[derive_id];
-                            if !type_def.generates_derive(derive_id) {
-                                panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
-                            }
-
-                            let location = AttrLocation::ast_attr_from_type_def(type_def);
-                            derive.parse_attr(&attr_name, location, &meta)
+                            DERIVES[derive_id].parse_attr(&attr_name, location, &meta)
                         }
                         AttrProcessor::Generator(generator_id) => {
-                            let generator = GENERATORS[generator_id];
-                            let location = AttrLocation::ast_attr_from_type_def(type_def);
-                            generator.parse_attr(&attr_name, location, &meta)
+                            GENERATORS[generator_id].parse_attr(&attr_name, location, &meta)
                         }
                     };
-
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[ast({attr_name})]` on `{}` type",

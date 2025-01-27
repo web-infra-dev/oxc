@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    schema::{EnumDef, StructDef, TypeDef},
+    schema::{EnumDef, StructDef},
     Derive, Output, Result, Schema, DERIVES, GENERATORS,
 };
 
@@ -146,24 +146,6 @@ pub enum AttrLocation<'s> {
     StructAstAttr(&'s mut StructDef),
     /// Part of `#[ast]` attr on an enum
     EnumAstAttr(&'s mut EnumDef),
-}
-
-impl<'s> AttrLocation<'s> {
-    pub fn from_type_def(type_def: &'s mut TypeDef) -> Self {
-        match type_def {
-            TypeDef::Struct(struct_def) => Self::Struct(struct_def),
-            TypeDef::Enum(enum_def) => Self::Enum(enum_def),
-            _ => panic!("TypeDef is not a struct or enum"),
-        }
-    }
-
-    pub fn ast_attr_from_type_def(type_def: &'s mut TypeDef) -> Self {
-        match type_def {
-            TypeDef::Struct(struct_def) => Self::StructAstAttr(struct_def),
-            TypeDef::Enum(enum_def) => Self::EnumAstAttr(enum_def),
-            _ => panic!("TypeDef is not a struct or enum"),
-        }
-    }
 }
 
 /// Runner trait.
