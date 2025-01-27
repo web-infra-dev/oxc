@@ -57,10 +57,11 @@ pub trait Derive: Runner {
         TokenStream::default()
     }
 
-    /// Modify schema.
+    /// Prepare for generatation, modifying schema.
+    ///
     /// Runs before any `generate` or `derive` method runs.
     #[expect(unused_variables)]
-    fn modify(&self, schema: &mut Schema) {}
+    fn prepare(&self, schema: &mut Schema) {}
 
     /// Generate trait implementation for a type.
     fn derive(&self, type_def: StructOrEnum<'_>, schema: &Schema) -> TokenStream;

@@ -34,10 +34,11 @@ pub trait Generator: Runner {
         Ok(())
     }
 
-    /// Modify schema.
+    /// Prepare for generatation, modifying schema.
+    ///
     /// Runs before any `generate` or `derive` method runs.
     #[expect(unused_variables)]
-    fn modify(&self, schema: &mut Schema) {}
+    fn prepare(&self, schema: &mut Schema) {}
 
     /// Generate output.
     fn generate(&self, schema: &Schema) -> Output;

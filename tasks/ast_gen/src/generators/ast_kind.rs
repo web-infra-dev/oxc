@@ -91,7 +91,7 @@ pub const BLACK_LIST: [&str; 62] = [
 
 impl Generator for AstKindGenerator {
     /// Set `has_kind` for structs and enums which are not on blacklist.
-    fn modify(&self, schema: &mut Schema) {
+    fn prepare(&self, schema: &mut Schema) {
         for type_def in &mut schema.types {
             match type_def {
                 TypeDef::Struct(struct_def) => {

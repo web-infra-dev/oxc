@@ -78,11 +78,11 @@ fn main() {
 
     // Run modify actions
     for runner in GENERATORS {
-        runner.modify(&mut schema);
+        runner.prepare(&mut schema);
     }
 
     for runner in DERIVES {
-        runner.modify(&mut schema);
+        runner.prepare(&mut schema);
     }
 
     // Run generators
