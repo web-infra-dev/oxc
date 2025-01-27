@@ -131,7 +131,6 @@ pub(crate) use attr_positions;
 /// Attribute location.
 pub enum AttrLocation<'s> {
     /// Attribute on a struct
-    #[expect(dead_code)]
     Struct(&'s mut StructDef),
     /// Attribute on an enum
     #[expect(dead_code)]

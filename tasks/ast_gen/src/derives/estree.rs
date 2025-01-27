@@ -1,9 +1,13 @@
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::Meta;
 
-use crate::schema::{Def, EnumDef, Schema, StructDef};
+use crate::{
+    schema::{estree::ESTreeStruct, Def, EnumDef, Schema, StructDef},
+    Result,
+};
 
-use super::{attr_positions, define_derive, AttrPositions, Derive, StructOrEnum};
+use super::{attr_positions, define_derive, AttrLocation, AttrPositions, Derive, StructOrEnum};
 
 pub struct DeriveESTree;
 
@@ -20,6 +24,16 @@ impl Derive for DeriveESTree {
 
     fn attrs(&self) -> &[(&'static str, AttrPositions)] {
         &[("estree", attr_positions!(Struct | Enum | StructField | EnumVariant))]
+    }
+
+    fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, _meta: &Meta) -> Result<()> {
+        match location {
+            AttrLocation::Struct(_struct_def) => {
+                // TODO
+                Ok(())
+            }
+            _ => Ok(()),
+        }
     }
 
     fn prelude(&self) -> TokenStream {

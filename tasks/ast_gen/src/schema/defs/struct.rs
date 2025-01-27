@@ -7,7 +7,7 @@ use syn::Ident;
 
 use crate::utils::create_ident;
 
-use super::{Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId};
+use super::{estree::ESTreeStruct, Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId};
 
 /// Type definition for a struct.
 #[derive(Debug)]
@@ -22,6 +22,8 @@ pub struct StructDef {
     pub has_kind: bool,
     pub layout: Layout,
     pub span_field_index: Option<usize>,
+    #[expect(dead_code)]
+    pub estree: ESTreeStruct,
 }
 
 impl StructDef {
@@ -45,6 +47,7 @@ impl StructDef {
             has_kind: false,
             layout: Layout::default(),
             span_field_index: None,
+            estree: ESTreeStruct::default(),
         }
     }
 

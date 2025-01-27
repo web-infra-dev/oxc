@@ -5,7 +5,7 @@ use syn::Ident;
 
 use crate::{codegen::DeriveId, utils::create_ident, Schema};
 
-use super::{Derives, FileId, Layout, Offset, TypeId};
+use super::{estree, Derives, FileId, Layout, Offset, TypeId};
 
 mod r#box;
 mod cell;

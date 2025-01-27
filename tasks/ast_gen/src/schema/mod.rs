@@ -5,6 +5,7 @@ use serde::Serialize;
 
 mod defs;
 mod derives;
+pub mod estree;
 mod file;
 mod layout;
 pub use defs::*;
