@@ -1,7 +1,7 @@
 use syn::Meta;
 
 use crate::{
-    codegen::{AttrLocation, AttrPositions},
+    codegen::{attr_positions, AttrLocation, AttrPositions},
     output::Output,
     Result, Runner, Schema,
 };

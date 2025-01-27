@@ -3,7 +3,7 @@ use quote::quote;
 
 use crate::schema::Schema;
 
-use super::{define_derive, AttrPositions, Derive, StructOrEnum};
+use super::{attr_positions, define_derive, AttrPositions, Derive, StructOrEnum};
 
 pub struct DeriveESTree;
 
@@ -19,7 +19,7 @@ impl Derive for DeriveESTree {
     }
 
     fn attrs(&self) -> &[(&'static str, AttrPositions)] {
-        &[("estree", AttrPositions::Any)]
+        &[("estree", attr_positions!(Struct | Enum | StructField | EnumVariant))]
     }
 
     fn prelude(&self) -> TokenStream {

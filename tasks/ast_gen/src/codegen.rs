@@ -96,20 +96,31 @@ impl AttrProcessor {
 }
 
 bitflags! {
-    /// Attribute positions.
+    /// Positions in which an attribute is legal.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct AttrPositions: u8 {
         const Struct = 1 << 0;
         const Enum = 1 << 1;
         const StructField = 1 << 2;
         const EnumVariant = 1 << 3;
-
-        const Type = Self::Struct.bits() | Self::Enum.bits();
-        const TypeOrStructField = Self::Type.bits() | Self::StructField.bits();
-        const StructFieldOrEnumVariant = Self::StructField.bits() | Self::EnumVariant.bits();
-        const Any = Self::Type.bits() | Self::StructFieldOrEnumVariant.bits();
     }
 }
+
+/// Macro to combine multiple `AttrPositions` as a const.
+///
+/// `attr_positions!(Struct | Enum)` is equivalent to `AttrPositions::Struct | AttrPositions::Enum`,
+/// except it evaluates in const context.
+///
+/// Useful for `Derive::attrs` and `Generator::attrs` methods, where a const is required.
+macro_rules! attr_positions {
+    ($($positions:ident)|+) => {
+        const {
+            use $crate::codegen::AttrPositions;
+            AttrPositions::empty() $(.union(AttrPositions::$positions))+
+        }
+    }
+}
+pub(crate) use attr_positions;
 
 /// Attribute location.
 pub enum AttrLocation<'s> {

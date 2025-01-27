@@ -6,7 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use syn::{parse_str, ItemUse, Meta};
 
 use crate::{
-    codegen::{AttrLocation, AttrPositions, Codegen},
+    codegen::{attr_positions, AttrLocation, AttrPositions, Codegen},
     output::{output_path, Output},
     schema::{EnumDef, Schema, StructDef, TypeDef},
     Result, Runner,
