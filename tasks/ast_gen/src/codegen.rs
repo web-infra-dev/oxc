@@ -99,10 +99,16 @@ bitflags! {
     /// Positions in which an attribute is legal.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct AttrPositions: u8 {
+        /// Attribute on a struct
         const Struct = 1 << 0;
+        /// Attribute on an enum
         const Enum = 1 << 1;
+        /// Attribute on a struct field
         const StructField = 1 << 2;
+        /// Attribute on an enum variant
         const EnumVariant = 1 << 3;
+        /// Part of `#[ast]` attr e.g. `visit` in `#[ast(visit)]`
+        const AstAttr = 1 << 4;
     }
 }
 
@@ -124,15 +130,22 @@ pub(crate) use attr_positions;
 
 /// Attribute location.
 pub enum AttrLocation<'s> {
+    /// Attribute on a struct
     #[expect(dead_code)]
     Struct(&'s mut StructDef),
+    /// Attribute on an enum
     #[expect(dead_code)]
     Enum(&'s mut EnumDef),
-    /// Struct def and field index
+    /// Attribute on a struct field.
+    /// Comprises [`StructDef`] and field index.
     StructField(&'s mut StructDef, usize),
-    /// Enum def and variant index
-    #[expect(dead_code)]
+    /// Attribute on an enum variant.
+    /// Comprises [`EnumDef`]` and variant index.
     EnumVariant(&'s mut EnumDef, usize),
+    /// Part of `#[ast]` attr on a struct
+    StructAstAttr(&'s mut StructDef),
+    /// Part of `#[ast]` attr on an enum
+    EnumAstAttr(&'s mut EnumDef),
 }
 
 impl<'s> AttrLocation<'s> {
@@ -140,6 +153,14 @@ impl<'s> AttrLocation<'s> {
         match type_def {
             TypeDef::Struct(struct_def) => Self::Struct(struct_def),
             TypeDef::Enum(enum_def) => Self::Enum(enum_def),
+            _ => panic!("TypeDef is not a struct or enum"),
+        }
+    }
+
+    pub fn ast_attr_from_type_def(type_def: &'s mut TypeDef) -> Self {
+        match type_def {
+            TypeDef::Struct(struct_def) => Self::StructAstAttr(struct_def),
+            TypeDef::Enum(enum_def) => Self::EnumAstAttr(enum_def),
             _ => panic!("TypeDef is not a struct or enum"),
         }
     }

@@ -32,7 +32,6 @@ impl StructDef {
         file_id: FileId,
         generated_derives: Derives,
         fields: Vec<FieldDef>,
-        is_visited: bool,
     ) -> Self {
         Self {
             id,
@@ -41,7 +40,7 @@ impl StructDef {
             file_id,
             generated_derives,
             fields,
-            is_visited,
+            is_visited: false,
             has_kind: false,
             layout: Layout::default(),
             span_field_index: None,

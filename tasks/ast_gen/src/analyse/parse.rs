@@ -3,8 +3,8 @@ use quote::ToTokens;
 use rustc_hash::FxHashMap;
 use syn::{
     punctuated::Punctuated, AttrStyle, Attribute, Expr, ExprLit, Field, Fields, GenericArgument,
-    Generics, Ident, ItemEnum, ItemStruct, Lit, Meta, Path, PathArguments, PathSegment, Token,
-    Type, TypePath, TypeReference, Variant, Visibility as SynVisibility,
+    Generics, Ident, ItemEnum, ItemStruct, Lit, Meta, PathArguments, PathSegment, Token, Type,
+    TypePath, TypeReference, Variant, Visibility as SynVisibility,
 };
 
 use crate::{
@@ -129,7 +129,6 @@ impl<'c> Parser<'c> {
                     parser.get_file_id("oxc_ast::ast::literal"),
                     Derives::none(),
                     vec![FieldDef::new(None, parser.type_id("u8"), Visibility::Public)],
-                    false,
                 )),
                 _ => panic!("Unknown type: {name}"),
             }
@@ -178,7 +177,6 @@ impl<'c> Parser<'c> {
         let has_lifetime = check_generics(&item.generics, &name);
         let fields = self.parse_fields(&item.fields);
         let generated_derives = self.get_generated_derives(&item.attrs);
-        let is_visited = check_ast_attr(&item.attrs);
         let mut type_def = TypeDef::Struct(StructDef::new(
             type_id,
             name,
@@ -186,7 +184,6 @@ impl<'c> Parser<'c> {
             file_id,
             generated_derives,
             fields,
-            is_visited,
         ));
 
         // Parse attrs on type and fields
@@ -261,7 +258,6 @@ impl<'c> Parser<'c> {
         let variants = item.variants.iter().map(|variant| self.parse_variant(variant)).collect();
         let inherits = inherits.into_iter().map(|name| self.type_id(&name)).collect();
         let generated_derives = self.get_generated_derives(&item.attrs);
-        let is_visited = check_ast_attr(&item.attrs);
         let mut type_def = TypeDef::Enum(EnumDef::new(
             type_id,
             name,
@@ -270,7 +266,6 @@ impl<'c> Parser<'c> {
             generated_derives,
             variants,
             inherits,
-            is_visited,
         ));
 
         // Parse attrs on type and variants
@@ -476,6 +471,11 @@ impl<'c> Parser<'c> {
             let Some(attr_ident) = attr.path().get_ident() else { continue };
             let attr_name = ident_name(attr_ident);
 
+            if attr_name == "ast" {
+                self.parse_ast_attr_parts(type_def, attr);
+                return;
+            }
+
             if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
                 // Check attribute is legal in this position
                 match type_def {
@@ -519,6 +519,60 @@ impl<'c> Parser<'c> {
         }
     }
 
+    /// Parse `#[ast]` attribute parts on struct or enum with parsers provided by [`Derive`]s
+    /// and [`Generator`]s.
+    ///
+    /// e.g. `#[ast(visit)]`
+    ///
+    /// [`Derive`]: crate::Derive
+    /// [`Generator`]: crate::Generator
+    fn parse_ast_attr_parts(&mut self, type_def: &mut TypeDef, ast_attr: &Attribute) {
+        let Meta::List(meta_list) = &ast_attr.meta else { return };
+
+        meta_list
+            .parse_nested_meta(|meta| {
+                let attr_name = meta.path.get_ident().unwrap().to_string();
+                if let Some((processor, positions)) = self.codegen.attr_processor(&attr_name) {
+                    // Check attribute is legal in this position
+                    if !positions.contains(AttrPositions::AstAttr) {
+                        panic_wrong_attr_position(type_def.name(), &attr_name, "`#[ast]` attr");
+                    }
+
+                    // TODO: Support more complex formulations e.g. `#[ast(foo(bar))]`
+                    let meta = Meta::Path(meta.path);
+
+                    let result = match processor {
+                        AttrProcessor::Derive(derive_id) => {
+                            // Check this type has the relevant trait `#[generate_derive]`-ed on it
+                            let derive = DERIVES[derive_id];
+                            if !type_def.generates_derive(derive_id) {
+                                panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
+                            }
+
+                            let location = AttrLocation::ast_attr_from_type_def(type_def);
+                            derive.parse_attr(&attr_name, location, &meta)
+                        }
+                        AttrProcessor::Generator(generator_id) => {
+                            let generator = GENERATORS[generator_id];
+                            let location = AttrLocation::ast_attr_from_type_def(type_def);
+                            generator.parse_attr(&attr_name, location, &meta)
+                        }
+                    };
+
+                    assert!(
+                        result.is_ok(),
+                        "Invalid use of `#[ast({attr_name})]` on `{}` type",
+                        type_def.name()
+                    );
+                } else {
+                    panic!("Unknown attribute `#[ast({attr_name})]` on `{}` type", type_def.name());
+                }
+
+                Ok(())
+            })
+            .unwrap();
+    }
+
     /// Get derives which are generated with `#[generate_derive(...)]` attrs.
     fn get_generated_derives(&self, attrs: &[Attribute]) -> Derives {
         let mut derives = Derives::none();
@@ -558,29 +612,6 @@ fn check_generics(generics: &Generics, name: &str) -> bool {
         1 => true,
         _ => panic!("Types with more than 1 lifetime are not supported: {name}"),
     }
-}
-
-/// Check `#[ast]` attr.
-///
-/// Return `true` for `#[ast(visit)]`, `false` for just `#[ast]`.
-///
-/// # Panics
-/// Panics if does not match either of those patterns.
-fn check_ast_attr(attrs: &[Attribute]) -> bool {
-    let ast_attr = attrs.iter().find(|attr| attr.path().is_ident("ast")).unwrap();
-    match &ast_attr.meta {
-        Meta::Path(_) => return false,
-        Meta::List(_) => {
-            if let Ok(path) = ast_attr.parse_args::<Path>() {
-                if path.is_ident("visit") {
-                    return true;
-                }
-            }
-        }
-        Meta::NameValue(_) => {}
-    }
-
-    panic!("Invalid `#[ast] attr: {}", ast_attr.to_token_stream());
 }
 
 /// Get first segment from `TypePath`.

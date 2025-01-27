@@ -28,7 +28,6 @@ pub struct EnumDef {
 
 impl EnumDef {
     /// Create new [`EnumDef`].
-    #[expect(clippy::too_many_arguments)]
     pub fn new(
         id: TypeId,
         name: String,
@@ -37,7 +36,6 @@ impl EnumDef {
         generated_derives: Derives,
         variants: Vec<VariantDef>,
         inherits: Vec<TypeId>,
-        is_visited: bool,
     ) -> Self {
         Self {
             id,
@@ -47,7 +45,7 @@ impl EnumDef {
             generated_derives,
             variants,
             inherits,
-            is_visited,
+            is_visited: false,
             has_kind: false,
             layout: Layout::default(),
         }
