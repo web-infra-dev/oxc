@@ -1,5 +1,5 @@
 // Auto-generated code, DO NOT EDIT DIRECTLY!
-// To edit this generated file you have to edit `tasks/ast_tools/src/derives/estree.rs`
+// To edit this generated file you have to edit `tasks/ast_gen/src/derives/estree.rs`
 
 #![allow(unused_imports, unused_mut, clippy::match_same_arms)]
 
@@ -9,179 +9,85 @@ use crate::operator::*;
 
 impl Serialize for AssignmentOperator {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match *self {
-            AssignmentOperator::Assign => {
-                serializer.serialize_unit_variant("AssignmentOperator", 0u32, "=")
-            }
-            AssignmentOperator::Addition => {
-                serializer.serialize_unit_variant("AssignmentOperator", 1u32, "+=")
-            }
-            AssignmentOperator::Subtraction => {
-                serializer.serialize_unit_variant("AssignmentOperator", 2u32, "-=")
-            }
-            AssignmentOperator::Multiplication => {
-                serializer.serialize_unit_variant("AssignmentOperator", 3u32, "*=")
-            }
-            AssignmentOperator::Division => {
-                serializer.serialize_unit_variant("AssignmentOperator", 4u32, "/=")
-            }
-            AssignmentOperator::Remainder => {
-                serializer.serialize_unit_variant("AssignmentOperator", 5u32, "%=")
-            }
-            AssignmentOperator::Exponential => {
-                serializer.serialize_unit_variant("AssignmentOperator", 6u32, "**=")
-            }
-            AssignmentOperator::ShiftLeft => {
-                serializer.serialize_unit_variant("AssignmentOperator", 7u32, "<<=")
-            }
-            AssignmentOperator::ShiftRight => {
-                serializer.serialize_unit_variant("AssignmentOperator", 8u32, ">>=")
-            }
-            AssignmentOperator::ShiftRightZeroFill => {
-                serializer.serialize_unit_variant("AssignmentOperator", 9u32, ">>>=")
-            }
-            AssignmentOperator::BitwiseOR => {
-                serializer.serialize_unit_variant("AssignmentOperator", 10u32, "|=")
-            }
-            AssignmentOperator::BitwiseXOR => {
-                serializer.serialize_unit_variant("AssignmentOperator", 11u32, "^=")
-            }
-            AssignmentOperator::BitwiseAnd => {
-                serializer.serialize_unit_variant("AssignmentOperator", 12u32, "&=")
-            }
-            AssignmentOperator::LogicalOr => {
-                serializer.serialize_unit_variant("AssignmentOperator", 13u32, "||=")
-            }
-            AssignmentOperator::LogicalAnd => {
-                serializer.serialize_unit_variant("AssignmentOperator", 14u32, "&&=")
-            }
-            AssignmentOperator::LogicalNullish => {
-                serializer.serialize_unit_variant("AssignmentOperator", 15u32, "??=")
-            }
+        match self {
+            AssignmentOperator::Assign(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Addition(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Subtraction(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Multiplication(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Division(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Remainder(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::Exponential(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::ShiftLeft(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::ShiftRight(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::ShiftRightZeroFill(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::BitwiseOR(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::BitwiseXOR(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::BitwiseAnd(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::LogicalOr(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::LogicalAnd(x) => Serialize::serialize(x, serializer),
+            AssignmentOperator::LogicalNullish(x) => Serialize::serialize(x, serializer),
         }
     }
 }
 
 impl Serialize for BinaryOperator {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match *self {
-            BinaryOperator::Equality => {
-                serializer.serialize_unit_variant("BinaryOperator", 0u32, "==")
-            }
-            BinaryOperator::Inequality => {
-                serializer.serialize_unit_variant("BinaryOperator", 1u32, "!=")
-            }
-            BinaryOperator::StrictEquality => {
-                serializer.serialize_unit_variant("BinaryOperator", 2u32, "===")
-            }
-            BinaryOperator::StrictInequality => {
-                serializer.serialize_unit_variant("BinaryOperator", 3u32, "!==")
-            }
-            BinaryOperator::LessThan => {
-                serializer.serialize_unit_variant("BinaryOperator", 4u32, "<")
-            }
-            BinaryOperator::LessEqualThan => {
-                serializer.serialize_unit_variant("BinaryOperator", 5u32, "<=")
-            }
-            BinaryOperator::GreaterThan => {
-                serializer.serialize_unit_variant("BinaryOperator", 6u32, ">")
-            }
-            BinaryOperator::GreaterEqualThan => {
-                serializer.serialize_unit_variant("BinaryOperator", 7u32, ">=")
-            }
-            BinaryOperator::Addition => {
-                serializer.serialize_unit_variant("BinaryOperator", 8u32, "+")
-            }
-            BinaryOperator::Subtraction => {
-                serializer.serialize_unit_variant("BinaryOperator", 9u32, "-")
-            }
-            BinaryOperator::Multiplication => {
-                serializer.serialize_unit_variant("BinaryOperator", 10u32, "*")
-            }
-            BinaryOperator::Division => {
-                serializer.serialize_unit_variant("BinaryOperator", 11u32, "/")
-            }
-            BinaryOperator::Remainder => {
-                serializer.serialize_unit_variant("BinaryOperator", 12u32, "%")
-            }
-            BinaryOperator::Exponential => {
-                serializer.serialize_unit_variant("BinaryOperator", 13u32, "**")
-            }
-            BinaryOperator::ShiftLeft => {
-                serializer.serialize_unit_variant("BinaryOperator", 14u32, "<<")
-            }
-            BinaryOperator::ShiftRight => {
-                serializer.serialize_unit_variant("BinaryOperator", 15u32, ">>")
-            }
-            BinaryOperator::ShiftRightZeroFill => {
-                serializer.serialize_unit_variant("BinaryOperator", 16u32, ">>>")
-            }
-            BinaryOperator::BitwiseOR => {
-                serializer.serialize_unit_variant("BinaryOperator", 17u32, "|")
-            }
-            BinaryOperator::BitwiseXOR => {
-                serializer.serialize_unit_variant("BinaryOperator", 18u32, "^")
-            }
-            BinaryOperator::BitwiseAnd => {
-                serializer.serialize_unit_variant("BinaryOperator", 19u32, "&")
-            }
-            BinaryOperator::In => serializer.serialize_unit_variant("BinaryOperator", 20u32, "in"),
-            BinaryOperator::Instanceof => {
-                serializer.serialize_unit_variant("BinaryOperator", 21u32, "instanceof")
-            }
+        match self {
+            BinaryOperator::Equality(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Inequality(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::StrictEquality(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::StrictInequality(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::LessThan(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::LessEqualThan(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::GreaterThan(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::GreaterEqualThan(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Addition(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Subtraction(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Multiplication(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Division(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Remainder(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Exponential(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::ShiftLeft(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::ShiftRight(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::ShiftRightZeroFill(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::BitwiseOR(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::BitwiseXOR(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::BitwiseAnd(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::In(x) => Serialize::serialize(x, serializer),
+            BinaryOperator::Instanceof(x) => Serialize::serialize(x, serializer),
         }
     }
 }
 
 impl Serialize for LogicalOperator {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match *self {
-            LogicalOperator::Or => serializer.serialize_unit_variant("LogicalOperator", 0u32, "||"),
-            LogicalOperator::And => {
-                serializer.serialize_unit_variant("LogicalOperator", 1u32, "&&")
-            }
-            LogicalOperator::Coalesce => {
-                serializer.serialize_unit_variant("LogicalOperator", 2u32, "??")
-            }
+        match self {
+            LogicalOperator::Or(x) => Serialize::serialize(x, serializer),
+            LogicalOperator::And(x) => Serialize::serialize(x, serializer),
+            LogicalOperator::Coalesce(x) => Serialize::serialize(x, serializer),
         }
     }
 }
 
 impl Serialize for UnaryOperator {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match *self {
-            UnaryOperator::UnaryPlus => {
-                serializer.serialize_unit_variant("UnaryOperator", 0u32, "+")
-            }
-            UnaryOperator::UnaryNegation => {
-                serializer.serialize_unit_variant("UnaryOperator", 1u32, "-")
-            }
-            UnaryOperator::LogicalNot => {
-                serializer.serialize_unit_variant("UnaryOperator", 2u32, "!")
-            }
-            UnaryOperator::BitwiseNot => {
-                serializer.serialize_unit_variant("UnaryOperator", 3u32, "~")
-            }
-            UnaryOperator::Typeof => {
-                serializer.serialize_unit_variant("UnaryOperator", 4u32, "typeof")
-            }
-            UnaryOperator::Void => serializer.serialize_unit_variant("UnaryOperator", 5u32, "void"),
-            UnaryOperator::Delete => {
-                serializer.serialize_unit_variant("UnaryOperator", 6u32, "delete")
-            }
+        match self {
+            UnaryOperator::UnaryPlus(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::UnaryNegation(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::LogicalNot(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::BitwiseNot(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::Typeof(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::Void(x) => Serialize::serialize(x, serializer),
+            UnaryOperator::Delete(x) => Serialize::serialize(x, serializer),
         }
     }
 }
 
 impl Serialize for UpdateOperator {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match *self {
-            UpdateOperator::Increment => {
-                serializer.serialize_unit_variant("UpdateOperator", 0u32, "++")
-            }
-            UpdateOperator::Decrement => {
-                serializer.serialize_unit_variant("UpdateOperator", 1u32, "--")
-            }
+        match self {
+            UpdateOperator::Increment(x) => Serialize::serialize(x, serializer),
+            UpdateOperator::Decrement(x) => Serialize::serialize(x, serializer),
         }
     }
 }

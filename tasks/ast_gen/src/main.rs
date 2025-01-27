@@ -102,18 +102,6 @@ fn main() {
     }
 
     for runner in DERIVES {
-        if ![
-            "DeriveCloneIn",
-            "DeriveGetSpan",
-            "DeriveGetSpanMut",
-            "DeriveContentEq",
-            "DeriveGetAddress",
-        ]
-        .contains(&runner.name())
-        {
-            continue;
-        }
-
         log!("Derive {}... ", runner.trait_name());
         let result = runner.run(&schema, &codegen);
         log_result!(result);

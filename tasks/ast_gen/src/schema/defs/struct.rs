@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
@@ -131,6 +132,11 @@ impl FieldDef {
     /// Get field name.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    /// Get field name in camel case.
+    pub fn camel_name(&self) -> Option<String> {
+        self.name().map(|name| name.to_case(Case::Camel))
     }
 
     /// Get field name, or "unnamed" if it's not named.
