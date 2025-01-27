@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    codegen::{AttrLocation, AttrPositions, AttrProcessor, Codegen},
+    codegen::{AttrLocation, AttrPositions, AttrProcessor, Codegen, DeriveId},
     schema::{
         BoxDef, CellDef, Def, EnumDef, FieldDef, File, FileId, OptionDef, PrimitiveDef, Schema,
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
@@ -221,8 +221,7 @@ impl<'c> Parser<'c> {
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
                     if let AttrProcessor::Derive(derive_id) = processor {
                         if !generated_derives.has(derive_id) {
-                            let derive = DERIVES[derive_id];
-                            panic_not_derived(struct_def.name(), &attr_name, derive.trait_name());
+                            panic_not_derived(struct_def.name(), &attr_name, derive_id);
                         }
                     }
 
@@ -298,8 +297,7 @@ impl<'c> Parser<'c> {
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
                     if let AttrProcessor::Derive(derive_id) = processor {
                         if !generated_derives.has(derive_id) {
-                            let derive = DERIVES[derive_id];
-                            panic_not_derived(enum_def.name(), &attr_name, derive.trait_name());
+                            panic_not_derived(enum_def.name(), &attr_name, derive_id);
                         }
                     }
 
@@ -489,8 +487,7 @@ impl<'c> Parser<'c> {
                 // Check this type has the relevant trait `#[generate_derive]`-ed on it
                 if let AttrProcessor::Derive(derive_id) = processor {
                     if !type_def.generates_derive(derive_id) {
-                        let derive = DERIVES[derive_id];
-                        panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
+                        panic_not_derived(type_def.name(), &attr_name, derive_id);
                     }
                 }
 
@@ -538,8 +535,7 @@ impl<'c> Parser<'c> {
                     // Check this type has the relevant trait `#[generate_derive]`-ed on it
                     if let AttrProcessor::Derive(derive_id) = processor {
                         if !type_def.generates_derive(derive_id) {
-                            let derive = DERIVES[derive_id];
-                            panic_not_derived(type_def.name(), &attr_name, derive.trait_name());
+                            panic_not_derived(type_def.name(), &attr_name, derive_id);
                         }
                     }
 
@@ -630,7 +626,8 @@ fn type_path_segment(type_path: &TypePath) -> Option<&PathSegment> {
 }
 
 /// Panic with message that expected trait is not derived
-fn panic_not_derived(type_name: &str, attr_name: &str, trait_name: &str) {
+fn panic_not_derived(type_name: &str, attr_name: &str, derive_id: DeriveId) {
+    let trait_name = DERIVES[derive_id].trait_name();
     panic!(
         "`{type_name}` type has `#[{attr_name}]` attribute, but `{trait_name}` trait \
         that handles `#[{attr_name}]` is not derived on `{type_name}`.\n\
