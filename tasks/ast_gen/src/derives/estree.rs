@@ -1,9 +1,9 @@
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::Meta;
+use quote::{quote, ToTokens};
+use syn::{punctuated::Punctuated, Meta, Token};
 
 use crate::{
-    schema::{estree::ESTreeStruct, Def, EnumDef, Schema, StructDef},
+    schema::{Def, EnumDef, Schema, StructDef},
     Result,
 };
 
@@ -26,10 +26,60 @@ impl Derive for DeriveESTree {
         &[("estree", attr_positions!(Struct | Enum | StructField | EnumVariant))]
     }
 
-    fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, _meta: &Meta) -> Result<()> {
+    fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
         match location {
             AttrLocation::Struct(_struct_def) => {
                 // TODO
+                Ok(())
+            }
+            AttrLocation::StructField(struct_def, field_index) => {
+                /*
+                let attr_str = meta.to_token_stream().to_string();
+                println!(
+                    "> {}::{} = {}",
+                    struct_def.name(),
+                    struct_def.field(field_index).name().unwrap(),
+                    &attr_str
+                );
+                */
+
+                // TODO: Fails  to parse `estree(type = "string | null")`
+                #[expect(clippy::print_stdout, clippy::overly_complex_bool_expr)]
+                if struct_def.name() == "ForStatement" && false {
+                    if let Meta::List(meta_list) = meta {
+                        let attr_str = meta.to_token_stream().to_string();
+                        println!(
+                            "> {}::{} = {}",
+                            struct_def.name(),
+                            struct_def.field(field_index).name().unwrap(),
+                            &attr_str
+                        );
+                        // dbg!(meta_list);
+
+                        let punctuated = meta_list
+                            .parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+                            .unwrap();
+                        for punc in &punctuated {
+                            // println!("{punc:?}");
+                            match punc {
+                                Meta::Path(path) => {
+                                    let ident = path.get_ident().unwrap();
+                                    println!("path: {ident}");
+                                    if ident == "skip" {
+                                        struct_def.field_mut(field_index).estree.skip = true;
+                                    }
+                                }
+                                Meta::List(list) => {
+                                    println!("list: {list:?}");
+                                }
+                                Meta::NameValue(name_value) => {
+                                    println!("name value: {name_value:?}");
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Ok(())
             }
             _ => Ok(()),
@@ -86,6 +136,10 @@ fn serialize_struct(struct_def: &StructDef) -> TokenStream {
     fields.push(quote! { map.serialize_entry("type", #type_name)?; });
 
     for field in &struct_def.fields {
+        if field.estree.skip {
+            continue;
+        }
+
         let field_name_camel = field.camel_name().unwrap();
         let field_ident = field.ident().unwrap();
         fields.push(quote!( map.serialize_entry(#field_name_camel, &self.#field_ident)?; ));

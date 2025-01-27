@@ -7,7 +7,10 @@ use syn::Ident;
 
 use crate::utils::create_ident;
 
-use super::{estree::ESTreeStruct, Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId};
+use super::{
+    estree::{ESTreeStruct, ESTreeStructField},
+    Def, Derives, FileId, Layout, Offset, Schema, TypeDef, TypeId,
+};
 
 /// Type definition for a struct.
 #[derive(Debug)]
@@ -124,12 +127,20 @@ pub struct FieldDef {
     pub visibility: Visibility,
     pub offset: Offset,
     pub clone_in_default: bool,
+    pub estree: ESTreeStructField,
 }
 
 impl FieldDef {
     /// Create new [`FieldDef`].
     pub fn new(name: Option<String>, type_id: TypeId, visibility: Visibility) -> Self {
-        Self { name, type_id, visibility, offset: Offset::default(), clone_in_default: false }
+        Self {
+            name,
+            type_id,
+            visibility,
+            offset: Offset::default(),
+            clone_in_default: false,
+            estree: ESTreeStructField::default(),
+        }
     }
 
     /// Get field name.

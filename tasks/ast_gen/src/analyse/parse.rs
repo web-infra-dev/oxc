@@ -55,6 +55,7 @@ struct Parser<'c> {
     boxes: FxHashMap<TypeId, TypeId>,
     vecs: FxHashMap<TypeId, TypeId>,
     cells: FxHashMap<TypeId, TypeId>,
+    attrs: FxIndexSet<String>,
 }
 
 impl<'c> Parser<'c> {
@@ -73,6 +74,7 @@ impl<'c> Parser<'c> {
             boxes: FxHashMap::default(),
             vecs: FxHashMap::default(),
             cells: FxHashMap::default(),
+            attrs: FxIndexSet::default(),
         }
     }
 
@@ -83,6 +85,14 @@ impl<'c> Parser<'c> {
             .map(|(type_id, skeleton)| self.parse_type(type_id, skeleton))
             .collect::<IndexVec<_, _>>();
         types.extend(self.extra_types);
+
+        let mut attrs = self.attrs.into_iter().collect::<Vec<_>>();
+        attrs.sort_unstable();
+        #[expect(clippy::print_stdout)]
+        for attr in attrs {
+            println!("{attr}");
+        }
+
         Schema { types, files: self.files }
     }
 
@@ -198,7 +208,7 @@ impl<'c> Parser<'c> {
     /// [`Derive`]: crate::Derive
     /// [`Generator`]: crate::Generator
     fn parse_field_attrs(
-        &self,
+        &mut self,
         type_def: &mut TypeDef,
         item: &ItemStruct,
         generated_derives: Derives,
@@ -230,7 +240,8 @@ impl<'c> Parser<'c> {
                     );
 
                     let location = AttrLocation::StructField(struct_def, field_index);
-                    let result = process_attr(processor, &attr_name, location, &attr.meta);
+                    let result =
+                        process_attr(processor, &attr_name, location, &attr.meta, &mut self.attrs);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` struct field",
@@ -271,7 +282,7 @@ impl<'c> Parser<'c> {
     /// [`Derive`]: crate::Derive
     /// [`Generator`]: crate::Generator
     fn parse_variant_attrs(
-        &self,
+        &mut self,
         type_def: &mut TypeDef,
         item: &ItemEnum,
         generated_derives: Derives,
@@ -303,7 +314,8 @@ impl<'c> Parser<'c> {
                     );
 
                     let location = AttrLocation::EnumVariant(enum_def, variant_index);
-                    let result = process_attr(processor, &attr_name, location, &attr.meta);
+                    let result =
+                        process_attr(processor, &attr_name, location, &attr.meta, &mut self.attrs);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[{attr_name}]` on `{}::{}` enum variant",
@@ -499,7 +511,8 @@ impl<'c> Parser<'c> {
                     TypeDef::Enum(enum_def) => AttrLocation::Enum(enum_def),
                     _ => unreachable!(),
                 };
-                let result = process_attr(processor, &attr_name, location, &attr.meta);
+                let result =
+                    process_attr(processor, &attr_name, location, &attr.meta, &mut self.attrs);
                 assert!(
                     result.is_ok(),
                     "Invalid use of `#[{attr_name}]` on `{}` type",
@@ -547,7 +560,8 @@ impl<'c> Parser<'c> {
                         TypeDef::Enum(enum_def) => AttrLocation::EnumAstAttr(enum_def),
                         _ => unreachable!(),
                     };
-                    let result = process_attr(processor, &attr_name, location, &meta);
+                    let result =
+                        process_attr(processor, &attr_name, location, &meta, &mut self.attrs);
                     assert!(
                         result.is_ok(),
                         "Invalid use of `#[ast({attr_name})]` on `{}` type",
@@ -624,7 +638,10 @@ fn process_attr(
     attr_name: &str,
     location: AttrLocation,
     meta: &Meta,
+    attrs: &mut FxIndexSet<String>,
 ) -> Result<()> {
+    attrs.insert(meta.to_token_stream().to_string());
+
     match processor {
         AttrProcessor::Derive(derive_id) => {
             DERIVES[derive_id].parse_attr(attr_name, location, meta)
