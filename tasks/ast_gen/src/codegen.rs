@@ -113,11 +113,14 @@ bitflags! {
 
 /// Attribute location.
 pub enum AttrLocation<'s> {
+    #[expect(dead_code)]
     Struct(&'s mut StructDef),
+    #[expect(dead_code)]
     Enum(&'s mut EnumDef),
     /// Struct def and field index
     StructField(&'s mut StructDef, usize),
     /// Enum def and variant index
+    #[expect(dead_code)]
     EnumVariant(&'s mut EnumDef, usize),
 }
 
@@ -127,53 +130,6 @@ impl<'s> AttrLocation<'s> {
             TypeDef::Struct(struct_def) => Self::Struct(struct_def),
             TypeDef::Enum(enum_def) => Self::Enum(enum_def),
             _ => panic!("TypeDef is not a struct or enum"),
-        }
-    }
-
-    /// Convert [`AttrLocation`] to [`StructDef`], if it's an `AttrLocation::Struct`.
-    ///
-    /// # Panics
-    /// Panics if it's not an `AttrLocation::Struct`.
-    #[expect(dead_code)]
-    pub fn into_struct(self) -> &'s mut StructDef {
-        match self {
-            Self::Struct(struct_def) => struct_def,
-            _ => panic!("AttrLocation is not a struct"),
-        }
-    }
-
-    /// Convert [`AttrLocation`] to [`EnumDef`], if it's an `AttrLocation::Enum`.
-    ///
-    /// # Panics
-    /// Panics if it's not an `AttrLocation::Enum`.
-    #[expect(dead_code)]
-    pub fn into_enum(self) -> &'s mut EnumDef {
-        match self {
-            Self::Enum(enum_def) => enum_def,
-            _ => panic!("AttrLocation is not a enum"),
-        }
-    }
-
-    /// Convert [`AttrLocation`] to [`StructDef`] and field index, if it's an `AttrLocation::StructField`.
-    ///
-    /// # Panics
-    /// Panics if it's not an `AttrLocation::StructField`.
-    pub fn into_struct_field(self) -> (&'s mut StructDef, usize) {
-        match self {
-            Self::StructField(struct_def, field_index) => (struct_def, field_index),
-            _ => panic!("AttrLocation is not a struct field"),
-        }
-    }
-
-    /// Convert [`AttrLocation`] to [`EnumDef`] and variant index, if it's an `AttrLocation::EnumVariant`.
-    ///
-    /// # Panics
-    /// Panics if it's not an `AttrLocation::EnumVariant`.
-    #[expect(dead_code)]
-    pub fn into_enum_variant(self) -> (&'s mut EnumDef, usize) {
-        match self {
-            Self::EnumVariant(enum_def, variant_index) => (enum_def, variant_index),
-            _ => panic!("AttrLocation is not an enum variant"),
         }
     }
 }

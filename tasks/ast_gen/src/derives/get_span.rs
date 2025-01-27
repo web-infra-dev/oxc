@@ -24,7 +24,7 @@ impl Derive for DeriveGetSpan {
 
     /// Parse `#[span]` on struct field.
     fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
-        let (struct_def, field_index) = location.into_struct_field();
+        let AttrLocation::StructField(struct_def, field_index) = location else { unreachable!() };
 
         if matches!(meta, Meta::Path(_)) {
             struct_def.span_field_index = Some(field_index);

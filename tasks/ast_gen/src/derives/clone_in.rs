@@ -25,7 +25,7 @@ impl Derive for DeriveCloneIn {
 
     /// Parse `#[clone_in(default)]` on struct field.
     fn parse_attr(&self, _attr_name: &str, location: AttrLocation<'_>, meta: &Meta) -> Result<()> {
-        let (struct_def, field_index) = location.into_struct_field();
+        let AttrLocation::StructField(struct_def, field_index) = location else { unreachable!() };
 
         if let Meta::List(list) = meta {
             if let Ok(path) = list.parse_args::<Path>() {
