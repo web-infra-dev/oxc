@@ -212,6 +212,7 @@ impl<'a> AstBuilder<'a> {
         );
         mem::replace(class, empty_class)
     }
+
     /// Move an array element out by replacing it with an [`ArrayExpressionElement::Elision`].
     pub fn move_array_expression_element(
         self,

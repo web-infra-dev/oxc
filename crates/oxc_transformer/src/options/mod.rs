@@ -78,7 +78,7 @@ impl TransformOptions {
             cwd: PathBuf::new(),
             assumptions: CompilerAssumptions::default(),
             typescript: TypeScriptOptions::default(),
-            decorator: DecoratorOptions::default(),
+            decorator: DecoratorOptions { legacy: true },
             jsx: JsxOptions {
                 development: true,
                 refresh: Some(ReactRefreshOptions::default()),
@@ -150,7 +150,7 @@ impl TryFrom<&BabelOptions> for TransformOptions {
             .or_else(|| options.plugins.typescript.clone())
             .unwrap_or_default();
 
-        let decorator = DecoratorOptions::default();
+        let decorator = DecoratorOptions { legacy: options.plugins.legacy_decorator };
 
         let jsx = if let Some(options) = &options.presets.jsx {
             options.clone()
