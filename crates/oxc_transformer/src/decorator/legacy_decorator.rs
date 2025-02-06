@@ -11,6 +11,15 @@ use oxc_traverse::{BoundIdentifier, Traverse, TraverseCtx};
 
 use crate::{utils::ast_builder::create_prototype_member, Helper, TransformCtx};
 
+struct ClassDecoratorInfo {
+    /// `@dec class C {}` or `class C { constructor(@dec p) {} }`
+    class_or_constructor_parameter_is_decorated: bool,
+    /// `class C { @dec m() {} }`
+    class_element_is_decorated: bool,
+    /// `class C { @(#a in C ? dec() : dec2()) prop = 0; }`
+    has_private_in_expression_in_decorator: bool,
+}
+
 pub struct LegacyDecorator<'a, 'ctx> {
     ctx: &'ctx TransformCtx<'a>,
 }
@@ -87,11 +96,11 @@ impl<'a> LegacyDecorator<'a, '_> {
         class: &mut Class<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> Option<(BoundIdentifier<'a>, Statement<'a>)> {
-        let (
+        let ClassDecoratorInfo {
             class_or_constructor_parameter_is_decorated,
-            child_is_decorated,
+            class_element_is_decorated,
             has_private_in_expression_in_decorator,
-        ) = Self::check_class_has_decorated(class);
+        } = Self::check_class_has_decorated(class);
 
         if class_or_constructor_parameter_is_decorated {
             return Some(self.transform_class_declaration_with_class_decorators(
@@ -99,7 +108,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                 has_private_in_expression_in_decorator,
                 ctx,
             ));
-        } else if child_is_decorated {
+        } else if class_element_is_decorated {
             self.transform_class_declaration_without_class_decorators(
                 class,
                 has_private_in_expression_in_decorator,
@@ -107,6 +116,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             );
         }
 
+        // No decorators found
         None
     }
 
@@ -557,10 +567,10 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
-    ///
-    fn check_class_has_decorated(class: &Class<'a>) -> (bool, bool, bool) {
+    /// Check if a class or its elements have decorators.
+    fn check_class_has_decorated(class: &Class<'a>) -> ClassDecoratorInfo {
         let mut class_or_constructor_parameter_is_decorated = !class.decorators.is_empty();
-        let mut child_is_decorated = false;
+        let mut class_element_is_decorated = false;
         let mut has_private_in_expression_in_decorator = false;
 
         for element in &class.body.body {
@@ -577,18 +587,18 @@ impl<'a> LegacyDecorator<'a, '_> {
                     }
                 }
                 ClassElement::MethodDefinition(method) => {
-                    child_is_decorated |= !method.decorators.is_empty()
+                    class_element_is_decorated |= !method.decorators.is_empty()
                         || Self::class_method_parameter_is_decorated(&method.value);
 
-                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                    if class_element_is_decorated && !has_private_in_expression_in_decorator {
                         has_private_in_expression_in_decorator =
                             PrivateInExpressionDetector::has_private_in_expression_in_method_decorator(method);
                     }
                 }
                 ClassElement::PropertyDefinition(prop) => {
-                    child_is_decorated |= !prop.decorators.is_empty();
+                    class_element_is_decorated |= !prop.decorators.is_empty();
 
-                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                    if class_element_is_decorated && !has_private_in_expression_in_decorator {
                         has_private_in_expression_in_decorator =
                             PrivateInExpressionDetector::has_private_in_expression(
                                 &prop.decorators,
@@ -596,9 +606,9 @@ impl<'a> LegacyDecorator<'a, '_> {
                     }
                 }
                 ClassElement::AccessorProperty(accessor) => {
-                    child_is_decorated |= !accessor.decorators.is_empty();
+                    class_element_is_decorated |= !accessor.decorators.is_empty();
 
-                    if child_is_decorated && !has_private_in_expression_in_decorator {
+                    if class_element_is_decorated && !has_private_in_expression_in_decorator {
                         has_private_in_expression_in_decorator =
                             PrivateInExpressionDetector::has_private_in_expression(
                                 &accessor.decorators,
@@ -609,11 +619,11 @@ impl<'a> LegacyDecorator<'a, '_> {
             }
         }
 
-        (
+        ClassDecoratorInfo {
             class_or_constructor_parameter_is_decorated,
-            child_is_decorated,
+            class_element_is_decorated,
             has_private_in_expression_in_decorator,
-        )
+        }
     }
 
     /// Check if a class method parameter is decorated.
