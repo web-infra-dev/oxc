@@ -415,7 +415,18 @@ rebuilt        : SymbolId(3): Span { start: 195, end: 196 }
 x Output mismatch
 
 * typescript/constructor/parameter/decoratorOnClassConstructorParameter1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol span mismatch for "C":
+after transform: SymbolId(3): Span { start: 155, end: 156 }
+rebuilt        : SymbolId(0): Span { start: 0, end: 0 }
+Symbol span mismatch for "C":
+after transform: SymbolId(5): Span { start: 0, end: 0 }
+rebuilt        : SymbolId(1): Span { start: 155, end: 156 }
+Unresolved references mismatch:
+after transform: ["Function", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/constructor/parameter/decoratorOnClassConstructorParameter4/input.ts
 
@@ -729,13 +740,31 @@ after transform: ["TypedPropertyDescriptor", "babelHelpers", "dec"]
 rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Object", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter2/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Symbol reference IDs mismatch for "C":
+after transform: SymbolId(3): [ReferenceId(1), ReferenceId(4)]
+rebuilt        : SymbolId(0): [ReferenceId(3)]
+Unresolved references mismatch:
+after transform: ["Object", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/parameter/decoratorOnClassMethodParameter3/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Unresolved references mismatch:
+after transform: ["Promise", "babelHelpers", "dec"]
+rebuilt        : ["babelHelpers", "dec"]
 
 * typescript/method/parameter/decoratorOnClassMethodThisParameter/input.ts
 
