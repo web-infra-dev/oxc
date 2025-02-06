@@ -350,8 +350,10 @@ impl<'a> LegacyDecorator<'a, '_> {
 
             // `Class` or `Class.prototype`
             let prefix = Self::get_class_member_prefix(class_binding, is_static, ctx);
-            let key = self.get_expression_for_property_name(key, ctx);
-            decoration_stmts.push(self.create_decorator(decorations, prefix, key, descriptor, ctx));
+            let name = self.get_name_of_property_key(key, ctx);
+            // `_decorator([...decorators], Class, name, descriptor)`
+            let decorator_stmt = self.create_decorator(decorations, prefix, name, descriptor, ctx);
+            decoration_stmts.push(decorator_stmt);
         }
 
         decoration_stmts
@@ -575,7 +577,19 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
-    fn get_expression_for_property_name(
+    /// Get the name of the property key.
+    ///
+    /// * StaticIdentifier: `a = 0;` -> `a`
+    /// * PrivateIdentifier: `#a = 0;` -> `""`
+    /// * Computed property key:
+    ///  * Copiable key:
+    ///    * NumericLiteral: `[1] = 0;` -> `1`
+    ///    * StringLiteral: `["a"] = 0;` -> `"a"`
+    ///    * TemplateLiteral: `[`a`] = 0;` -> `a`
+    ///    * NullLiteral: `[null] = 0;` -> `null`
+    ///  * Non-copiable key:
+    ///    * `[a()] = 0;` mutates the key to `[_a = a()] = 0;` and returns `_a`
+    fn get_name_of_property_key(
         &mut self,
         key: &mut PropertyKey<'a>,
         ctx: &mut TraverseCtx<'a>,
@@ -584,7 +598,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             PropertyKey::StaticIdentifier(ident) => {
                 ctx.ast.expression_string_literal(SPAN, ident.name, None)
             }
-            // Legacy decorators do not support private properties/methods/accessors
+            // Legacy decorators do not support private key
             PropertyKey::PrivateIdentifier(_) => ctx.ast.expression_string_literal(SPAN, "", None),
             // Copiable literals
             PropertyKey::NumericLiteral(literal) => {
@@ -594,62 +608,48 @@ impl<'a> LegacyDecorator<'a, '_> {
                 Expression::StringLiteral(ctx.ast.alloc(literal.clone()))
             }
             PropertyKey::TemplateLiteral(literal) if literal.expressions.is_empty() => {
-                ctx.ast.expression_template_literal(
-                    SPAN,
-                    ctx.ast.vec_from_iter(literal.quasis.iter().cloned()),
-                    ctx.ast.vec(),
-                )
+                let quasis = ctx.ast.vec_from_iter(literal.quasis.iter().cloned());
+                ctx.ast.expression_template_literal(SPAN, quasis, ctx.ast.vec())
             }
             PropertyKey::NullLiteral(_) => ctx.ast.expression_null_literal(SPAN),
             _ => {
-                let expr = ctx.ast.move_expression(key.to_expression_mut());
-                let binding = self.ctx.var_declarations.create_uid_var_based_on_node(&expr, ctx);
-
-                let left = binding.create_read_write_target(ctx);
-
-                // FIXME: This is a little different from the typescript version, we need to check if this is correct
-                //
                 // ```js
                 // Input:
                 // class Test {
                 //  static [a()] = 0;
                 // }
-                //
-                // TypeScript Output:
-                // let _a;
-                // class Test {
-                //   static { _a = a(); }
-                //   static { this[_a] = 0; }
-                // }
-                //
-                // Our Output:
+
+                // Output:
                 // let _a;
                 // class Test {
                 //   static [_a = a()] = 0;
                 // ```
 
-                // binding = expr
-                let key_expr =
-                    ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, expr);
+                // Create a unique binding for the computed property key, and insert it outside of the class
+                let binding = self.ctx.var_declarations.create_uid_var_based_on_node(key, ctx);
+                let operator = AssignmentOperator::Assign;
+                let left = binding.create_read_write_target(ctx);
+                let right = ctx.ast.move_expression(key.to_expression_mut());
+                let key_expr = ctx.ast.expression_assignment(SPAN, operator, left, right);
                 *key = PropertyKey::from(key_expr);
                 binding.create_read_expression(ctx)
             }
         }
     }
 
-    /// `_decorator([...decorators], Class, "key", descriptor)`
+    /// `_decorator([...decorators], Class, name, descriptor)`
     fn create_decorator(
         &self,
         decorations: Expression<'a>,
         prefix: Expression<'a>,
-        key: Expression<'a>,
+        name: Expression<'a>,
         descriptor: Expression<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> Statement<'a> {
         let arguments = ctx.ast.vec_from_array([
             Argument::from(decorations),
             Argument::from(prefix),
-            Argument::from(key),
+            Argument::from(name),
             Argument::from(descriptor),
         ]);
         let helper = self.ctx.helper_call_expr(Helper::Decorate, SPAN, arguments, ctx);
