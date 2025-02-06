@@ -642,7 +642,7 @@ impl<'a> LegacyDecorator<'a, '_> {
     /// ```
     ///
     /// Returns:
-    /// ```
+    /// ```js
     /// [
     ///   dec,
     ///   _decorateParam(0, dec)
@@ -808,13 +808,14 @@ impl<'a> LegacyDecorator<'a, '_> {
             }
             PropertyKey::NullLiteral(_) => ctx.ast.expression_null_literal(SPAN),
             _ => {
-                // ```js
+                // ```ts
                 // Input:
                 // class Test {
                 //  static [a()] = 0;
                 // }
 
                 // Output:
+                // ```js
                 // let _a;
                 // class Test {
                 //   static [_a = a()] = 0;
