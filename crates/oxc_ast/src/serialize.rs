@@ -108,7 +108,7 @@ pub struct SerRegExpValue {
 
 /// A placeholder for regexp literals that can't be serialized to JSON
 #[derive(Serialize)]
-#[allow(clippy::empty_structs_with_brackets)]
+#[expect(clippy::empty_structs_with_brackets)]
 pub struct EmptyObject {}
 
 impl<'a> From<&RegExpLiteral<'a>> for ESTreeLiteral<'a, Option<EmptyObject>> {
