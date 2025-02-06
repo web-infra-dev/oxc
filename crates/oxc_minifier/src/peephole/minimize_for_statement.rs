@@ -1,3 +1,4 @@
+use oxc_allocator::Vec;
 use oxc_ast::ast::*;
 use oxc_span::GetSpan;
 
@@ -8,7 +9,17 @@ use super::PeepholeOptimizations;
 impl<'a> PeepholeOptimizations {
     /// `mangleFor`: <https://github.com/evanw/esbuild/blob/v0.24.2/internal/js_ast/js_parser.go#L9801>
     pub fn minimize_for_statement(&mut self, for_stmt: &mut ForStatement<'a>, ctx: Ctx<'a, '_>) {
-        let Some(Statement::IfStatement(if_stmt)) = for_stmt.body.get_one_child_mut() else {
+        // Get the first statement in the loop
+        let mut first = &for_stmt.body;
+        if let Statement::BlockStatement(block_stmt) = first {
+            if let Some(b) = block_stmt.body.get(0) {
+                first = b;
+            } else {
+                return;
+            }
+        };
+
+        let Statement::IfStatement(if_stmt) = first else {
             return;
         };
         // "for (;;) if (x) break;" => "for (; !x;) ;"
@@ -19,6 +30,9 @@ impl<'a> PeepholeOptimizations {
             if break_stmt.label.is_some() {
                 return;
             }
+
+            let for_stmt_body = ctx.ast.move_statement(&mut for_stmt.body);
+
             let expr = match ctx.ast.move_expression(&mut if_stmt.test) {
                 Expression::UnaryExpression(unary_expr) if unary_expr.operator.is_not() => {
                     unary_expr.unbox().argument
@@ -31,8 +45,8 @@ impl<'a> PeepholeOptimizations {
             } else {
                 for_stmt.test = Some(expr);
             }
-            for_stmt.body =
-                if_stmt.alternate.take().unwrap_or_else(|| ctx.ast.statement_empty(if_stmt.span));
+            for_stmt.body = Self::drop_first_statement(body, if_stmt.alternate.take(), ctx);
+            // if_stmt.alternate.take().unwrap_or_else(|| ctx.ast.statement_empty(if_stmt.span));
             self.mark_current_function_as_changed();
             return;
         }
@@ -53,6 +67,29 @@ impl<'a> PeepholeOptimizations {
             }
             for_stmt.body = ctx.ast.move_statement(&mut if_stmt.consequent);
             self.mark_current_function_as_changed();
+        }
+    }
+
+    fn drop_first_statement(
+        body: Statement<'a>,
+        replace: Option<Statement<'a>>,
+        ctx: Ctx<'a, '_>,
+    ) -> Statement<'a> {
+        let span = body.span();
+        match body {
+            Statement::BlockStatement(mut block_stmt) if !block_stmt.body.is_empty() => {
+                if let Some(replace) = replace {
+                    block_stmt.body[0] = replace;
+                } else if block_stmt.body.len() == 2
+                    && !Self::statement_cares_about_scope(&block_stmt.body[1])
+                {
+                    return ctx.ast.move_statement(&mut block_stmt.body[1]);
+                } else {
+                    block_stmt.body.remove(0);
+                }
+                Statement::BlockStatement(block_stmt)
+            }
+            _ => replace.unwrap_or_else(|| ctx.ast.statement_empty(span)),
         }
     }
 }
