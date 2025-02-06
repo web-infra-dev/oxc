@@ -1,6 +1,6 @@
 //! Typescript Experimental Decorator
 
-use std::mem::swap;
+use std::mem;
 
 use oxc_allocator::{Address, Vec as ArenaVec};
 use oxc_ast::{ast::*, Visit, VisitMut, NONE};
@@ -234,7 +234,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             self.transform_decorators_of_class_elements(class, &class_binding, ctx);
 
         if has_private_in_expression_in_decorator {
-            let stmts = ctx.ast.vec_from_iter(decoration_stmts.drain(..));
+            let stmts = mem::replace(&mut decoration_stmts, ctx.ast.vec());
             Self::insert_decorations_into_class_static_block(class, stmts, ctx);
         }
 
@@ -357,6 +357,30 @@ impl<'a> LegacyDecorator<'a, '_> {
         decoration_stmts
     }
 
+    /// Insert all decorations into a static block of a class because there is a
+    /// private-in expression in the decorator.
+    ///
+    /// Input:
+    /// ```ts
+    /// class Cls {
+    ///   #a =0;
+    ///   @(#a in Cls ? dec() : dec2())
+    ///   prop = 0;
+    /// }
+    /// ```
+    ///
+    /// Output:
+    /// ```js
+    /// class Cls {
+    ///     #a = 0;
+    ///     prop = 0;
+    ///     static {
+    ///         __decorate([
+    ///             (#a in Cls ? dec() : dec2())
+    ///         ], Cls.prototype, "prop", void 0);
+    ///     }
+    /// }
+    /// ```
     fn insert_decorations_into_class_static_block(
         class: &mut Class<'a>,
         decorations: ArenaVec<'a, Statement<'a>>,
@@ -459,7 +483,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         let decorations = if let Some(constructor) = constructor {
             // Constructor cannot have decorators, swap decorators of class and constructor to use
             // `get_all_decorators_of_class_method` to get all decorators of the class and constructor params
-            swap(&mut class.decorators, &mut constructor.decorators);
+            mem::swap(&mut class.decorators, &mut constructor.decorators);
             //  constructor.decorators
             self.get_all_decorators_of_class_method(constructor, ctx)
                 .expect("At least one decorator")
