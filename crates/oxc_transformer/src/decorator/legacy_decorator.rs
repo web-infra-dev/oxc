@@ -22,6 +22,7 @@ impl<'a, 'ctx> LegacyDecorator<'a, 'ctx> {
 }
 
 impl<'a> Traverse<'a> for LegacyDecorator<'a, '_> {
+    #[inline]
     fn enter_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         match stmt {
             Statement::ClassDeclaration(_) => self.transform_class(stmt, ctx),
@@ -90,7 +91,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             class_or_constructor_parameter_is_decorated,
             child_is_decorated,
             has_private_in_expression_in_decorator,
-        ) = Self::check_class_decorators(class);
+        ) = Self::check_class_has_decorated(class);
 
         if class_or_constructor_parameter_is_decorated {
             return Some(self.transform_class_declaration_with_class_decorators(
@@ -224,7 +225,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         let class_binding = class_binding
             .unwrap_or_else(|| ctx.generate_uid_in_current_scope("default", SymbolFlags::Class));
 
-        let constructor_decoration = self.generate_constructor_decoration_expression(
+        let constructor_decoration = self.transform_decorators_of_class_and_constructor(
             class,
             &class_binding,
             class_alias_binding.as_ref(),
@@ -275,7 +276,6 @@ impl<'a> LegacyDecorator<'a, '_> {
         ctx: &mut TraverseCtx<'a>,
     ) {
         // `export default class {}`
-        // class.id.map(|ident| BoundIdentifier::from_binding_ident(&ident)).get_or_insert(|| {});
         let class_binding = if let Some(ident) = &class.id {
             BoundIdentifier::from_binding_ident(ident)
         } else {
@@ -295,6 +295,8 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
+    /// Transform decorators of [`ClassElement::MethodDefinition`],
+    /// [`ClassElement::PropertyDefinition`] and [`ClassElement::AccessorProperty`].
     fn transform_decorators_of_class_elements(
         &mut self,
         class: &mut Class<'a>,
@@ -357,28 +359,85 @@ impl<'a> LegacyDecorator<'a, '_> {
         decoration_stmts
     }
 
+    /// Transform the decorators of class and constructor method.
+    ///
+    /// Input:
+    /// ```ts
+    /// @dec
+    /// class Class {
+    ///   method(@dec param) {}
+    /// }
+    /// ```
+    ///
+    /// These decorators transform into:
+    /// ```
+    /// __decorate([
+    ///   __param(0, dec)
+    ///   ], Class.prototype, "method", null);
+    ///
+    /// Class = __decorate([
+    ///   dec
+    /// ], Class);
+    /// ```
+    fn transform_decorators_of_class_and_constructor(
+        &self,
+        class: &mut Class<'a>,
+        class_binding: &BoundIdentifier<'a>,
+        class_alias_binding: Option<&BoundIdentifier<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Statement<'a> {
+        // Find first constructor method from the class
+        let constructor = class.body.body.iter_mut().find_map(|element| match element {
+            ClassElement::MethodDefinition(method) if method.kind.is_constructor() => Some(method),
+            _ => None,
+        });
+
+        let decorations = if let Some(constructor) = constructor {
+            // Constructor cannot have decorators, swap decorators of class and constructor to use
+            // `get_all_decorators_of_class_method` to get all decorators of the class and constructor params
+            mem::swap(&mut class.decorators, &mut constructor.decorators);
+            //  constructor.decorators
+            self.get_all_decorators_of_class_method(constructor, ctx)
+                .expect("At least one decorator")
+        } else {
+            Self::convert_decorators_to_array_expression(class.decorators.drain(..), ctx)
+        };
+
+        // `Class = __decorate(decorations, Class)`
+        let arguments = ctx.ast.vec_from_array([
+            Argument::from(decorations),
+            Argument::from(class_binding.create_read_expression(ctx)),
+        ]);
+        let helper = self.ctx.helper_call_expr(Helper::Decorate, SPAN, arguments, ctx);
+        let operator = AssignmentOperator::Assign;
+        let left = class_binding.create_write_target(ctx);
+        let right = Self::get_class_initializer(helper, class_alias_binding, ctx);
+        let assignment = ctx.ast.expression_assignment(SPAN, operator, left, right);
+        ctx.ast.statement_expression(SPAN, assignment)
+    }
+
     /// Insert all decorations into a static block of a class because there is a
     /// private-in expression in the decorator.
     ///
     /// Input:
     /// ```ts
-    /// class Cls {
+    /// class Class {
     ///   #a =0;
-    ///   @(#a in Cls ? dec() : dec2())
+    ///   @(#a in Class ? dec() : dec2())
     ///   prop = 0;
     /// }
     /// ```
     ///
     /// Output:
     /// ```js
-    /// class Cls {
-    ///     #a = 0;
-    ///     prop = 0;
-    ///     static {
-    ///         __decorate([
-    ///             (#a in Cls ? dec() : dec2())
-    ///         ], Cls.prototype, "prop", void 0);
-    ///     }
+    /// class Class {
+    ///   #a = 0;
+    ///   prop = 0;
+    ///   static {
+    ///     __decorate([
+    ///         (#a in Class ? dec() : dec2())
+    ///     ], Class.prototype, "prop", void 0);
+    ///   }
     /// }
     /// ```
     fn insert_decorations_into_class_static_block(
@@ -392,6 +451,67 @@ impl<'a> LegacyDecorator<'a, '_> {
         class.body.body.push(element);
     }
 
+    /// Transforms the decorators of the parameters of a class method.
+    #[allow(clippy::cast_precision_loss)]
+    fn transform_decorators_of_parameters(
+        &self,
+        decorations: &mut ArenaVec<'a, ArrayExpressionElement<'a>>,
+        params: &mut FormalParameters<'a>,
+        ctx: &mut TraverseCtx<'a>,
+    ) {
+        for (index, param) in &mut params.items.iter_mut().enumerate() {
+            if param.decorators.is_empty() {
+                continue;
+            }
+            decorations.extend(param.decorators.drain(..).map(|decorator| {
+                // (index, decorator)
+                let index = ctx.ast.expression_numeric_literal(
+                    SPAN,
+                    index as f64,
+                    None,
+                    NumberBase::Decimal,
+                );
+                let arguments = ctx
+                    .ast
+                    .vec_from_array([Argument::from(index), Argument::from(decorator.expression)]);
+                // __decoratorParam(index, decorator)
+                ArrayExpressionElement::from(self.ctx.helper_call_expr(
+                    Helper::DecorateParam,
+                    decorator.span,
+                    arguments,
+                    ctx,
+                ))
+            }));
+        }
+    }
+
+    /// Converts a vec of [`Decorator`] to [`Expression::ArrayExpression`].
+    fn convert_decorators_to_array_expression(
+        decorators_iter: impl Iterator<Item = Decorator<'a>>,
+        ctx: &mut TraverseCtx<'a>,
+    ) -> Expression<'a> {
+        let decorations = ctx.ast.vec_from_iter(
+            decorators_iter.map(|decorator| ArrayExpressionElement::from(decorator.expression)),
+        );
+        ctx.ast.expression_array(SPAN, decorations, None)
+    }
+
+    /// Get all decorators of a class method.
+    ///
+    /// ```ts
+    /// class Class {
+    ///   @dec
+    ///   method(@dec param) {}
+    /// }
+    /// ```
+    ///
+    /// Returns:
+    /// ```
+    /// [
+    ///   dec,
+    ///   __param(0, dec)
+    /// ]
+    /// ```
     fn get_all_decorators_of_class_method(
         &self,
         method: &mut MethodDefinition<'a>,
@@ -414,97 +534,12 @@ impl<'a> LegacyDecorator<'a, '_> {
                 .map(|decorator| ArrayExpressionElement::from(decorator.expression)),
         );
 
+        // The decorators of params are always inserted at the end if any.
         if param_decoration_count > 0 {
-            self.transform_decorators_of_parameters(
-                &mut decorations,
-                &mut method.value.params,
-                ctx,
-            );
+            self.transform_decorators_of_parameters(&mut decorations, params, ctx);
         }
 
         Some(ctx.ast.expression_array(SPAN, decorations, None))
-    }
-
-    #[allow(clippy::cast_precision_loss)]
-    fn transform_decorators_of_parameters(
-        &self,
-        decorations: &mut ArenaVec<'a, ArrayExpressionElement<'a>>,
-        params: &mut FormalParameters<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-        for (index, param) in &mut params.items.iter_mut().enumerate() {
-            if param.decorators.is_empty() {
-                continue;
-            }
-            decorations.extend(param.decorators.drain(..).map(|decorator| {
-                // (index, decorator)
-                let arguments = ctx.ast.vec_from_array([
-                    Argument::from(ctx.ast.expression_numeric_literal(
-                        SPAN,
-                        index as f64,
-                        None,
-                        NumberBase::Decimal,
-                    )),
-                    Argument::from(decorator.expression),
-                ]);
-                // __decoratorParam(index, decorator)
-                ArrayExpressionElement::from(self.ctx.helper_call_expr(
-                    Helper::DecorateParam,
-                    decorator.span,
-                    arguments,
-                    ctx,
-                ))
-            }));
-        }
-    }
-
-    fn convert_decorators_to_array_expression(
-        decorators_iter: impl Iterator<Item = Decorator<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) -> Expression<'a> {
-        let decorations = ctx.ast.vec_from_iter(
-            decorators_iter.map(|decorator| ArrayExpressionElement::from(decorator.expression)),
-        );
-        ctx.ast.expression_array(SPAN, decorations, None)
-    }
-
-    fn generate_constructor_decoration_expression(
-        &self,
-        class: &mut Class<'a>,
-        class_binding: &BoundIdentifier<'a>,
-        class_alias_binding: Option<&BoundIdentifier<'a>>,
-        ctx: &mut TraverseCtx<'a>,
-    ) -> Statement<'a> {
-        let constructor = class.body.body.iter_mut().find_map(|element| match element {
-            ClassElement::MethodDefinition(method) if method.kind.is_constructor() => Some(method),
-            _ => None,
-        });
-
-        let decorations = if let Some(constructor) = constructor {
-            // Constructor cannot have decorators, swap decorators of class and constructor to use
-            // `get_all_decorators_of_class_method` to get all decorators of the class and constructor params
-            mem::swap(&mut class.decorators, &mut constructor.decorators);
-            //  constructor.decorators
-            self.get_all_decorators_of_class_method(constructor, ctx)
-                .expect("At least one decorator")
-        } else {
-            Self::convert_decorators_to_array_expression(class.decorators.drain(..), ctx)
-        };
-
-        let arguments = ctx.ast.vec_from_array([
-            Argument::from(decorations),
-            Argument::from(class_binding.create_read_expression(ctx)),
-        ]);
-
-        let left = class_binding.create_write_target(ctx);
-        let right = Self::get_class_initializer(
-            self.ctx.helper_call_expr(Helper::Decorate, SPAN, arguments, ctx),
-            class_alias_binding,
-            ctx,
-        );
-        let assignment =
-            ctx.ast.expression_assignment(SPAN, AssignmentOperator::Assign, left, right);
-        ctx.ast.statement_expression(SPAN, assignment)
     }
 
     /// * class_alias_binding is `Some`: `Class = _Class = expr`
@@ -522,7 +557,8 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
-    fn check_class_decorators(class: &Class<'a>) -> (bool, bool, bool) {
+    ///
+    fn check_class_has_decorated(class: &Class<'a>) -> (bool, bool, bool) {
         let mut class_or_constructor_parameter_is_decorated = !class.decorators.is_empty();
         let mut child_is_decorated = false;
         let mut has_private_in_expression_in_decorator = false;
@@ -580,6 +616,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         )
     }
 
+    /// Check if a class method parameter is decorated.
     fn class_method_parameter_is_decorated(func: &Function<'a>) -> bool {
         func.params.items.iter().any(|param| !param.decorators.is_empty())
     }
