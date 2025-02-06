@@ -1,4 +1,47 @@
-//! Typescript Experimental Decorator
+//! Legacy decorator
+//!
+//! This plugin transforms legacy decorators by calling `_decorate` and `_decorateParam` helpers
+//! to apply decorators.
+//!
+//! ## Examples
+//!
+//! Input:
+//! ```ts
+//! @dec
+//! class Class {
+//!   @dec
+//!   prop = 0;
+//!
+//!   @dec
+//!   method(@dec param) {}
+//! }
+//! ```
+//!
+//! Output:
+//! ```js
+//! let Class = class Class {
+//!   prop = 0;
+//!   method(param) {}
+//! };
+//!
+//! _decorate([dec], Class.prototype, "method", null);
+//!
+//! _decorate([
+//!   _decorateParam(0, dec)
+//! ], Class.prototype, "method", null);
+//!
+//! Class = _decorate([dec], Class);
+//! ```
+//!
+//! ## Implementation
+//!
+//! Implementation based on [TypeScript Experimental Decorators](https://github.com/microsoft/TypeScript/blob/d85767abfd83880cea17cea70f9913e9c4496dcc/src/compiler/transformers/legacyDecorators.ts).
+//!
+//! For testing, we have copied over all legacy decorator test cases from [TypeScript](https://github.com/microsoft/TypeScript/blob/d85767abfd83880cea17cea70f9913e9c4496dcc/tests/cases/conformance/decorators),
+//! where the test cases are located in `./tasks/transform_conformance/tests/legacy-decorators/test/fixtures`.
+//!
+//! ## References:
+//! * TypeScript Experimental Decorators documentation: <https://www.typescriptlang.org/docs/handbook/decorators.html>
 
 use std::mem;
 
