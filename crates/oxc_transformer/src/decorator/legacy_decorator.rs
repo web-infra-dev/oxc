@@ -301,8 +301,6 @@ impl<'a> LegacyDecorator<'a, '_> {
         class_binding: &BoundIdentifier<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> ArenaVec<'a, Statement<'a>> {
-        // FIXME: In TypeScript, it will transform non-static class elements and static class elements
-        // separately so that static decorators will be inserted last. Check if there is any reason to do this.
         let mut decoration_stmts = ctx.ast.vec_with_capacity(class.body.body.len());
 
         for element in &mut class.body.body {
