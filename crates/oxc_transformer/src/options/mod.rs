@@ -78,7 +78,7 @@ impl TransformOptions {
             cwd: PathBuf::new(),
             assumptions: CompilerAssumptions::default(),
             typescript: TypeScriptOptions::default(),
-            decorator: DecoratorOptions { legacy: true },
+            decorator: DecoratorOptions::default(),
             jsx: JsxOptions {
                 development: true,
                 refresh: Some(ReactRefreshOptions::default()),
