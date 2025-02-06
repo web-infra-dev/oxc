@@ -65,11 +65,11 @@ impl<'a> LegacyDecorator<'a, '_> {
     ///   method(param) { }
     /// };
     ///
-    /// __decorate([
-    ///   __param(0, dec)
+    /// _decorate([
+    ///   _decorateParam(0, dec)
     /// ], Class.prototype, "method", null);
     ///
-    /// Class = __decorate([
+    /// Class = _decorate([
     ///   dec
     /// ], Class);
     /// ```
@@ -99,11 +99,11 @@ impl<'a> LegacyDecorator<'a, '_> {
     ///   method(param) { }
     /// };
     ///
-    /// __decorate([
-    ///   __param(0, dec)
+    /// _decorate([
+    ///   _decorateParam(0, dec)
     /// ], Class.prototype, "method", null);
     ///
-    /// Class = __decorate([
+    /// Class = _decorate([
     ///   dec
     /// ], Class);
     ///
@@ -146,11 +146,11 @@ impl<'a> LegacyDecorator<'a, '_> {
     ///   method(param) { }
     /// };
     ///
-    /// __decorate([
-    ///   __param(0, dec)
+    /// _decorate([
+    ///   _decorateParam(0, dec)
     /// ], Class.prototype, "method", null);
     ///
-    /// Class = __decorate([
+    /// Class = _decorate([
     ///   dec
     /// ], Class);
     ///
@@ -223,11 +223,11 @@ impl<'a> LegacyDecorator<'a, '_> {
         //  ---------------------------------------------------------------------
         //  @dec                            | let C = class C {
         //  class C {                       | }
-        //  }                               | C = __decorate([dec], C);
+        //  }                               | C = _decorate([dec], C);
         //  ---------------------------------------------------------------------
         //  @dec                            | let C = class C {
         //  export class C {                | }
-        //  }                               | C = __decorate([dec], C);
+        //  }                               | C = _decorate([dec], C);
         //                                  | export { C };
         //  ---------------------------------------------------------------------
         //
@@ -249,14 +249,14 @@ impl<'a> LegacyDecorator<'a, '_> {
         //  class C {                       |   static x() { return C_1.y; }
         //    static x() { return C.y; }    | }
         //    static y = 1;                 | C.y = 1;
-        //  }                               | C = C_1 = __decorate([dec], C);
+        //  }                               | C = C_1 = _decorate([dec], C);
         //                                  | var C_1;
         //  ---------------------------------------------------------------------
         //  @dec                            | let C = class C {
         //  export class C {                |   static x() { return C_1.y; }
         //    static x() { return C.y; }    | }
         //    static y = 1;                 | C.y = 1;
-        //  }                               | C = C_1 = __decorate([dec], C);
+        //  }                               | C = C_1 = _decorate([dec], C);
         //                                  | export { C };
         //                                  | var C_1;
         //  ---------------------------------------------------------------------
@@ -270,12 +270,12 @@ impl<'a> LegacyDecorator<'a, '_> {
         //  ---------------------------------------------------------------------
         //  @dec                            | let default_1 = class {
         //  export default class {          | }
-        //  }                               | default_1 = __decorate([dec], default_1);
+        //  }                               | default_1 = _decorate([dec], default_1);
         //                                  | export default default_1;
         //  ---------------------------------------------------------------------
         //  @dec                            | let C = class C {
         //  export default class C {        | }
-        //  }                               | C = __decorate([dec], C);
+        //  }                               | C = _decorate([dec], C);
         //                                  | export default C;
         //  ---------------------------------------------------------------------
         //
@@ -291,7 +291,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         //  export default class C {        |   static x() { return C_1.y; }
         //    static x() { return C.y; }    | }
         //    static y = 1;                 | C.y = 1;
-        //  }                               | C = C_1 = __decorate([dec], C);
+        //  }                               | C = C_1 = _decorate([dec], C);
         //                                  | export default C;
         //                                  | var C_1;
         //  ---------------------------------------------------------------------
@@ -406,7 +406,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                         continue;
                     };
 
-                    // We emit `null` here to indicate to `__decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
+                    // We emit `null` here to indicate to `_decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
                     // We have this extra argument here so that we can inject an explicit property descriptor at a later date.
                     let descriptor = ctx.ast.expression_null_literal(SPAN);
 
@@ -418,7 +418,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                         ctx,
                     );
 
-                    // We emit `void 0` here to indicate to `__decorate` that it can invoke `Object.defineProperty` directly, but that it
+                    // We emit `void 0` here to indicate to `_decorate` that it can invoke `Object.defineProperty` directly, but that it
                     // should not invoke `Object.getOwnPropertyDescriptor`.
                     let descriptor = ctx.ast.void_0(SPAN);
 
@@ -430,7 +430,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                         ctx,
                     );
 
-                    // We emit `null` here to indicate to `__decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
+                    // We emit `null` here to indicate to `_decorate` that it can invoke `Object.getOwnPropertyDescriptor` directly.
                     // We have this extra argument here so that we can inject an explicit property descriptor at a later date.
                     let descriptor = ctx.ast.expression_null_literal(SPAN);
 
@@ -464,11 +464,11 @@ impl<'a> LegacyDecorator<'a, '_> {
     ///
     /// These decorators transform into:
     /// ```
-    /// __decorate([
-    ///   __param(0, dec)
+    /// _decorate([
+    ///   _decorateParam(0, dec)
     ///   ], Class.prototype, "method", null);
     ///
-    /// Class = __decorate([
+    /// Class = _decorate([
     ///   dec
     /// ], Class);
     /// ```
@@ -496,7 +496,7 @@ impl<'a> LegacyDecorator<'a, '_> {
             Self::convert_decorators_to_array_expression(class.decorators.drain(..), ctx)
         };
 
-        // `Class = __decorate(decorations, Class)`
+        // `Class = _decorate(decorations, Class)`
         let arguments = ctx.ast.vec_from_array([
             Argument::from(decorations),
             Argument::from(class_binding.create_read_expression(ctx)),
@@ -527,7 +527,7 @@ impl<'a> LegacyDecorator<'a, '_> {
     ///   #a = 0;
     ///   prop = 0;
     ///   static {
-    ///     __decorate([
+    ///     _decorate([
     ///         (#a in Class ? dec() : dec2())
     ///     ], Class.prototype, "prop", void 0);
     ///   }
@@ -567,7 +567,7 @@ impl<'a> LegacyDecorator<'a, '_> {
                 let arguments = ctx
                     .ast
                     .vec_from_array([Argument::from(index), Argument::from(decorator.expression)]);
-                // __decoratorParam(index, decorator)
+                // _decorateParam(index, decorator)
                 ArrayExpressionElement::from(self.ctx.helper_call_expr(
                     Helper::DecorateParam,
                     decorator.span,
@@ -602,7 +602,7 @@ impl<'a> LegacyDecorator<'a, '_> {
     /// ```
     /// [
     ///   dec,
-    ///   __param(0, dec)
+    ///   _decorateParam(0, dec)
     /// ]
     /// ```
     fn get_all_decorators_of_class_method(
