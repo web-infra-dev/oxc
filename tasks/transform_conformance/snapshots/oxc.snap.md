@@ -726,7 +726,15 @@ after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
 rebuilt        : ScopeId(0): [ScopeId(1)]
 
 * typescript/method/decoratorOnClassMethodOverload1/input.ts
-x Output mismatch
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2)]
+rebuilt        : ScopeId(0): [ScopeId(1)]
+Scope children mismatch:
+after transform: ScopeId(2): [ScopeId(3), ScopeId(4)]
+rebuilt        : ScopeId(1): [ScopeId(2)]
+Unresolved references mismatch:
+after transform: ["TypedPropertyDescriptor", "dec"]
+rebuilt        : []
 
 * typescript/method/decoratorOnClassMethodOverload2/input.ts
 Scope children mismatch:
