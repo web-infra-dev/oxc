@@ -48,6 +48,31 @@ impl<'a> Traverse<'a> for LegacyDecorator<'a, '_> {
 }
 
 impl<'a> LegacyDecorator<'a, '_> {
+    /// Transforms a statement that is a class declaration
+    ///
+    ///
+    /// Input:
+    /// ```ts
+    /// @dec
+    /// class Class {
+    ///   method(@dec param) {}
+    /// }
+    /// ```
+    ///
+    /// Output:
+    /// ```js
+    /// let Class = class Class {
+    ///   method(param) { }
+    /// };
+    ///
+    /// __decorate([
+    ///   __param(0, dec)
+    /// ], Class.prototype, "method", null);
+    ///
+    /// Class = __decorate([
+    ///   dec
+    /// ], Class);
+    /// ```
     // `#[inline]` so that compiler sees that `stmt` is a `Statement::ClassDeclaration`.
     #[inline]
     fn transform_class(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
@@ -58,6 +83,32 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
+    /// Transforms a statement that is a export default class declaration
+    ///
+    /// Input:
+    /// ```ts
+    /// @dec
+    /// export default class Class {
+    ///   method(@dec param) {}
+    /// }
+    /// ```
+    ///
+    /// Output:
+    /// ```js
+    /// let Class = class Class {
+    ///   method(param) { }
+    /// };
+    ///
+    /// __decorate([
+    ///   __param(0, dec)
+    /// ], Class.prototype, "method", null);
+    ///
+    /// Class = __decorate([
+    ///   dec
+    /// ], Class);
+    ///
+    /// export default Class;
+    /// ```
     // `#[inline]` so that compiler sees that `stmt` is a `Statement::ExportDefaultDeclaration`.
     #[inline]
     fn transform_export_default_class(
@@ -79,6 +130,32 @@ impl<'a> LegacyDecorator<'a, '_> {
         self.ctx.statement_injector.insert_after(stmt, export_default_class_reference);
     }
 
+    /// Transforms a statement that is a export named class declaration
+    ///
+    /// Input:
+    /// ```ts
+    /// @dec
+    /// export class Class {
+    ///   method(@dec param) {}
+    /// }
+    /// ```
+    ///
+    /// Output:
+    /// ```js
+    /// let Class = class Class {
+    ///   method(param) { }
+    /// };
+    ///
+    /// __decorate([
+    ///   __param(0, dec)
+    /// ], Class.prototype, "method", null);
+    ///
+    /// Class = __decorate([
+    ///   dec
+    /// ], Class);
+    ///
+    /// export { Class };
+    /// ```
     // `#[inline]` so that compiler sees that `stmt` is a `Statement::ExportNamedDeclaration`.
     #[inline]
     fn transform_export_named_class(
