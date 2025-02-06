@@ -1,7 +1,7 @@
 // Functions which are no-ops or just delegate to other methods are marked `#[inline(always)]`
 #![expect(clippy::inline_always)]
 
-use std::{marker::PhantomData, ptr};
+use std::{marker::PhantomData, num, ptr};
 
 pub use serde::Serializer as SerdeSerializer;
 use serde::{
@@ -252,7 +252,6 @@ macro_rules! impl_estree_primitive {
     };
 }
 
-impl_estree_primitive!(bool, serialize_bool);
 impl_estree_primitive!(u8, serialize_u8);
 impl_estree_primitive!(u16, serialize_u16);
 impl_estree_primitive!(u32, serialize_u32);
@@ -265,9 +264,101 @@ impl_estree_primitive!(i64, serialize_i64);
 impl_estree_primitive!(i128, serialize_i128);
 impl_estree_primitive!(f32, serialize_f32);
 impl_estree_primitive!(f64, serialize_f64);
+
+impl_estree_primitive!(bool, serialize_bool);
 impl_estree_primitive!(char, serialize_char);
 impl_estree_primitive!(&str, serialize_str);
 impl_estree_primitive!(&[u8], serialize_bytes);
+
+impl ESTree for usize {
+    // `#[inline(always)]` because this just delegates to `SerdeSerialize` method
+    #[inline(always)]
+    fn serialize<C: SerConfig, S: SerdeSerializer>(
+        &self,
+        serializer: ESTreeSerializer<C, S>,
+    ) -> Result<S::Ok, S::Error> {
+        #[expect(clippy::cast_possible_truncation)]
+        if cfg!(target_pointer_width = "32") {
+            serializer.serde_serializer.serialize_u32(*self as u32)
+        } else {
+            serializer.serde_serializer.serialize_u64(*self as u64)
+        }
+    }
+}
+
+impl ESTree for isize {
+    // `#[inline(always)]` because this just delegates to `SerdeSerialize` method
+    #[inline(always)]
+    fn serialize<C: SerConfig, S: SerdeSerializer>(
+        &self,
+        serializer: ESTreeSerializer<C, S>,
+    ) -> Result<S::Ok, S::Error> {
+        #[expect(clippy::cast_possible_truncation)]
+        if cfg!(target_pointer_width = "32") {
+            serializer.serde_serializer.serialize_i32(*self as i32)
+        } else {
+            serializer.serde_serializer.serialize_i64(*self as i64)
+        }
+    }
+}
+
+macro_rules! impl_estree_non_zero {
+    ($ty:ty, $method:ident) => {
+        impl ESTree for $ty {
+            // `#[inline(always)]` because this just delegates to `SerdeSerialize` method
+            #[inline(always)]
+            fn serialize<C: SerConfig, S: SerdeSerializer>(
+                &self,
+                serializer: ESTreeSerializer<C, S>,
+            ) -> Result<S::Ok, S::Error> {
+                serializer.serde_serializer.$method(self.get())
+            }
+        }
+    };
+}
+
+impl_estree_non_zero!(num::NonZeroU8, serialize_u8);
+impl_estree_non_zero!(num::NonZeroU16, serialize_u16);
+impl_estree_non_zero!(num::NonZeroU32, serialize_u32);
+impl_estree_non_zero!(num::NonZeroU64, serialize_u64);
+impl_estree_non_zero!(num::NonZeroU128, serialize_u128);
+impl_estree_non_zero!(num::NonZeroI8, serialize_i8);
+impl_estree_non_zero!(num::NonZeroI16, serialize_i16);
+impl_estree_non_zero!(num::NonZeroI32, serialize_i32);
+impl_estree_non_zero!(num::NonZeroI64, serialize_i64);
+impl_estree_non_zero!(num::NonZeroI128, serialize_i128);
+
+impl ESTree for num::NonZeroUsize {
+    // `#[inline(always)]` because this just delegates to `SerdeSerialize` method
+    #[inline(always)]
+    fn serialize<C: SerConfig, S: SerdeSerializer>(
+        &self,
+        serializer: ESTreeSerializer<C, S>,
+    ) -> Result<S::Ok, S::Error> {
+        #[expect(clippy::cast_possible_truncation)]
+        if cfg!(target_pointer_width = "32") {
+            serializer.serde_serializer.serialize_u32(self.get() as u32)
+        } else {
+            serializer.serde_serializer.serialize_u64(self.get() as u64)
+        }
+    }
+}
+
+impl ESTree for num::NonZeroIsize {
+    // `#[inline(always)]` because this just delegates to `SerdeSerialize` method
+    #[inline(always)]
+    fn serialize<C: SerConfig, S: SerdeSerializer>(
+        &self,
+        serializer: ESTreeSerializer<C, S>,
+    ) -> Result<S::Ok, S::Error> {
+        #[expect(clippy::cast_possible_truncation)]
+        if cfg!(target_pointer_width = "32") {
+            serializer.serde_serializer.serialize_i32(self.get() as i32)
+        } else {
+            serializer.serde_serializer.serialize_i64(self.get() as i64)
+        }
+    }
+}
 
 impl ESTree for () {
     // `#[inline(always)]` because this just delegates to `SerdeSerialize::serialize_unit`
