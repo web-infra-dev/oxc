@@ -4,7 +4,10 @@
 use std::{marker::PhantomData, ptr};
 
 pub use serde::Serializer as SerdeSerializer;
-use serde::{ser::SerializeMap, Serialize as SerdeSerialize};
+use serde::{
+    ser::{SerializeMap, SerializeSeq},
+    Serialize as SerdeSerialize,
+};
 use serde_json::Serializer as SerdeJsonSerializer;
 
 use oxc_allocator::{Box as ArenaBox, Vec as ArenaVec};
@@ -217,40 +220,6 @@ impl<'v, C: SerConfig, T: ESTree> NodeWrapper<C, T> {
         // value it contains. So it's OK to convert a `&T` to a `&NodeWrapper<C, T>`.
         unsafe { &*ptr::from_ref(value).cast::<NodeWrapper<C, T>>() }
     }
-
-    /// Convert a ref to an `Option` containing an AST node to a ref to an `Option`
-    /// containing a [`NodeWrapper`] containing that node.
-    //
-    // `#[inline(always)]` because it's a no-op
-    #[inline(always)]
-    #[expect(clippy::ref_option)]
-    fn wrap_option(value: &'v Option<T>) -> &'v Option<NodeWrapper<C, T>> {
-        // SAFETY: `NodeWrapper` is `#[repr(transparent)]` so guaranteed to have same layout as the
-        // value it contains. So it's OK to convert an `&Option<T>` to a `&Option<NodeWrapper<C, T>>`.
-        unsafe { &*ptr::from_ref(value).cast::<Option<NodeWrapper<C, T>>>() }
-    }
-
-    /// Convert a ref to a `Box` containing an AST node to a ref to a `Box` containing a [`NodeWrapper`]
-    /// containing that node.
-    //
-    // `#[inline(always)]` because it's a no-op
-    #[inline(always)]
-    fn wrap_box<'a>(value: &'v ArenaBox<'a, T>) -> &'v ArenaBox<'a, NodeWrapper<C, T>> {
-        // SAFETY: `NodeWrapper` is `#[repr(transparent)]` so guaranteed to have same layout as the
-        // value it contains. So it's OK to convert a `&Box<T>` to a `&Box<NodeWrapper<C, T>>`.
-        unsafe { &*ptr::from_ref(value).cast::<ArenaBox<NodeWrapper<C, T>>>() }
-    }
-
-    /// Convert a ref to a `Vec` of AST nodes to a ref to a `Vec` of [`NodeWrapper`]s
-    /// containing those nodes.
-    //
-    // `#[inline(always)]` because it's a no-op
-    #[inline(always)]
-    fn wrap_vec<'a>(value: &'v ArenaVec<'a, T>) -> &'v ArenaVec<'a, NodeWrapper<C, T>> {
-        // SAFETY: `NodeWrapper` is `#[repr(transparent)]` so guaranteed to have same layout as the
-        // value it contains. So it's OK to convert a `&Vec<T>` to a `&Vec<NodeWrapper<C, T>>`.
-        unsafe { &*ptr::from_ref(value).cast::<ArenaVec<NodeWrapper<C, T>>>() }
-    }
 }
 
 // Implement `serde::Serialize` on all `NodeWrapper`s.
@@ -314,15 +283,19 @@ impl ESTree for () {
 // Implement `ESTree` on `Option`, `Box`, and `Vec`.
 
 impl<T: ESTree> ESTree for Option<T> {
-    // `#[inline(always)]` because this just delegates to `Option::serialize`.
-    // `NodeWrapper::wrap_option` is a no-op.
-    #[inline(always)]
+    // `#[inline]` because this function is very small.
+    #[inline]
     fn serialize<C: SerConfig, S: SerdeSerializer>(
         &self,
         serializer: ESTreeSerializer<C, S>,
     ) -> Result<S::Ok, S::Error> {
-        let wrapped = NodeWrapper::<C, T>::wrap_option(self);
-        wrapped.serialize(serializer.serde_serializer)
+        match self {
+            Some(value) => {
+                let wrapped = NodeWrapper::<C, T>::wrap(value);
+                serializer.serde_serializer.serialize_some(wrapped)
+            }
+            None => serializer.serde_serializer.serialize_none(),
+        }
     }
 }
 
@@ -334,21 +307,22 @@ impl<T: ESTree> ESTree for ArenaBox<'_, T> {
         &self,
         serializer: ESTreeSerializer<C, S>,
     ) -> Result<S::Ok, S::Error> {
-        let wrapped = NodeWrapper::<C, T>::wrap_box(self);
+        let wrapped = NodeWrapper::<C, T>::wrap(self.as_ref());
         wrapped.serialize(serializer.serde_serializer)
     }
 }
 
 impl<T: ESTree> ESTree for ArenaVec<'_, T> {
-    // `#[inline(always)]` because this just delegates to `ArenaVec::serialize`.
-    // `NodeWrapper::wrap_vec` is a no-op.
-    #[inline(always)]
     fn serialize<C: SerConfig, S: SerdeSerializer>(
         &self,
         serializer: ESTreeSerializer<C, S>,
     ) -> Result<S::Ok, S::Error> {
-        let wrapped = NodeWrapper::<C, T>::wrap_vec(self);
-        wrapped.serialize(serializer.serde_serializer)
+        let mut seq = serializer.serde_serializer.serialize_seq(Some(self.len()))?;
+        for element in self {
+            let wrapped = NodeWrapper::<C, T>::wrap(element);
+            seq.serialize_element(wrapped)?;
+        }
+        seq.end()
     }
 }
 
