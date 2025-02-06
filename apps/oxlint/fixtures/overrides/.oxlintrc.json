@@ -1,23 +1,46 @@
 {
+  "globals": {
+    "DefaultFoo": "readonly"
+  },
   "rules": {
     "no-var": "error",
     "no-console": "error"
   },
   "overrides": [
     {
-      "files": ["*.js"],
+      "files": [
+        "*.js"
+      ],
       "rules": {
         "no-console": "warn"
       }
     },
     {
-      "files": ["*.{js,jsx}"],
+      "files": [
+        "*.{js,jsx}"
+      ],
+      "env": {
+        "es2024": true
+      },
+      "globals": {
+        "ReadFoo": "readonly",
+        "WriteBar": "writeable",
+        "NonBaz": "off"
+      },
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["*.ts"],
+      "files": [
+        "*.ts"
+      ],
+      "env": {
+        "es2024": false
+      },
+      "globals": {
+        "DefaultFoo": "off"
+      },
       "rules": {
         "no-console": "warn"
       }

@@ -1,16 +1,38 @@
 {
+  "globals": {
+    "DefaultFoo": "readonly"
+  },
   "rules": {
     "no-debugger": "off"
   },
   "overrides": [
     {
-      "files": ["lib/*.{js,ts}", "src/*"],
+      "files": [
+        "lib/*.{js,ts}",
+        "src/*"
+      ],
+      "env": {
+        "es2024": true
+      },
+      "globals": {
+        "ReadFoo": "readonly",
+        "WriteBar": "writeable",
+        "NonBaz": "off"
+      },
       "rules": {
         "no-debugger": "error"
       }
     },
     {
-      "files": ["**/tests/*"],
+      "files": [
+        "**/tests/*"
+      ],
+      "env": {
+        "es2024": false
+      },
+      "globals": {
+        "DefaultFoo": "off"
+      },
       "rules": {
         "no-debugger": "warn"
       }

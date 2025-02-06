@@ -14,7 +14,16 @@ working directory:
    `----
   help: Replace var with let or const
 
-Found 0 warnings and 1 error.
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/test.js:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+Found 1 warning and 1 error.
 Finished in <variable>ms on 1 file with 99 rules using 1 threads.
 ----------
 CLI result: LintFoundErrors
@@ -38,10 +47,29 @@ working directory:
  1 | var msg = "hello";
  2 | console.log(msg);
    : ^^^^^^^^^^^
+ 3 | 
    `----
   help: Delete this console statement.
 
-Found 1 warning and 1 error.
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/test.ts:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-console.html\eslint(no-console)]8;;\: eslint(no-console): Unexpected console statement.
+    ,-[fixtures/overrides/test.ts:10:1]
+  9 | ReadFoo = 'readable';
+ 10 | console.log(ReadFoo);
+    : ^^^^^^^^^^^
+ 11 | WriteBar = 'writeable';
+    `----
+  help: Delete this console statement.
+
+Found 3 warnings and 1 error.
 Finished in <variable>ms on 1 file with 99 rules using 1 threads.
 ----------
 CLI result: LintFoundErrors
@@ -60,7 +88,16 @@ working directory:
    `----
   help: Replace var with let or const
 
-Found 0 warnings and 1 error.
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/other.jsx:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+Found 1 warning and 1 error.
 Finished in <variable>ms on 1 file with 99 rules using 1 threads.
 ----------
 CLI result: LintFoundErrors

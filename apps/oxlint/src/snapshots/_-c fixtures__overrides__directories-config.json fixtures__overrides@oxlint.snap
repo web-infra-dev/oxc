@@ -21,20 +21,69 @@ working directory:
   help: Delete this code.
 
   x ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-debugger.html\eslint(no-debugger)]8;;\: `debugger` statement is not allowed
-   ,-[fixtures/overrides/src/oxlint.js:1:1]
- 1 | debugger;
+   ,-[fixtures/overrides/src/oxlint.js:2:1]
+ 1 | // for rules detection
+ 2 | debugger;
    : ^^^^^^^^^
+ 3 | 
    `----
   help: Delete this code.
 
   ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-debugger.html\eslint(no-debugger)]8;;\: `debugger` statement is not allowed
-   ,-[fixtures/overrides/src/tests/index.js:1:1]
- 1 | debugger;
+   ,-[fixtures/overrides/src/tests/index.js:2:1]
+ 1 | // for rules detection
+ 2 | debugger;
    : ^^^^^^^^^
+ 3 | 
    `----
   help: Delete this code.
 
-Found 2 warnings and 2 errors.
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/other.jsx:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/src/oxlint.js:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/src/tests/index.js:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/test.js:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+  ! ]8;;https://oxc.rs/docs/guide/usage/linter/rules/eslint/no-global-assign.html\eslint(no-global-assign)]8;;\: Read-only global 'globalThis' should not be modified.
+   ,-[fixtures/overrides/test.ts:5:1]
+ 4 | // for env detection
+ 5 | globalThis = 'abc';
+   : ^^^^^|^^^^
+   :      `-- Read-only global 'globalThis' should not be modified.
+ 6 | 
+   `----
+
+Found 7 warnings and 2 errors.
 Finished in <variable>ms on 7 files with 96 rules using 1 threads.
 ----------
 CLI result: LintFoundErrors
