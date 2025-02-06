@@ -40,6 +40,14 @@ impl OxlintGlobals {
     {
         self.0.get(name).is_some_and(|value| *value != GlobalValue::Off)
     }
+
+    pub fn is_disabled<Q>(&self, name: &Q) -> bool
+    where
+        String: borrow::Borrow<Q>,
+        Q: ?Sized + Eq + hash::Hash,
+    {
+        self.0.get(name).is_some_and(|value| *value == GlobalValue::Off)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema)]
@@ -141,9 +149,16 @@ mod test {
             "bar": "writable",
             "baz": "off",
         });
+
         assert!(globals.is_enabled("foo"));
         assert!(globals.is_enabled("bar"));
         assert!(!globals.is_enabled("baz"));
+
+        assert!(!globals.is_disabled("foo"));
+        assert!(!globals.is_disabled("bar"));
+        assert!(globals.is_disabled("baz"));
+
+        assert!(!globals.is_disabled("undefined"));
     }
 
     #[test]
@@ -152,8 +167,12 @@ mod test {
             "foo": "readable",
             "bar": "writeable",
         });
+
         assert!(globals.is_enabled("foo"));
         assert!(globals.is_enabled("bar"));
+
+        assert!(!globals.is_disabled("foo"));
+        assert!(!globals.is_disabled("bar"));
     }
 
     #[test]
@@ -162,7 +181,11 @@ mod test {
             "foo": true,
             "bar": false,
         });
+
         assert!(globals.is_enabled("foo"));
         assert!(globals.is_enabled("bar"));
+
+        assert!(!globals.is_disabled("foo"));
+        assert!(!globals.is_disabled("bar"));
     }
 }
