@@ -1755,7 +1755,9 @@ dependencies = [
 name = "oxc_estree"
 version = "0.48.2"
 dependencies = [
+ "oxc_allocator",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
