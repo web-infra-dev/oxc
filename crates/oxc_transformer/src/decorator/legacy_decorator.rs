@@ -204,7 +204,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         //
 
         let span = class.span;
-        // TODO(improve-on-babel): we can take the class id without keeping it as-is.
+        // TODO(improve-on-typescript): we can take the class id without keeping it as-is.
         // Now: `class C {}` -> `let C = class C {}`
         // After: `class C {}` -> `let C = class {}`
         let class_binding = class.id.as_ref().map(|ident| {
