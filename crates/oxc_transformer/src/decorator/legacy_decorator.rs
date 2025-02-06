@@ -31,6 +31,7 @@ impl<'a, 'ctx> LegacyDecorator<'a, 'ctx> {
 }
 
 impl<'a> Traverse<'a> for LegacyDecorator<'a, '_> {
+    // `#[inline]` because this is a hot path
     #[inline]
     fn enter_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         match stmt {
@@ -47,6 +48,7 @@ impl<'a> Traverse<'a> for LegacyDecorator<'a, '_> {
 }
 
 impl<'a> LegacyDecorator<'a, '_> {
+    // `#[inline]` so that compiler sees that `stmt` is a `Statement::ClassDeclaration`.
     #[inline]
     fn transform_class(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
         let Statement::ClassDeclaration(class) = stmt else { unreachable!() };
@@ -56,6 +58,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         }
     }
 
+    // `#[inline]` so that compiler sees that `stmt` is a `Statement::ExportDefaultDeclaration`.
     #[inline]
     fn transform_export_default_class(
         &mut self,
@@ -70,11 +73,13 @@ impl<'a> LegacyDecorator<'a, '_> {
         let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };
         *stmt = new_stmt;
 
+        // `export default Class`
         let export_default_class_reference =
             Self::create_export_default_class_reference(&class_binding, ctx);
         self.ctx.statement_injector.insert_after(stmt, export_default_class_reference);
     }
 
+    // `#[inline]` so that compiler sees that `stmt` is a `Statement::ExportNamedDeclaration`.
     #[inline]
     fn transform_export_named_class(
         &mut self,
@@ -87,6 +92,7 @@ impl<'a> LegacyDecorator<'a, '_> {
         let Some((class_binding, new_stmt)) = self.transform_class_impl(class, ctx) else { return };
         *stmt = new_stmt;
 
+        // `export { Class }`
         let export_class_reference = Self::create_export_named_class_reference(&class_binding, ctx);
         self.ctx.statement_injector.insert_after(stmt, export_class_reference);
     }
