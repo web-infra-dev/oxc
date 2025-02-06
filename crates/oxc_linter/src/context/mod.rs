@@ -2,6 +2,7 @@
 
 use std::{ops::Deref, path::Path, rc::Rc};
 
+use oxc_ast::ast::IdentifierReference;
 use oxc_cfg::ControlFlowGraph;
 use oxc_diagnostics::{OxcDiagnostic, Severity};
 use oxc_semantic::Semantic;
@@ -146,6 +147,12 @@ impl<'a> LintContext<'a> {
     #[inline]
     pub fn globals(&self) -> &OxlintGlobals {
         &self.parent.config.globals
+    }
+
+    /// Checks if the provided identifier is a reference to a global variable.
+    pub fn is_reference_to_global_variable(&self, ident: &IdentifierReference) -> bool {
+        self.scopes().root_unresolved_references().contains_key(ident.name.as_str())
+            && !self.globals().is_disabled(ident.name.as_str())
     }
 
     /// Runtime environments turned on/off by the user.
